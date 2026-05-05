@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traffic Intersection Simulator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+<style>
+/* ── Reset & base ──────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#161b26;--bg3:#1e2434;--bg4:#252d3f;
+  --border:#2a3352;--border2:#3a4666;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --green:#22c55e;--green-bg:#052e16;
+  --yellow:#eab308;--yellow-bg:#2d2500;
+  --red:#ef4444;--red-bg:#2d0a0a;
+  --blue:#3b82f6;--blue-bg:#0c1a3d;
+  --purple:#a78bfa;
+  --accent:#3b82f6;
+  --radius:8px; --radius-sm:5px;
+  font-family:'Segoe UI',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:grid;
+  grid-template-rows:48px 1fr;grid-template-columns:1fr 340px}
+
+/* ── Header ──────────────────────────────────────────────────── */
+header{
+  grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;background:var(--bg2);border-bottom:1px solid var(--border);
+  z-index:20;
+}
+.logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.3px}
+.logo-icon{width:28px;height:28px;position:relative}
+.logo-icon svg{width:100%;height:100%}
+.header-right{display:flex;align-items:center;gap:10px}
+.pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.pill-green{background:var(--green-bg);color:var(--green);border:1px solid #166534}
+.pill-yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid #854d0e}
+.pill-red{background:var(--red-bg);color:var(--red);border:1px solid #991b1b}
+.pill-blue{background:var(--blue-bg);color:var(--blue);border:1px solid #1e3a8a}
+.pill-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+
+/* ── Canvas area ──────────────────────────────────────────────── */
+#canvas-wrap{
+  background:#0a0e14;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+canvas{display:block}
+
+/* ── Side panel ──────────────────────────────────────────────── */
+#panel{
+  background:var(--bg2);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.p-section{
+  border-bottom:1px solid var(--border);padding:14px 16px;
+}
+.p-section:last-child{border-bottom:none;flex:1;overflow:hidden;display:flex;flex-direction:column}
+.sec-title{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--text3);margin-bottom:10px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.btn-row{display:flex;gap:6px}
+.btn{
+  flex:1;padding:8px 6px;font-size:12px;font-weight:600;letter-spacing:.3px;
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--bg3);color:var(--text2);cursor:pointer;
+  transition:all .15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--text3)}
+.btn.active-green{background:var(--green-bg);color:var(--green);border-color:#166534}
+.btn.active-yellow{background:var(--yellow-bg);color:var,--yellow;border-color:#854d0e}
+.btn.active-red{background:var(--red-bg);color:var(--red);border-color:#991b1b}
+.btn.active-blue{background:var(--blue-bg);color:var(--blue);border-color:#1e3a8a}
+
+/* ── Form controls ──────────────────────────────────────────── */
+.ctrl{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ctrl:last-child{margin-bottom:0}
+.ctrl-label{font-size:11px;color:var(--text2);min-width:72px;font-weight:500}
+.ctrl-val{font-size:11px;font-weight:700;color:var(--text);min-width:30px;text-align:right}
+input[type=range]{
+  flex:1;-webkit-appearance:none;height:3px;
+  background:var(--border2);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--bg2);
+}
+select{
+  flex:1;font-size:11px;padding:5px 8px;
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--bg3);color:var(--text);cursor:pointer;outline:none;
+}
+select:focus{border-color:var(--accent)}
+.toggle-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
+.toggle{position:relative;width:32px;height:17px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{
+  position:absolute;inset:0;background:var(--border2);border-radius:9px;transition:.2s;
+}
+.toggle-slider:before{
+  content:'';position:absolute;width:11px;height:11px;
+  left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;
+}
+.toggle input:checked + .toggle-slider{background:var(--green)}
+.toggle input:checked + .toggle-slider:before{transform:translateX(15px)}
+
+/* ── Queue bars ──────────────────────────────────────────────── */
+.q-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.q-dir{font-size:11px;font-weight:700;color:var(--text2);width:22px}
+.q-track{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative}
+.q-fill{height:100%;border-radius:4px;transition:width .4s cubic-bezier(.4,0,.2,1);width:0%}
+.q-ns{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.q-ew{background:linear-gradient(90deg,#d85a30,#f97316)}
+.q-count{font-size:11px;font-weight:700;min-width:24px;text-align:right}
+
+/* ── Metric cards ──────────────────────────────────────────── */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:2px}
+.metric{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;border:1px solid var(--border)}
+.metric-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.metric-val{font-size:22px;font-weight:700;line-height:1.1;margin-top:3px}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.mv-green{color:var(--green)}
+.mv-blue{color:var(--blue)}
+.mv-yellow{color:var(--yellow)}
+.mv-purple{color:var(--purple)}
+
+/* ── Log ──────────────────────────────────────────────────────── */
+.log-scroll{flex:1;overflow-y:auto;padding-right:2px}
+.log-scroll::-webkit-scrollbar{width:3px}
+.log-scroll::-webkit-scrollbar-track{background:transparent}
+.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.log-entry{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:10.5px;font-family:'Cascadia Code','Consolas',monospace;line-height:1.5}
+.log-time{color:var(--text3);min-width:40px}
+.log-msg{flex:1;word-break:break-word}
+.c-green{color:var(--green)}.c-yellow{color:var(--yellow)}
+.c-red{color:var(--red)}.c-blue{color:var(--blue)}.c-gray{color:var(--text2)}
+
+/* ── Status bar (bottom of canvas) ─────────────────────────── */
+#status-bar{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(10,14,20,.85);backdrop-filter:blur(4px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;padding:6px 14px;
+  font-size:11px;color:var(--text2);
+}
+.sb-item{display:flex;align-items:center;gap:5px}
+.sb-dot{width:7px;height:7px;border-radius:50%}
+
+/* ── Connection badge ─────────────────────────────────────── */
+#conn-badge{position:absolute;top:10px;left:14px;z-index:10}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 28 28" fill="none">
+        <rect x="11" y="0" width="6" height="28" rx="2" fill="#2a3352"/>
+        <rect x="0" y="11" width="28" height="6" rx="2" fill="#2a3352"/>
+        <rect x="11" y="0" width="6" height="11" rx="2" fill="#3b82f6" opacity=".8"/>
+        <rect x="17" y="11" width="11" height="6" rx="2" fill="#ef4444" opacity=".8"/>
+        <rect x="11" y="17" width="6" height="11" rx="2" fill="#ef4444" opacity=".8"/>
+        <rect x="0" y="11" width="11" height="6" rx="2" fill="#3b82f6" opacity=".8"/>
+        <circle cx="14" cy="14" r="4" fill="#1e2434"/>
+      </svg>
+    </div>
+    4-Way Intersection Traffic Simulator
+  </div>
+  <div class="header-right">
+    <span id="hdr-scenario" class="pill pill-blue">Normal</span>
+    <span id="hdr-phase" class="pill pill-green">N-S Green</span>
+    <span id="hdr-cycles" class="pill pill-gray">Cycle 0</span>
+    <span id="hdr-time" class="pill pill-gray">T = 0.0s</span>
+    <span id="hdr-conn" class="pill pill-red">Disconnected</span>
+  </div>
+</header>
+
+<!-- ══ CANVAS ══════════════════════════════════════════════════════ -->
+<div id="canvas-wrap">
+  <canvas id="c"></canvas>
+  <div id="status-bar">
+    <div class="sb-item"><div class="sb-dot" style="background:var(--green)"></div>N-S: <span id="sb-ns">GREEN</span></div>
+    <div class="sb-item"><div class="sb-dot" style="background:var(--red)"></div>E-W: <span id="sb-ew">RED</span></div>
+    <div class="sb-item">Active vehicles: <b id="sb-active">0</b></div>
+    <div class="sb-item">Queue N+S: <b id="sb-ns-q">0</b></div>
+    <div class="sb-item">Queue E+W: <b id="sb-ew-q">0</b></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      Phase timer:
+      <div style="width:120px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden">
+        <div id="phase-bar" style="height:100%;width:0%;background:var(--green);transition:width .3s;border-radius:2px"></div>
+      </div>
+      <span id="phase-label" style="color:var(--text3);font-size:10px">NS GREEN</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SIDE PANEL ═══════════════════════════════════════════════════ -->
+<div id="panel">
+
+  <!-- Controls -->
+  <div class="p-section">
+    <div class="sec-title">Simulation Controls</div>
+    <div class="btn-row">
+      <button class="btn" id="btn-start" onclick="cmdStart()">▶ Start</button>
+      <button class="btn" id="btn-pause" onclick="cmdPause()" disabled>⏸ Pause</button>
+      <button class="btn" id="btn-reset" onclick="cmdReset()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Scenario & Road -->
+  <div class="p-section">
+    <div class="sec-title">Scenario & Configuration</div>
+    <div class="ctrl">
+      <span class="ctrl-label">Scenario</span>
+      <select id="sel-scenario" onchange="onCfgChange()">
+        <option value="normal">Normal Traffic</option>
+        <option value="rush">Rush Hour</option>
+        <option value="low">Low Traffic</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-label">Road type</span>
+      <select id="sel-road" onchange="onCfgChange()">
+        <option value="2">2-lane (1 per direction)</option>
+        <option value="4" selected>4-lane (2 per direction)</option>
+        <option value="6">6-lane (3 per direction)</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-label">Speed</span>
+      <input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4"
+        oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()">
+      <span class="ctrl-val" id="v-speed">4×</span>
+    </div>
+    <div class="ctrl" style="margin-top:4px">
+      <span class="ctrl-label">Right-on-red</span>
+      <label class="toggle">
+        <input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()">
+        <span class="toggle-slider"></span>
+      </label>
+      <span style="font-size:11px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span>
+    </div>
+  </div>
+
+  <!-- Signal Timing -->
+  <div class="p-section">
+    <div class="sec-title">Signal Timing</div>
+    <div class="ctrl">
+      <span class="ctrl-label">🟢 Green (s)</span>
+      <input type="range" id="sl-green" min="5" max="60" value="20"
+        oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()">
+      <span class="ctrl-val" id="v-green">20</span>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-label">🟡 Yellow (s)</span>
+      <input type="range" id="sl-yellow" min="2" max="10" value="4"
+        oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()">
+      <span class="ctrl-val" id="v-yellow">4</span>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-label">🔴 Red (s)</span>
+      <input type="range" id="sl-red" min="5" max="60" value="20"
+        oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()">
+      <span class="ctrl-val" id="v-red">20</span>
+    </div>
+  </div>
+
+  <!-- Queue bars -->
+  <div class="p-section">
+    <div class="sec-title">Queue Lengths</div>
+    <div class="q-row"><span class="q-dir">N↓</span><div class="q-track"><div class="q-fill q-ns" id="qb-n"></div></div><span class="q-count" id="qn-n">0</span></div>
+    <div class="q-row"><span class="q-dir">S↑</span><div class="q-track"><div class="q-fill q-ns" id="qb-s"></div></div><span class="q-count" id="qn-s">0</span></div>
+    <div class="q-row"><span class="q-dir">E→</span><div class="q-track"><div class="q-fill q-ew" id="qb-e"></div></div><span class="q-count" id="qn-e">0</span></div>
+    <div class="q-row"><span class="q-dir">W←</span><div class="q-track"><div class="q-fill q-ew" id="qb-w"></div></div><span class="q-count" id="qn-w">0</span></div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="p-section">
+    <div class="sec-title">Statistics</div>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-label">Cars passed</div>
+        <div class="metric-val mv-green" id="m-passed">0</div>
+        <div class="metric-sub">total</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Avg wait</div>
+        <div class="metric-val mv-yellow" id="m-wait">0.0s</div>
+        <div class="metric-sub">per vehicle</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Cycles</div>
+        <div class="metric-val mv-blue" id="m-cycles">0</div>
+        <div class="metric-sub">completed</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Active</div>
+        <div class="metric-val mv-purple" id="m-active">0</div>
+        <div class="metric-sub">vehicles</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="p-section">
+    <div class="sec-title">Live Log</div>
+    <div class="log-scroll" id="log-scroll">
+      <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CANVAS RENDERER ══════════════════════════════════════════════ -->
+<script>
+// ─── Canvas setup ──────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvas-wrap');
+
+function resize(){
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── State ─────────────────────────────────────────────────────────
+let STATE = {
+  simRunning: false,
+  simPaused:  false,
+  vehicles:   {},   // vid -> vehicle obj
+  stats: {
+    total_passed:0, avg_wait:0, cycles:0, sim_time:0,
+    queues:{N:0,S:0,E:0,W:0}, active_vehicles:0,
+    phase:'ns_green', ns_light:'green', ew_light:'red',
+  },
+  logs: [],
+  phaseStart: 0,
+  phaseDur:   20,
+};
+
+// vehicle visual state (separate from sim state for smooth animation)
+const VIS = {};  // vid -> {x,y,angle,targetX,targetY,targetAngle,progress,alpha}
+
+// ─── Geometry ──────────────────────────────────────────────────────
+function geo(){
+  const W=canvas.width, H=canvas.height;
+  const cx=W/2, cy=H/2;
+  const road = parseInt(document.getElementById('sel-road').value);
+  const lanes = road/2;
+  const lw = Math.min(26, Math.max(18, (Math.min(W,H)*0.06)/lanes));
+  const rw = lanes*lw*2 + 8;
+  return{W,H,cx,cy,rw,lw,lanes};
+}
+
+// ─── Drawing ───────────────────────────────────────────────────────
+function drawScene(){
+  const g = geo();
+  const{W,H,cx,cy,rw,lw,lanes} = g;
+  ctx.clearRect(0,0,W,H);
+
+  // ── Background ──
+  ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
+
+  // ── Grass/zones ──
+  const grassGrad = ctx.createLinearGradient(0,0,W,H);
+  grassGrad.addColorStop(0,'#0e1c0e');
+  grassGrad.addColorStop(1,'#0a140a');
+  ctx.fillStyle=grassGrad;
+  [[0,0,cx-rw/2,H],[cx+rw/2,0,W-cx-rw/2,H],
+   [cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r=>ctx.fillRect(...r));
+
+  // Grid lines on grass
+  ctx.strokeStyle='rgba(255,255,255,.02)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+
+  // ── Road pavement ──
+  ctx.fillStyle='#1e2332';
+  ctx.fillRect(cx-rw/2, 0, rw, H);      // N-S
+  ctx.fillRect(0, cy-rw/2, W, rw);      // E-W
+
+  // ── Intersection box ──
+  ctx.fillStyle='#252d40';
+  ctx.fillRect(cx-rw/2, cy-rw/2, rw, rw);
+
+  // ── Intersection diagonal markings ──
+  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
+  for(let i=-rw;i<rw*2;i+=16){
+    ctx.beginPath();
+    ctx.moveTo(cx-rw/2+i, cy-rw/2);
+    ctx.lineTo(cx-rw/2+i+rw, cy+rw/2);
+    ctx.stroke();
+  }
+
+  // ── Lane markings ──
+  ctx.setLineDash([20,14]); ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(255,255,255,.12)';
+  for(let i=1;i<lanes*2;i++){
+    const x=cx-rw/2+i*lw;
+    if(Math.abs(x-cx)>3){
+      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-rw/2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x,cy+rw/2);ctx.lineTo(x,H);ctx.stroke();
+    }
+    const y=cy-rw/2+i*lw;
+    if(Math.abs(y-cy)>3){
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-rw/2,y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx+rw/2,y);ctx.lineTo(W,y);ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+
+  // ── Center lines ──
+  ctx.strokeStyle='#d97706aa'; ctx.lineWidth=2;
+  [[cx,0,cx,cy-rw/2],[cx,cy+rw/2,cx,H],[0,cy,cx-rw/2,cy],[cx+rw/2,cy,W,cy]]
+    .forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()});
+
+  // ── Stop lines ──
+  ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(cx-rw/2,cy-rw/2-2);ctx.lineTo(cx,cy-rw/2-2);ctx.stroke();   //N
+  ctx.beginPath();ctx.moveTo(cx,cy+rw/2+2);ctx.lineTo(cx+rw/2,cy+rw/2+2);ctx.stroke();   //S
+  ctx.beginPath();ctx.moveTo(cx+rw/2+2,cy-rw/2);ctx.lineTo(cx+rw/2+2,cy);ctx.stroke();   //E
+  ctx.beginPath();ctx.moveTo(cx-rw/2-2,cy);ctx.lineTo(cx-rw/2-2,cy+rw/2);ctx.stroke();   //W
+
+  // ── Crosswalks ──
+  const sw=7,sg=4;
+  ctx.fillStyle='rgba(255,255,255,.12)';
+  for(let i=0;i<4;i++){
+    ctx.fillRect(cx-rw/2,cy-rw/2-14-(i*(sw+sg)),rw/2,sw);
+    ctx.fillRect(cx,cy+rw/2+6+(i*(sw+sg)),rw/2,sw);
+    ctx.fillRect(cx+rw/2+6+(i*(sw+sg)),cy-rw/2,sw,rw/2);
+    ctx.fillRect(cx-rw/2-14-(i*(sw+sg)),cy,sw,rw/2);
+  }
+
+  // ── Traffic lights ──
+  drawLights(g);
+
+  // ── Queued cars ──
+  drawQueuedCars(g);
+
+  // ── Moving cars ──
+  drawMovingCars(g);
+
+  // ── Direction labels ──
+  drawDirLabels(g);
+}
+
+function lightColor(dir){
+  const s=STATE.stats;
+  return ['N','S'].includes(dir) ? s.ns_light : s.ew_light;
+}
+
+function drawLights(g){
+  const{cx,cy,rw}=g;
+  const lights=[
+    {dir:'N', x:cx+rw/2+6,  y:cy-rw/2-56},
+    {dir:'S', x:cx-rw/2-30, y:cy+rw/2+6},
+    {dir:'E', x:cx+rw/2+6,  y:cy+rw/2+6},
+    {dir:'W', x:cx-rw/2-30, y:cy-rw/2-56},
+  ];
+  lights.forEach(({dir,x,y})=>{
+    const lc=lightColor(dir);
+    // Post
+    const px=x+11, py1=dir==='N'||dir==='W'?y+60:y;
+    const py2=dir==='N'||dir==='W'?cy-rw/2:cy+rw/2;
+    ctx.strokeStyle='#374151'; ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(px,py1);ctx.lineTo(px,py2);ctx.stroke();
+
+    // Housing
+    ctx.fillStyle='#111827'; ctx.strokeStyle='#374151'; ctx.lineWidth=1;
+    roundRect(x,y,22,58,5); ctx.fill(); ctx.stroke();
+
+    // Bulbs
+    ['red','yellow','green'].forEach((c,i)=>{
+      const bx=x+11, by=y+10+i*16;
+      const on=lc===c;
+      if(on){
+        const hx=c==='green'?'#22c55e':c==='yellow'?'#eab308':'#ef4444';
+        // outer glow
+        const grd=ctx.createRadialGradient(bx,by,0,bx,by,14);
+        grd.addColorStop(0,hx+'55');grd.addColorStop(1,'transparent');
+        ctx.fillStyle=grd;ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fill();
+        // bulb
+        const bgrd=ctx.createRadialGradient(bx-1,by-1,1,bx,by,6);
+        bgrd.addColorStop(0,'#fff');bgrd.addColorStop(.3,hx);bgrd.addColorStop(1,hx+'aa');
+        ctx.fillStyle=bgrd;
+        ctx.shadowColor=hx;ctx.shadowBlur=16;
+      } else {
+        ctx.fillStyle=c==='green'?'#052e16':c==='yellow'?'#1c1500':'#1c0000';
+        ctx.shadowBlur=0;
+      }
+      ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+    });
+    // Label
+    ctx.fillStyle='#6b7280'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillText(dir, x+11, y+64);
+  });
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function getQueuePos(v, g){
+  const{cx,cy,rw,lw,lanes}=g;
+  const li=v.lane_idx%lanes;
+  const qi=v.queue_pos;
+  const gap=22;
+  const off = li*lw+lw/2;
+
+  // Right-hand traffic (drive on the right): flip from the current left-hand placement.
+  // This mapping puts each approach on the right side of its roadway.
+  switch(v.direction){
+    case'N':return{x:cx-(off), y:cy-rw/2-10-qi*gap, a:Math.PI/2};   // downbound uses west half
+    case'S':return{x:cx+(off), y:cy+rw/2+10+qi*gap, a:-Math.PI/2};  // upbound uses east half
+    case'E':return{x:cx+rw/2+10+qi*gap, y:cy-(off), a:Math.PI};     // leftbound uses north half
+    case'W':return{x:cx-rw/2-10-qi*gap, y:cy+(off), a:0};           // rightbound uses south half
+  }
+  return{x:cx,y:cy,a:0};
+}
+
+function getMovingTarget(v,g){
+  const{cx,cy,rw,lw,lanes}=g;
+  const li=v.lane_idx%lanes;
+  const off = li*lw+lw/2;
+
+  // Send cars far past the canvas so they keep moving until out of frame.
+  const margin = 140;
+  const distX = (g.W/2) + rw + margin;
+  const distY = (g.H/2) + rw + margin;
+
+  switch(v.direction){
+    case'N':return{x:cx-(off), y:cy+distY, a:Math.PI/2};
+    case'S':return{x:cx+(off), y:cy-distY, a:-Math.PI/2};
+    case'E':return{x:cx-distX, y:cy-(off), a:Math.PI};
+    case'W':return{x:cx+distX, y:cy+(off), a:0};
+  }
+  return{x:cx,y:cy,a:0};
+}
+
+function drawVehicle(x,y,angle,color,state,alpha=1){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+
+  // Shadow
+  ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
+
+  // Body
+  ctx.fillStyle=color;
+  roundRect(-9,-5.5,18,11,2.5); ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+  // Roof
+  ctx.fillStyle=color+'cc';
+  roundRect(-5,-4,9,8,2); ctx.fill();
+
+  // Windshields
+  ctx.fillStyle='rgba(200,230,255,.35)';
+  roundRect(-5,-3.5,7,7,1.5); ctx.fill();
+  ctx.fillStyle='rgba(200,230,255,.2)';
+  roundRect(4,-3,3.5,6,1); ctx.fill();
+
+  if(state==='moving'){
+    // Headlights
+    ctx.fillStyle='#ffffc0dd';
+    roundRect(-9.5,-4,3,2.5,1); ctx.fill();
+    roundRect(-9.5,1.5,3,2.5,1); ctx.fill();
+    // Headlight beam
+    ctx.fillStyle='rgba(255,255,180,.06)';
+    ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-45,-14);ctx.lineTo(-45,14);ctx.closePath();ctx.fill();
+  } else {
+    // Brake lights
+    ctx.fillStyle='#ff3333cc';
+    roundRect(7,-4,2.5,2.5,0.8); ctx.fill();
+    roundRect(7,1.5,2.5,2.5,0.8); ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawQueuedCars(g){
+  Object.values(STATE.vehicles).filter(v=>v.state==='queued').forEach(v=>{
+    const pos=getQueuePos(v,g);
+    // Init or update visual
+    if(!VIS[v.vid]){VIS[v.vid]={x:pos.x,y:pos.y,a:pos.a,alpha:0,prog:0}}
+    const vis=VIS[v.vid];
+    vis.x+=(pos.x-vis.x)*.15; vis.y+=(pos.y-vis.y)*.15;
+    // queued cars should be fixed to lane heading
+    vis.a += (pos.a - vis.a) * 0.25;
+    vis.alpha=Math.min(vis.alpha+.08,1);
+    drawVehicle(vis.x,vis.y,vis.a,v.color,'queued',vis.alpha);
+  });
+}
+
+function drawMovingCars(g){
+  Object.values(STATE.vehicles).filter(v=>v.state==='moving').forEach(v=>{
+    const tgt=getMovingTarget(v,g);
+    if(!VIS[v.vid]){
+      const qp=getQueuePos({...v,queue_pos:0},g);
+      VIS[v.vid]={x:qp.x,y:qp.y,a:qp.a,alpha:1,prog:0};
+    }
+    const vis=VIS[v.vid];
+
+    // Move continuously (pixel-based) rather than stopping at an arbitrary "prog".
+    // This keeps vehicles moving until out of frame.
+    const speed = 2.6; // px per frame (visual only)
+
+    const dx = tgt.x - vis.x;
+    const dy = tgt.y - vis.y;
+    const d  = Math.hypot(dx,dy) || 1;
+    const step = Math.min(speed, d);
+    const nx = vis.x + (dx/d)*step;
+    const ny = vis.y + (dy/d)*step;
+
+    // Compute heading from velocity.
+    const vx=nx-vis.x, vy=ny-vis.y;
+    if(Math.hypot(vx,vy) > 0.001){
+      const desired = Math.atan2(vy,vx) + Math.PI;
+      let da = ((desired - vis.a + Math.PI) % (2*Math.PI)) - Math.PI;
+      vis.a = vis.a + da * 0.35;
+    }
+
+    vis.x = nx;
+    vis.y = ny;
+    drawVehicle(vis.x,vis.y,vis.a,v.color,'moving',1);
+
+    // Despawn visually once out of frame (server still controls sim lifecycle).
+    const pad = 180;
+    if(vis.x < -pad || vis.x > g.W+pad || vis.y < -pad || vis.y > g.H+pad){
+      delete VIS[v.vid];
+      // also remove from rendered state to prevent re-creating VIS immediately
+      delete STATE.vehicles[v.vid];
+    }
+  });
+}
+
+function lerp(a,b,t){return a+(b-a)*t}
+function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
+
+function drawDirLabels(g){
+  const{W,H,cx,cy}=g;
+  const lbls=[
+    {t:'NORTH',x:cx,y:18,d:'N'},{t:'SOUTH',x:cx,y:H-10,d:'S'},
+    {t:'EAST',x:W-28,y:cy-6,d:'E'},{t:'WEST',x:28,y:cy-6,d:'W'},
+  ];
+  ctx.font='bold 10px monospace'; ctx.textAlign='center';
+  lbls.forEach(({t,x,y,d})=>{
+    const lc=lightColor(d);
+    const c=lc==='green'?'#22c55e':lc==='yellow'?'#eab308':'#ef4444';
+    ctx.fillStyle=c+'cc'; ctx.fillText(t,x,y);
+  });
+}
+
+// ─── Animation loop ────────────────────────────────────────────────
+let phaseProgress=0;
+function frame(){
+  drawScene();
+  updatePhaseBar();
+  requestAnimationFrame(frame);
+}
+
+function updatePhaseBar(){
+  const cfg={
+    ns_green:+document.getElementById('sl-green').value,
+    ns_yellow:+document.getElementById('sl-yellow').value,
+    ew_green:+document.getElementById('sl-green').value,
+    ew_yellow:+document.getElementById('sl-yellow').value,
+  };
+  const p=STATE.stats.phase||'ns_green';
+  const dur=(cfg[p]||20);
+  phaseProgress=Math.min(phaseProgress+.008,1);
+  const c=p.includes('green')?'#22c55e':p.includes('yellow')?'#eab308':'#ef4444';
+  document.getElementById('phase-bar').style.width=(phaseProgress*100)+'%';
+  document.getElementById('phase-bar').style.background=c;
+  document.getElementById('phase-label').textContent=p.toUpperCase().replace('_',' ');
+}
+requestAnimationFrame(frame);
+
+// ─── SocketIO ──────────────────────────────────────────────────────
+const socket = io();
+
+socket.on('connect',()=>{
+  document.getElementById('hdr-conn').className='pill pill-green';
+  document.getElementById('hdr-conn').textContent='Connected';
+  addLog({msg:'🔌 Connected to simulation server', cls:'green', sim_time:0});
+});
+socket.on('disconnect',()=>{
+  document.getElementById('hdr-conn').className='pill pill-red';
+  document.getElementById('hdr-conn').textContent='Disconnected';
+});
+
+socket.on('stats', data=>{
+  STATE.stats=data;
+  updateStatsUI(data);
+});
+
+socket.on('vehicles_snapshot', list=>{
+  STATE.vehicles={};
+  list.forEach(v=>{STATE.vehicles[v.vid]=v});
+});
+
+socket.on('vehicle_arrive', v=>{
+  STATE.vehicles[v.vid]=v;
+});
+socket.on('vehicle_queued', v=>{
+  if(STATE.vehicles[v.vid]) STATE.vehicles[v.vid].state='queued';
+});
+socket.on('vehicle_move', v=>{
+  if(STATE.vehicles[v.vid]) STATE.vehicles[v.vid].state='moving';
+});
+socket.on('vehicle_exit', ({vid})=>{
+  delete STATE.vehicles[vid];
+  delete VIS[vid];
+});
+
+socket.on('light_change', data=>{
+  STATE.stats.phase   = data.phase;
+  STATE.stats.ns_light= data.ns;
+  STATE.stats.ew_light= data.ew;
+  phaseProgress=0;
+  updatePhaseHeaders(data);
+});
+
+socket.on('log', entry=>{ addLog(entry); });
+
+socket.on('reset', ()=>{
+  STATE.vehicles={}; STATE.stats={...STATE.stats, total_passed:0, avg_wait:0, cycles:0, sim_time:0};
+  Object.keys(VIS).forEach(k=>delete VIS[k]);
+  updateStatsUI(STATE.stats);
+});
+
+socket.on('ack', data=>{
+  if(data.action==='start'){
+    document.getElementById('btn-start').classList.add('active-green');
+    document.getElementById('btn-pause').disabled=false;
+    STATE.simRunning=true;
+  }
+  if(data.action==='reset'){
+    document.getElementById('btn-start').classList.remove('active-green');
+    document.getElementById('btn-pause').classList.remove('active-yellow');
+    document.getElementById('btn-pause').textContent='⏸ Pause';
+    document.getElementById('btn-pause').disabled=true;
+    STATE.simRunning=false; STATE.simPaused=false;
+  }
+  if('paused' in data){
+    STATE.simPaused=data.paused;
+    const btn=document.getElementById('btn-pause');
+    btn.textContent=data.paused?'▶ Resume':'⏸ Pause';
+    btn.className='btn '+(data.paused?'active-yellow':'');
+  }
+});
+
+// ─── UI Updates ────────────────────────────────────────────────────
+function updateStatsUI(d){
+  document.getElementById('m-passed').textContent=d.total_passed;
+  document.getElementById('m-wait').textContent=(d.avg_wait||0).toFixed(1)+'s';
+  document.getElementById('m-cycles').textContent=d.cycles;
+  document.getElementById('m-active').textContent=d.active_vehicles;
+  document.getElementById('hdr-time').textContent='T = '+Math.round(d.sim_time)+'s';
+  document.getElementById('hdr-cycles').textContent='Cycle '+d.cycles;
+
+  // queues
+  const maxQ=parseInt(document.getElementById('sel-road').value)/2*8;
+  ['N','S','E','W'].forEach(dir=>{
+    const n=d.queues[dir]||0;
+    document.getElementById('qb-'+dir.toLowerCase()).style.width=Math.min(n/maxQ*100,100)+'%';
+    document.getElementById('qn-'+dir.toLowerCase()).textContent=n;
+  });
+  const nsQ=(d.queues.N||0)+(d.queues.S||0);
+  const ewQ=(d.queues.E||0)+(d.queues.W||0);
+  document.getElementById('sb-ns-q').textContent=nsQ;
+  document.getElementById('sb-ew-q').textContent=ewQ;
+  document.getElementById('sb-active').textContent=d.active_vehicles;
+
+  // status bar lights
+  const nsL=d.ns_light||'red', ewL=d.ew_light||'red';
+  const nsc=nsL==='green'?'#22c55e':nsL==='yellow'?'#eab308':'#ef4444';
+  const ewc=ewL==='green'?'#22c55e':ewL==='yellow'?'#eab308':'#ef4444';
+  document.getElementById('sb-ns').textContent=nsL.toUpperCase();
+  document.getElementById('sb-ns').style.color=nsc;
+  document.getElementById('sb-ew').textContent=ewL.toUpperCase();
+  document.getElementById('sb-ew').style.color=ewc;
+}
+
+function updatePhaseHeaders(data){
+  const{phase,ns,ew}=data;
+  const pc=phase.includes('green')?'pill-green':phase.includes('yellow')?'pill-yellow':'pill-red';
+  const ph=document.getElementById('hdr-phase');
+  ph.className='pill '+pc;
+  ph.textContent=phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
+  document.getElementById('hdr-scenario').textContent=
+    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
+}
+
+// ─── Log ──────────────────────────────────────────────────────────
+const MAX_LOGS=80;
+const logScroll=document.getElementById('log-scroll');
+function addLog(entry){
+  STATE.logs.unshift(entry);
+  if(STATE.logs.length>MAX_LOGS) STATE.logs.pop();
+  renderLog();
+}
+function renderLog(){
+  logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>`
+    <div class="log-entry">
+      <span class="log-time">${(l.sim_time||0).toFixed(1)}s</span>
+      <span class="log-msg c-${l.cls||'gray'}">${l.msg}</span>
+    </div>`).join('');
+}
+
+// ─── Commands ─────────────────────────────────────────────────────
+function getConfig(){
+  return{
+    green:  +document.getElementById('sl-green').value,
+    yellow: +document.getElementById('sl-yellow').value,
+    red:    +document.getElementById('sl-red').value,
+    scenario: document.getElementById('sel-scenario').value,
+    road_type:+document.getElementById('sel-road').value,
+    right_turn: document.getElementById('ck-rturn').checked,
+    speed:  +document.getElementById('sl-speed').value,
+  };
+}
+function cmdStart(){ socket.emit('cmd_start', getConfig()); }
+function cmdPause(){ socket.emit('cmd_pause'); }
+function cmdReset(){ socket.emit('cmd_reset', getConfig()); }
+function onCfgChange(){
+  socket.emit('cmd_update_config',{
+    green_duration:  +document.getElementById('sl-green').value,
+    yellow_duration: +document.getElementById('sl-yellow').value,
+    red_duration:    +document.getElementById('sl-red').value,
+    scenario:  document.getElementById('sel-scenario').value,
+    road_type: +document.getElementById('sel-road').value,
+    right_turn_free: document.getElementById('ck-rturn').checked,
+    speed_factor: +document.getElementById('sl-speed').value,
+  });
+  const rt=document.getElementById('ck-rturn').checked;
+  document.getElementById('rt-label').textContent=rt?'Allowed':'Signal only';
+  document.getElementById('hdr-scenario').textContent=
+    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
+}
+</script>
+</body>
+</html>
