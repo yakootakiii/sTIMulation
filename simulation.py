@@ -28,8 +28,10 @@ class Turn(str, Enum):
 class Phase(str, Enum):
     NS_GREEN  = "ns_green"
     NS_YELLOW = "ns_yellow"
+    NS_RED    = "ns_red"
     EW_GREEN  = "ew_green"
     EW_YELLOW = "ew_yellow"
+    EW_RED    = "ew_red"
 
 class LightColor(str, Enum):
     GREEN  = "green"
@@ -54,7 +56,7 @@ SCENARIOS = {
 class SimConfig:
     green_duration:  float = 20.0
     yellow_duration: float = 4.0
-    red_duration:    float = 20.0
+    red_duration:    float = 1.0
     scenario:        str   = "normal"
     road_type:       int   = 4       # total lanes (2, 4, 6)
     right_turn_free: bool  = True
@@ -163,20 +165,23 @@ class TrafficSimulation:
             return LightColor.GREEN if ns else LightColor.RED
         if self.phase == Phase.NS_YELLOW:
             return LightColor.YELLOW if ns else LightColor.RED
+        if self.phase == Phase.NS_RED:
+            return LightColor.RED
         if self.phase == Phase.EW_GREEN:
             return LightColor.RED if ns else LightColor.GREEN
         if self.phase == Phase.EW_YELLOW:
             return LightColor.RED if ns else LightColor.YELLOW
+        if self.phase == Phase.EW_RED:
+            return LightColor.RED
         return LightColor.RED
 
-    def _can_go(self, direction: str) -> bool:
+    def _can_go(self, direction: str, turn: str) -> bool:
         lc = self._light_for(direction)
         if lc == LightColor.GREEN:
             return True
-        if lc == LightColor.RED:
-            return False
-        # yellow: only free right turn
-        return self.config.right_turn_free
+        if turn == Turn.RIGHT.value and self.config.right_turn_free:
+            return True
+        return False
 
     def _emit(self, etype: str, data: dict):
         if self.event_cb:
@@ -204,6 +209,13 @@ class TrafficSimulation:
             self._log(f"🟡 N-S YELLOW ({cfg.yellow_duration}s)", "yellow")
             yield self.env.timeout(cfg.yellow_duration)
 
+            # All-red clearance
+            self.phase = Phase.NS_RED
+            self._update_lights()
+            self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
+            self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
+            yield self.env.timeout(cfg.red_duration)
+
             # EW Green
             self.phase = Phase.EW_GREEN
             self._update_lights()
@@ -218,6 +230,13 @@ class TrafficSimulation:
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "yellow"})
             self._log(f"🟡 E-W YELLOW ({cfg.yellow_duration}s)", "yellow")
             yield self.env.timeout(cfg.yellow_duration)
+
+            # All-red clearance
+            self.phase = Phase.EW_RED
+            self._update_lights()
+            self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
+            self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
+            yield self.env.timeout(cfg.red_duration)
 
             self.stats.cycles += 1
 
@@ -236,7 +255,7 @@ class TrafficSimulation:
                 v = self.vehicles.get(vid)
                 if v:
                     delay = i * 1.8 + random.uniform(0, 0.4)
-                    self.env.process(self._move_vehicle(v, delay))
+                    self.env.process(self._move_vehicle(v, delay, require_green=True))
             self.queues[d] = q[batch:]
             # Update queue positions
             for pos, vid in enumerate(self.queues[d]):
@@ -279,22 +298,30 @@ class TrafficSimulation:
                 self.env.process(self._move_vehicle(v, 0))
                 continue
 
-            if self._can_go(direction):
+            if self._can_go(direction, v.turn) and not self.queues[direction]:
                 # Light is green, enter intersection immediately
-                delay = len(self.queues[direction]) * 1.8 + random.uniform(0, 0.4)
-                self.env.process(self._move_vehicle(v, delay))
+                self.env.process(self._move_vehicle(v, 0))
             else:
                 # Join queue
                 self.queues[direction].append(vid)
                 v.state = "queued"
                 self._emit("vehicle_queued", v.to_dict())
 
-    def _move_vehicle(self, v: Vehicle, delay: float):
+    def _move_vehicle(self, v: Vehicle, delay: float, require_green: bool = False):
         """Process: vehicle moves through intersection."""
         if delay > 0:
             yield self.env.timeout(delay)
 
         if v.vid not in self.vehicles:
+            return
+        if require_green and self._light_for(v.direction) != LightColor.GREEN:
+            if v.vid not in self.queues[v.direction]:
+                self.queues[v.direction].insert(0, v.vid)
+            for pos, vid in enumerate(self.queues[v.direction]):
+                if vid in self.vehicles:
+                    self.vehicles[vid].queue_pos = pos
+            v.state = "queued"
+            self._emit("vehicle_queued", v.to_dict())
             return
 
         v.state    = "moving"
