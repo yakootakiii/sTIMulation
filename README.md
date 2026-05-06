@@ -17,20 +17,22 @@ traffic_sim/
 
 ```bash
 # Install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 # Run the server
 python app.py
 
 # Open in browser
-http://localhost:5000
+http://localhost:5001
 ```
 
 ## Features
 
 ### Simulation (SimPy)
 - Discrete-event simulation with real SimPy environment
-- 4-way N-S / E-W signal cycling: Green → Yellow → Red
+- 4-way N-S / E-W signal cycling: Green → Yellow → all-red clearance
 - Vehicle arrival modelled with Poisson-like inter-arrival times
 - Per-direction queue management with configurable lane capacity
 - Right-turn-on-red rule (toggleable)
@@ -53,7 +55,7 @@ http://localhost:5000
 ### Controls
 - Start / Pause / Reset
 - Speed: 0.5× to 15× real-time
-- Green / Yellow / Red duration sliders
+- Green / Yellow / all-red clearance duration sliders
 - Scenario selector
 - Road type selector
 - Right-turn-on-red toggle

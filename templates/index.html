@@ -264,10 +264,10 @@ select:focus{border-color:var(--accent)}
       <span class="ctrl-val" id="v-yellow">4</span>
     </div>
     <div class="ctrl">
-      <span class="ctrl-label">🔴 Red (s)</span>
-      <input type="range" id="sl-red" min="5" max="60" value="20"
+      <span class="ctrl-label">🔴 All-red (s)</span>
+      <input type="range" id="sl-red" min="0" max="5" step="0.5" value="1"
         oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()">
-      <span class="ctrl-val" id="v-red">20</span>
+      <span class="ctrl-val" id="v-red">1</span>
     </div>
   </div>
 
@@ -516,38 +516,71 @@ function roundRect(x,y,w,h,r){
 function getQueuePos(v, g){
   const{cx,cy,rw,lw,lanes}=g;
   const li=v.lane_idx%lanes;
-  const qi=v.queue_pos;
+  const qi=v.visual_queue_pos ?? v.queue_pos;
   const gap=22;
   const off = li*lw+lw/2;
 
   // Right-hand traffic (drive on the right): flip from the current left-hand placement.
   // This mapping puts each approach on the right side of its roadway.
   switch(v.direction){
-    case'N':return{x:cx-(off), y:cy-rw/2-10-qi*gap, a:Math.PI/2};   // downbound uses west half
-    case'S':return{x:cx+(off), y:cy+rw/2+10+qi*gap, a:-Math.PI/2};  // upbound uses east half
-    case'E':return{x:cx+rw/2+10+qi*gap, y:cy-(off), a:Math.PI};     // leftbound uses north half
-    case'W':return{x:cx-rw/2-10-qi*gap, y:cy+(off), a:0};           // rightbound uses south half
+    case'N':return{x:cx-(off), y:cy-rw/2-10-qi*gap, a:-Math.PI/2};  // downbound uses west half
+    case'S':return{x:cx+(off), y:cy+rw/2+10+qi*gap, a:Math.PI/2};   // upbound uses east half
+    case'E':return{x:cx+rw/2+10+qi*gap, y:cy-(off), a:0};           // leftbound uses north half
+    case'W':return{x:cx-rw/2-10-qi*gap, y:cy+(off), a:Math.PI};     // rightbound uses south half
   }
   return{x:cx,y:cy,a:0};
 }
 
-function getMovingTarget(v,g){
-  const{cx,cy,rw,lw,lanes}=g;
-  const li=v.lane_idx%lanes;
-  const off = li*lw+lw/2;
-
-  // Send cars far past the canvas so they keep moving until out of frame.
+function getExitTarget(outDir, off, g){
+  const{cx,cy,rw}=g;
   const margin = 140;
   const distX = (g.W/2) + rw + margin;
   const distY = (g.H/2) + rw + margin;
 
-  switch(v.direction){
-    case'N':return{x:cx-(off), y:cy+distY, a:Math.PI/2};
-    case'S':return{x:cx+(off), y:cy-distY, a:-Math.PI/2};
-    case'E':return{x:cx-distX, y:cy-(off), a:Math.PI};
-    case'W':return{x:cx+distX, y:cy+(off), a:0};
+  switch(outDir){
+    case'S':return{x:cx-off, y:cy+distY};
+    case'N':return{x:cx+off, y:cy-distY};
+    case'W':return{x:cx-distX, y:cy-off};
+    case'E':return{x:cx+distX, y:cy+off};
   }
-  return{x:cx,y:cy,a:0};
+  return{x:cx,y:cy};
+}
+
+function getOutboundDir(v){
+  const turns = {
+    N:{straight:'S', right:'W', left:'E'},
+    S:{straight:'N', right:'E', left:'W'},
+    E:{straight:'W', right:'N', left:'S'},
+    W:{straight:'E', right:'S', left:'N'},
+  };
+  return (turns[v.direction] && turns[v.direction][v.turn]) || v.direction;
+}
+
+function getMovingPath(v,g){
+  const{cx,cy,rw,lw,lanes}=g;
+  const li=v.lane_idx%lanes;
+  const off = li*lw+lw/2;
+  const out = getOutboundDir(v);
+  const exit = getExitTarget(out, off, g);
+
+  if(v.turn === 'straight'){
+    return [exit];
+  }
+
+  const entry = {
+    N:{x:cx-off, y:cy-rw*.18},
+    S:{x:cx+off, y:cy+rw*.18},
+    E:{x:cx+rw*.18, y:cy-off},
+    W:{x:cx-rw*.18, y:cy+off},
+  }[v.direction];
+  const turn = {
+    S:{x:cx-off, y:cy+off},
+    N:{x:cx+off, y:cy-off},
+    W:{x:cx-off, y:cy-off},
+    E:{x:cx+off, y:cy+off},
+  }[out];
+
+  return [entry, turn, exit].filter(Boolean);
 }
 
 function drawVehicle(x,y,angle,color,state,alpha=1){
@@ -593,8 +626,17 @@ function drawVehicle(x,y,angle,color,state,alpha=1){
 }
 
 function drawQueuedCars(g){
-  Object.values(STATE.vehicles).filter(v=>v.state==='queued').forEach(v=>{
-    const pos=getQueuePos(v,g);
+  const laneCounts = {};
+  const queued = Object.values(STATE.vehicles)
+    .filter(v=>v.state==='queued')
+    .sort((a,b)=>(a.direction||'').localeCompare(b.direction||'') || (a.queue_pos||0)-(b.queue_pos||0));
+
+  queued.forEach(v=>{
+    const laneKey = `${v.direction}:${v.lane_idx}`;
+    const visualQueuePos = laneCounts[laneKey] || 0;
+    laneCounts[laneKey] = visualQueuePos + 1;
+
+    const pos=getQueuePos({...v, visual_queue_pos:visualQueuePos},g);
     // Init or update visual
     if(!VIS[v.vid]){VIS[v.vid]={x:pos.x,y:pos.y,a:pos.a,alpha:0,prog:0}}
     const vis=VIS[v.vid];
@@ -608,16 +650,19 @@ function drawQueuedCars(g){
 
 function drawMovingCars(g){
   Object.values(STATE.vehicles).filter(v=>v.state==='moving').forEach(v=>{
-    const tgt=getMovingTarget(v,g);
     if(!VIS[v.vid]){
       const qp=getQueuePos({...v,queue_pos:0},g);
-      VIS[v.vid]={x:qp.x,y:qp.y,a:qp.a,alpha:1,prog:0};
+      VIS[v.vid]={x:qp.x,y:qp.y,a:qp.a,alpha:1,path:getMovingPath(v,g),pathIdx:0};
     }
     const vis=VIS[v.vid];
+    if(!vis.path || vis.path.length === 0){
+      vis.path = getMovingPath(v,g);
+      vis.pathIdx = 0;
+    }
+    const tgt=vis.path[Math.min(vis.pathIdx||0, vis.path.length-1)];
 
-    // Move continuously (pixel-based) rather than stopping at an arbitrary "prog".
-    // This keeps vehicles moving until out of frame.
-    const speed = 2.6; // px per frame (visual only)
+    const uiSpeed = +document.getElementById('sl-speed').value || 1;
+    const speed = (125 + uiSpeed * 18) * FRAME_DT;
 
     const dx = tgt.x - vis.x;
     const dy = tgt.y - vis.y;
@@ -630,12 +675,14 @@ function drawMovingCars(g){
     const vx=nx-vis.x, vy=ny-vis.y;
     if(Math.hypot(vx,vy) > 0.001){
       const desired = Math.atan2(vy,vx) + Math.PI;
-      let da = ((desired - vis.a + Math.PI) % (2*Math.PI)) - Math.PI;
-      vis.a = vis.a + da * 0.35;
+      vis.a = vis.a + angleDelta(vis.a, desired) * 0.35;
     }
 
     vis.x = nx;
     vis.y = ny;
+    if(d <= speed + 0.1 && vis.pathIdx < vis.path.length - 1){
+      vis.pathIdx += 1;
+    }
     drawVehicle(vis.x,vis.y,vis.a,v.color,'moving',1);
 
     // Despawn visually once out of frame (server still controls sim lifecycle).
@@ -650,6 +697,9 @@ function drawMovingCars(g){
 
 function lerp(a,b,t){return a+(b-a)*t}
 function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
+function angleDelta(from,to){
+  return Math.atan2(Math.sin(to-from), Math.cos(to-from));
+}
 
 function drawDirLabels(g){
   const{W,H,cx,cy}=g;
@@ -667,7 +717,11 @@ function drawDirLabels(g){
 
 // ─── Animation loop ────────────────────────────────────────────────
 let phaseProgress=0;
-function frame(){
+let FRAME_DT=1/60;
+let LAST_FRAME=performance.now();
+function frame(now){
+  FRAME_DT=Math.min((now-LAST_FRAME)/1000, 0.05);
+  LAST_FRAME=now;
   drawScene();
   updatePhaseBar();
   requestAnimationFrame(frame);
@@ -677,12 +731,15 @@ function updatePhaseBar(){
   const cfg={
     ns_green:+document.getElementById('sl-green').value,
     ns_yellow:+document.getElementById('sl-yellow').value,
+    ns_red:+document.getElementById('sl-red').value,
     ew_green:+document.getElementById('sl-green').value,
     ew_yellow:+document.getElementById('sl-yellow').value,
+    ew_red:+document.getElementById('sl-red').value,
   };
   const p=STATE.stats.phase||'ns_green';
-  const dur=(cfg[p]||20);
-  phaseProgress=Math.min(phaseProgress+.008,1);
+  const dur=(p in cfg) ? cfg[p] : 20;
+  const elapsed=Math.max(0, (STATE.stats.sim_time||0) - (STATE.phaseStart||0));
+  phaseProgress=dur > 0 ? Math.min(elapsed/dur,1) : 1;
   const c=p.includes('green')?'#22c55e':p.includes('yellow')?'#eab308':'#ef4444';
   document.getElementById('phase-bar').style.width=(phaseProgress*100)+'%';
   document.getElementById('phase-bar').style.background=c;
@@ -691,7 +748,13 @@ function updatePhaseBar(){
 requestAnimationFrame(frame);
 
 // ─── SocketIO ──────────────────────────────────────────────────────
-const socket = io();
+const socket = io({
+  transports: ['websocket'],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 3000,
+});
 
 socket.on('connect',()=>{
   document.getElementById('hdr-conn').className='pill pill-green';
@@ -702,6 +765,10 @@ socket.on('disconnect',()=>{
   document.getElementById('hdr-conn').className='pill pill-red';
   document.getElementById('hdr-conn').textContent='Disconnected';
 });
+socket.on('connect_error',()=>{
+  document.getElementById('hdr-conn').className='pill pill-red';
+  document.getElementById('hdr-conn').textContent='Reconnecting';
+});
 
 socket.on('stats', data=>{
   STATE.stats=data;
@@ -710,6 +777,7 @@ socket.on('stats', data=>{
 
 socket.on('vehicles_snapshot', list=>{
   STATE.vehicles={};
+  Object.keys(VIS).forEach(k=>delete VIS[k]);
   list.forEach(v=>{STATE.vehicles[v.vid]=v});
 });
 
@@ -717,20 +785,26 @@ socket.on('vehicle_arrive', v=>{
   STATE.vehicles[v.vid]=v;
 });
 socket.on('vehicle_queued', v=>{
-  if(STATE.vehicles[v.vid]) STATE.vehicles[v.vid].state='queued';
+  STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'queued'};
 });
 socket.on('vehicle_move', v=>{
-  if(STATE.vehicles[v.vid]) STATE.vehicles[v.vid].state='moving';
+  STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'moving'};
 });
 socket.on('vehicle_exit', ({vid})=>{
-  delete STATE.vehicles[vid];
-  delete VIS[vid];
+  const v = STATE.vehicles[vid];
+  if(v && v.state === 'moving' && VIS[vid]){
+    v.serverExited = true;
+  } else {
+    delete STATE.vehicles[vid];
+    delete VIS[vid];
+  }
 });
 
 socket.on('light_change', data=>{
   STATE.stats.phase   = data.phase;
   STATE.stats.ns_light= data.ns;
   STATE.stats.ew_light= data.ew;
+  STATE.phaseStart = data.sim_time || STATE.stats.sim_time || 0;
   phaseProgress=0;
   updatePhaseHeaders(data);
 });
