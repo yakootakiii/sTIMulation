@@ -2,10 +2,11 @@
 Traffic Simulation — Flask + SocketIO server
 """
 
-import threading
 import eventlet
+# Ensure eventlet monkey-patching runs before other stdlib imports
 eventlet.monkey_patch()
 
+import threading
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from simulation import TrafficSimulation, SimConfig

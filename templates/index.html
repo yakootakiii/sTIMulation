@@ -3,23 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Traffic Intersection Simulator</title>
+<title>sTIMulation - Modern Traffic Simulator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
 <style>
-/* ── Reset & base ──────────────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0}
+/* ── Reset & Modern Design ────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;transition:color .15s,border-color .15s}
 :root{
-  --bg:#0f1117;--bg2:#161b26;--bg3:#1e2434;--bg4:#252d3f;
-  --border:#2a3352;--border2:#3a4666;
-  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
-  --green:#22c55e;--green-bg:#052e16;
-  --yellow:#eab308;--yellow-bg:#2d2500;
-  --red:#ef4444;--red-bg:#2d0a0a;
-  --blue:#3b82f6;--blue-bg:#0c1a3d;
-  --purple:#a78bfa;
-  --accent:#3b82f6;
-  --radius:8px; --radius-sm:5px;
-  font-family:'Segoe UI',system-ui,sans-serif;
+  --bg:#070a13;--bg2:#0f1422;--bg3:#1a202c;--bg4:#252d3f;
+  --border:#2a3d52;--border2:#3a5070;--border-light:#4a6090;
+  --text:#f0f4f9;--text2:#a0b0c8;--text3:#708090;
+  --green:#10b981;--green-light:#34d399;--green-bg:#011810;
+  --yellow:#f59e0b;--yellow-light:#fbbf24;--yellow-bg:#331800;
+  --red:#ef4444;--red-light:#f87171;--red-bg:#1c0a0a;
+  --blue:#3b82f6;--blue-light:#60a5fa;--blue-bg:#0c1a3d;
+  --purple:#a78bfa;--purple-light:#c4b5fd;--purple-bg:#2d1b69;
+  --accent:#3b82f6;--accent2:#8b5cf6;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 4px 20px rgba(0,0,0,.3);--shadow-sm:0 2px 8px rgba(0,0,0,.15);
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
 }
 body{background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:grid;
   grid-template-rows:48px 1fr;grid-template-columns:1fr 340px}
