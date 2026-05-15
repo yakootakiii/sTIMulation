@@ -7,8 +7,7 @@ import simpy
 import random
 import threading
 import time
-import math
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Callable
 from enum import Enum
 
@@ -74,6 +73,8 @@ class Vehicle:
     state:       str   = "queued"   # queued | moving | exited
     queue_pos:   int   = 0
     lane_idx:    int   = 0
+    spawn_offset: float = 0.0
+    releasing:   bool  = False
 
     def wait_time(self) -> float:
         if self.wait_end > 0:
@@ -89,6 +90,7 @@ class Vehicle:
             "state": self.state,
             "queue_pos": self.queue_pos,
             "lane_idx": self.lane_idx,
+            "spawn_offset": self.spawn_offset,
         }
 
 @dataclass
@@ -134,7 +136,7 @@ class TrafficSimulation:
         self.running  = False
         self.paused   = False
         self._thread  = None
-        self._lock    = threading.Lock()
+        self._lock    = threading.RLock()
 
         # State
         self.stats    = SimStats()
@@ -142,10 +144,13 @@ class TrafficSimulation:
         self.queues:   Dict[str, List[int]] = {"N":[],"S":[],"E":[],"W":[]}
         self.phase    = Phase.NS_GREEN
         self._next_vid = 1
-        self._wait_times: List[float] = []
+        self._lane_counters: Dict[str, int] = {"N":0,"S":0,"E":0,"W":0}
 
-        # SimPy resources (one per direction for queue discipline)
-        self._lane_resources: Dict[str, simpy.Resource] = {}
+        # SimPy resources: per-lane resources for each direction
+        self._lane_resources: Dict[str, List[simpy.Resource]] = {
+            d: [simpy.Resource(self.env, capacity=1) for _ in range(self._lanes_per_dir())]
+            for d in ["N", "S", "E", "W"]
+        }
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -179,7 +184,8 @@ class TrafficSimulation:
         lc = self._light_for(direction)
         if lc == LightColor.GREEN:
             return True
-        if turn == Turn.RIGHT.value and self.config.right_turn_free:
+        # Right-turn-on-red: specifically restricted to RED (not yellow)
+        if turn == Turn.RIGHT.value and self.config.right_turn_free and lc == LightColor.RED:
             return True
         return False
 
@@ -199,68 +205,94 @@ class TrafficSimulation:
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "green", "ew": "red"})
             self._log(f"🟢 N-S GREEN ({cfg.green_duration}s)", "green")
-            self._release_queues(["N", "S"])
-            yield self.env.timeout(cfg.green_duration)
+            yield from self._wait_phase(lambda: cfg.green_duration)
 
             # NS Yellow
             self.phase = Phase.NS_YELLOW
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "yellow", "ew": "red"})
             self._log(f"🟡 N-S YELLOW ({cfg.yellow_duration}s)", "yellow")
-            yield self.env.timeout(cfg.yellow_duration)
+            yield from self._wait_phase(lambda: cfg.yellow_duration)
 
             # All-red clearance
             self.phase = Phase.NS_RED
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
             self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
-            yield self.env.timeout(cfg.red_duration)
+            yield from self._wait_phase(lambda: cfg.red_duration)
 
             # EW Green
             self.phase = Phase.EW_GREEN
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "green"})
             self._log(f"🟢 E-W GREEN ({cfg.green_duration}s)", "green")
-            self._release_queues(["E", "W"])
-            yield self.env.timeout(cfg.green_duration)
+            yield from self._wait_phase(lambda: cfg.green_duration)
 
             # EW Yellow
             self.phase = Phase.EW_YELLOW
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "yellow"})
             self._log(f"🟡 E-W YELLOW ({cfg.yellow_duration}s)", "yellow")
-            yield self.env.timeout(cfg.yellow_duration)
+            yield from self._wait_phase(lambda: cfg.yellow_duration)
 
             # All-red clearance
             self.phase = Phase.EW_RED
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
             self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
-            yield self.env.timeout(cfg.red_duration)
+            yield from self._wait_phase(lambda: cfg.red_duration)
 
             self.stats.cycles += 1
+
+    def _wait_phase(self, duration_fn: Callable[[], float]):
+        """Helper to wait for a phase duration, checking periodically for config updates."""
+        elapsed = 0.0
+        step = 0.5
+        while elapsed < duration_fn():
+            yield self.env.timeout(min(step, duration_fn() - elapsed))
+            elapsed += step
 
     def _update_lights(self):
         self.stats.phase    = self.phase
         self.stats.ns_light = self._light_for("N")
         self.stats.ew_light = self._light_for("E")
 
-    def _release_queues(self, dirs: List[str]):
-        """Release waiting vehicles when light goes green."""
-        lanes = self._lanes_per_dir()
-        for d in dirs:
-            q = list(self.queues[d])
-            batch = min(len(q), lanes * 2)
-            for i, vid in enumerate(q[:batch]):
+    def _drain_queues_process(self):
+        """Continuously attempts to release vehicles from queues when light is green or RTOR is possible."""
+        while True:
+            for d in ["N", "S", "E", "W"]:
+                # Check if ANY vehicle in this direction can move (either Green or RTOR)
+                # Note: We call this regardless of light color because RTOR depends on individual vehicle turn.
+                self._release_from_queue(d)
+            yield self.env.timeout(0.2)
+
+    def _release_from_queue(self, direction: str):
+        """Identifies vehicles that can start moving and starts their movement process."""
+        with self._lock:
+            if not self.queues[direction]:
+                return
+
+            lanes = self._lanes_per_dir()
+            lane_busy = [False] * lanes
+            
+            # A lane is busy if a vehicle is already moving or is in the process of starting
+            for vid in self.queues[direction]:
                 v = self.vehicles.get(vid)
-                if v:
-                    delay = i * 1.8 + random.uniform(0, 0.4)
-                    self.env.process(self._move_vehicle(v, delay, require_green=True))
-            self.queues[d] = q[batch:]
-            # Update queue positions
-            for pos, vid in enumerate(self.queues[d]):
-                if vid in self.vehicles:
-                    self.vehicles[vid].queue_pos = pos
+                if v and v.releasing:
+                    lane_busy[v.lane_idx] = True
+            
+            # Scan the queue and start movement for the first available vehicle in each lane
+            for vid in self.queues[direction]:
+                v = self.vehicles.get(vid)
+                if v and not v.releasing and not lane_busy[v.lane_idx]:
+                    # Check if this specific vehicle can go (Green or RTOR)
+                    if self._can_go(v.direction, v.turn):
+                        v.releasing = True
+                        lane_busy[v.lane_idx] = True
+                        self.env.process(self._move_vehicle(v))
+                    else:
+                        # If the front vehicle in this lane cannot go, the lane is blocked
+                        lane_busy[v.lane_idx] = True
 
     def _vehicle_process(self, direction: str):
         """Spawns vehicles for a given direction continuously."""
@@ -268,89 +300,104 @@ class TrafficSimulation:
             iat = self._arrival_rate()
             yield self.env.timeout(iat)
 
-            vid  = self._next_vid; self._next_vid += 1
-            turn = random.choice(list(Turn))
-            color = random.choice(VEHICLE_COLORS)
-            lanes = self._lanes_per_dir()
-            lane_idx = (vid - 1) % lanes
+            with self._lock:
+                # All state updates must be atomic to ensure arrival order == queue order
+                vid  = self._next_vid; self._next_vid += 1
+                turn = random.choice(list(Turn))
+                color = random.choice(VEHICLE_COLORS)
+                lanes = self._lanes_per_dir()
+                
+                lane_idx = self._lane_counters[direction] % lanes
+                self._lane_counters[direction] += 1
 
-            v = Vehicle(
-                vid=vid, direction=direction, turn=turn.value,
-                color=color, arrive_time=self.env.now,
-                wait_start=self.env.now, lane_idx=lane_idx,
-                queue_pos=len(self.queues[direction]),
-            )
+                # Calculate spawn offset (e.g., -250 for N/W, +250 for S/E)
+                offset = -250 if direction in ("N", "W") else 250
 
-            # Check queue capacity
-            if len(self.queues[direction]) >= self._max_queue():
-                self._log(f"🚫 Car #{vid} diverted — {direction} queue full", "red")
-                self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
-                continue
+                v = Vehicle(
+                    vid=vid, direction=direction, turn=turn.value,
+                    color=color, arrive_time=self.env.now,
+                    wait_start=self.env.now, lane_idx=lane_idx,
+                    queue_pos=0, # Will be set below
+                    spawn_offset=offset
+                )
 
-            self.vehicles[vid] = v
-            self._log(f"🚗 Car #{vid} arrives {direction}→{turn.value}", "gray")
-            self._emit("vehicle_arrive", v.to_dict())
+                # Check queue capacity
+                if len(self.queues[direction]) >= self._max_queue():
+                    self._log(f"🚫 Car #{vid} diverted — {direction} queue full", "red")
+                    self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
+                    continue
 
-            # Right turn on red: skip queue
-            if v.turn == Turn.RIGHT.value and self.config.right_turn_free and self._light_for(direction) != LightColor.GREEN:
-                v.wait_end = self.env.now
-                self._log(f"↪  Car #{vid} free right turn at {direction}", "blue")
-                self.env.process(self._move_vehicle(v, 0))
-                continue
-
-            if self._can_go(direction, v.turn) and not self.queues[direction]:
-                # Light is green, enter intersection immediately
-                self.env.process(self._move_vehicle(v, 0))
-            else:
-                # Join queue
+                self.vehicles[vid] = v
                 self.queues[direction].append(vid)
-                v.state = "queued"
+                
+                # Recalculate all queue positions in this direction
+                for pos, qvid in enumerate(self.queues[direction]):
+                    if qvid in self.vehicles:
+                        self.vehicles[qvid].queue_pos = pos
+
+                self._log(f"🚗 Car #{vid} arrives {direction}→{turn.value}", "gray")
+                self._emit("vehicle_arrive", v.to_dict())
                 self._emit("vehicle_queued", v.to_dict())
+                self._emit("queue_update", {"direction": direction, "ids": list(self.queues[direction])})
 
-    def _move_vehicle(self, v: Vehicle, delay: float, require_green: bool = False):
-        """Process: vehicle moves through intersection."""
-        if delay > 0:
-            yield self.env.timeout(delay)
+    def _move_vehicle(self, v: Vehicle):
+        """Process: vehicle waits for resource and moves through intersection."""
+        res = self._lane_resources[v.direction][v.lane_idx]
+        
+        # 1. Wait for lane resource (physical space at the stop line)
+        with res.request() as req:
+            yield req
 
-        if v.vid not in self.vehicles:
-            return
-        if require_green and self._light_for(v.direction) != LightColor.GREEN:
-            if v.vid not in self.queues[v.direction]:
-                self.queues[v.direction].insert(0, v.vid)
-            for pos, vid in enumerate(self.queues[v.direction]):
-                if vid in self.vehicles:
-                    self.vehicles[vid].queue_pos = pos
-            v.state = "queued"
-            self._emit("vehicle_queued", v.to_dict())
-            return
+            # 2. Check signal compliance (Double-check after potential wait)
+            if not self._can_go(v.direction, v.turn):
+                v.releasing = False
+                return
 
-        v.state    = "moving"
-        v.wait_end = self.env.now
-        wait       = v.wait_time()
-        self._wait_times.append(wait)
-        self.stats.total_wait  += wait
-        self.stats.total_passed += 1
+            # 3. Transition to moving state and remove from queue
+            with self._lock:
+                if v.vid in self.queues[v.direction]:
+                    self.queues[v.direction].remove(v.vid)
+                    # Recalculate all queue positions in this direction
+                    for pos, qvid in enumerate(self.queues[v.direction]):
+                        if qvid in self.vehicles:
+                            self.vehicles[qvid].queue_pos = pos
+                    
+                    self._emit("queue_update", {"direction": v.direction, "ids": list(self.queues[v.direction])})
 
-        self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
-        self._emit("vehicle_move", v.to_dict())
+                v.state    = "moving"
+                v.queue_pos = -1
+                v.releasing = False
+                v.wait_end = self.env.now
+                wait       = v.wait_time()
+                self.stats.total_wait  += wait
+                self.stats.total_passed += 1
+                self._emit("vehicle_move", v.to_dict())
 
-        # Travel through intersection
-        travel = 2.5 + random.uniform(0.5, 2.0)
-        yield self.env.timeout(travel)
+            self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
 
-        v.state = "exited"
-        self._emit("vehicle_exit", {"vid": v.vid})
-        if v.vid in self.vehicles:
-            del self.vehicles[v.vid]
+            # Travel through intersection
+            travel = 2.0 + random.uniform(0.5, 1.5)
+            yield self.env.timeout(travel)
+
+            # Exit corridor: ensure vehicle is visually clear before removal
+            exit_travel = 1.0 + random.uniform(0.2, 0.4)
+            yield self.env.timeout(exit_travel)
+
+            with self._lock:
+                v.state = "exited"
+                self._emit("vehicle_exit", {"vid": v.vid})
+                if v.vid in self.vehicles:
+                    del self.vehicles[v.vid]
 
     def _stats_reporter(self):
         """Emits stats snapshot every 0.5 sim-seconds."""
         while True:
             yield self.env.timeout(0.5)
-            self.stats.sim_time       = self.env.now
-            self.stats.queues         = {d: len(q) for d, q in self.queues.items()}
-            self.stats.active_vehicles = len(self.vehicles)
-            self._emit("stats", self.stats.to_dict())
+            with self._lock:
+                self.stats.sim_time       = self.env.now
+                self.stats.queues         = {d: len(q) for d, q in self.queues.items()}
+                self.stats.active_vehicles = len(self.vehicles)
+                self._emit("stats", self.stats.to_dict())
 
     def _log(self, msg: str, cls: str = "gray"):
         self._emit("log", {"msg": msg, "cls": cls})
@@ -370,6 +417,7 @@ class TrafficSimulation:
         # Start all processes
         self.env.process(self._signal_controller())
         self.env.process(self._stats_reporter())
+        self.env.process(self._drain_queues_process())
         for d in ["N", "S", "E", "W"]:
             offset = random.uniform(0, 1.5)
             self.env.process(self._direction_spawner(d, offset))
@@ -386,7 +434,7 @@ class TrafficSimulation:
 
     def _direction_spawner(self, direction: str, offset: float):
         yield self.env.timeout(offset)
-        yield from self._vehicle_process(direction)
+        self.env.process(self._vehicle_process(direction))
 
     def pause(self):
         self.paused = not self.paused
@@ -402,11 +450,21 @@ class TrafficSimulation:
             if hasattr(self.config, k):
                 setattr(self.config, k, v)
 
+    def get_status(self) -> dict:
+        with self._lock:
+            return {
+                "running": self.running,
+                "paused": self.paused,
+                **self.get_stats()
+            }
+
     def get_vehicles(self) -> List[dict]:
-        return [v.to_dict() for v in self.vehicles.values()]
+        with self._lock:
+            return [v.to_dict() for v in self.vehicles.values()]
 
     def get_stats(self) -> dict:
-        self.stats.sim_time       = round(self.env.now, 1)
-        self.stats.queues         = {d: len(q) for d, q in self.queues.items()}
-        self.stats.active_vehicles = len(self.vehicles)
-        return self.stats.to_dict()
+        with self._lock:
+            self.stats.sim_time       = round(self.env.now, 1)
+            self.stats.queues         = {d: len(q) for d, q in self.queues.items()}
+            self.stats.active_vehicles = len(self.vehicles)
+            return self.stats.to_dict()

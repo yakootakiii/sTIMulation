@@ -46,7 +46,7 @@ def index():
 @app.route("/api/status")
 def status():
     if sim:
-        return jsonify({"running": sim.running, "paused": sim.paused, **sim.get_stats()})
+        return jsonify(sim.get_status())
     return jsonify({"running": False})
 
 
@@ -62,7 +62,8 @@ def vehicles():
 @socketio.on("connect")
 def on_connect():
     if sim:
-        emit("stats", sim.get_stats())
+        stats = sim.get_status()
+        emit("stats", stats)
         emit("vehicles_snapshot", sim.get_vehicles())
 
 

@@ -790,6 +790,13 @@ socket.on('vehicle_queued', v=>{
 socket.on('vehicle_move', v=>{
   STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'moving'};
 });
+socket.on('queue_update', ({direction, ids})=>{
+  ids.forEach((vid, pos)=>{
+    if(STATE.vehicles[vid]){
+      STATE.vehicles[vid].queue_pos = pos;
+    }
+  });
+});
 socket.on('vehicle_exit', ({vid})=>{
   const v = STATE.vehicles[vid];
   if(v && v.state === 'moving' && VIS[vid]){
