@@ -2,6 +2,11 @@
 Traffic Simulation — Flask + SocketIO server
 """
 
+import warnings
+
+warnings.filterwarnings("ignore", message="Eventlet is deprecated.*")
+warnings.filterwarnings("ignore", category=Warning, module=r"eventlet(\..*)?")
+
 import eventlet
 # Ensure eventlet monkey-patching runs before other stdlib imports
 eventlet.monkey_patch()
