@@ -1,0 +1,250 @@
+/* Enhanced Stardew Valley inspired theme - complete redesign */
+:root {
+  /* Stardew palette */
+  --sv-bg: #e7dbc6;
+  --sv-panel: #b48b5b;
+  --sv-accent: #3b7a57;
+  --sv-accent2: #8aa4d2;
+  --sv-text: #1b1b1b;
+  --sv-muted: #6b5843;
+  --sv-border: #9d8b74;
+  --sv-light: #f5f1e8;
+  --sv-green: #10b981;
+  --sv-yellow: #f59e0b;
+  --sv-red: #ef4444;
+}
+
+/* Core styling */
+html, body {
+  height: 100%;
+  background: var(--sv-bg);
+  color: var(--sv-text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.05) 100%);
+  border-bottom: 3px solid var(--sv-border);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 10px 16px;
+}
+
+.logo, .logo-icon {
+  text-transform: uppercase;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+/* Panels */
+#panel, .p-section {
+  background: linear-gradient(135deg, rgba(245,241,232,0.8) 0%, rgba(231,219,198,0.9) 100%);
+  border: 2px solid var(--sv-border);
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.05);
+}
+
+.p-section {
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--sv-border);
+}
+
+.sec-title {
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--sv-text);
+  margin-bottom: 10px;
+}
+
+/* Buttons */
+.btn, button {
+  background: linear-gradient(180deg, var(--sv-accent) 0%, #2d6946 100%);
+  color: white;
+  padding: 8px 14px;
+  border: 2px solid rgba(0,0,0,0.3);
+  border-radius: 2px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.15);
+  transition: all 0.1s;
+}
+
+.btn:hover, button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+}
+
+.btn:active, button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.btn-row .btn {
+  flex: 1;
+}
+
+/* Control styles */
+.ctrl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: var(--sv-light);
+  border: 1px solid var(--sv-border);
+  border-radius: 2px;
+}
+
+.ctrl-label {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--sv-text);
+  min-width: 70px;
+}
+
+.ctrl-val {
+  font-weight: 700;
+  color: var(--sv-accent);
+  font-size: 11px;
+  min-width: 35px;
+  text-align: right;
+}
+
+/* Range sliders */
+input[type="range"] {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #ddd, #999);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, var(--sv-accent), #2d6946);
+  cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.2);
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, var(--sv-accent), #2d6946);
+  cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.2);
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Selects */
+select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--sv-border);
+  background: var(--sv-light);
+  color: var(--sv-text);
+  font-weight: 600;
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+}
+
+select:focus {
+  border-color: var(--sv-accent);
+  box-shadow: 0 0 3px rgba(59, 122, 87, 0.3);
+}
+
+/* Canvas area */
+#canvas-wrap, .canvas-wrap {
+  background: linear-gradient(135deg, #f5f1e8 0%, #e7dbc6 100%);
+  border: 3px solid var(--sv-border);
+  padding: 6px;
+  box-shadow: inset 2px 2px 4px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Stats area */
+.stats-grid, .stat-row {
+  background: var(--sv-light);
+  border: 1px solid var(--sv-border);
+  padding: 8px;
+  border-radius: 2px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.stat-label {
+  font-weight: 600;
+  color: var(--sv-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-val {
+  font-weight: 700;
+  color: var(--sv-accent);
+  font-size: 12px;
+}
+
+/* Pills/badges */
+.pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pill-green {
+  background: #d0f3d8;
+  color: var(--sv-accent);
+  border: 1px solid var(--sv-accent);
+}
+
+.pill-red {
+  background: #fecaca;
+  color: var(--sv-red);
+  border: 1px solid var(--sv-red);
+}
+
+.pill-yellow {
+  background: #fef3c7;
+  color: var(--sv-yellow);
+  border: 1px solid var(--sv-yellow);
+}
+
+.pill-blue {
+  background: #d0e7ff;
+  color: var(--sv-accent2);
+  border: 1px solid var(--sv-accent2);
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+  .p-section {
+    padding: 10px;
+  }
+  .btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+  .ctrl {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
