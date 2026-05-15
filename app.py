@@ -2,15 +2,7 @@
 Traffic Simulation — Flask + SocketIO server
 """
 
-import warnings
-
-warnings.filterwarnings("ignore", message="Eventlet is deprecated.*")
-warnings.filterwarnings("ignore", category=Warning, module=r"eventlet(\..*)?")
-
-import eventlet
-# Ensure eventlet monkey-patching runs before other stdlib imports
-eventlet.monkey_patch()
-
+import os
 import threading
 from socketio_utils import EventBatcher, RateLimiter
 from flask import Flask, render_template, jsonify, request
@@ -19,7 +11,8 @@ from simulation import TrafficSimulation, SimConfig
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "traffic-sim-2024"
-socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
+ASYNC_MODE = os.getenv("SIM_ASYNC_MODE", "threading")
+socketio = SocketIO(app, async_mode=ASYNC_MODE, cors_allowed_origins="*")
 
 # ─── Global simulation instance ───────────────────────────────────────────────
 sim: TrafficSimulation = None
@@ -138,10 +131,10 @@ def metrics():
 def _flush_event_batches():
     while True:
         event_batcher.flush_if_due()
-        eventlet.sleep(0.05)
+    socketio.sleep(0.05)
 
 
-eventlet.spawn_n(_flush_event_batches)
+socketio.start_background_task(_flush_event_batches)
 
 
 # ─── SocketIO events ──────────────────────────────────────────────────────────
@@ -223,4 +216,10 @@ if __name__ == "__main__":
     print("  ────────────────────────────────")
     print("  Open  http://localhost:5001")
     print("  Press Ctrl+C to stop\n")
-    socketio.run(app, host="0.0.0.0", port=5001, debug=False)
+    socketio.run(
+        app,
+        host="0.0.0.0",
+        port=5001,
+        debug=False,
+        allow_unsafe_werkzeug=True,
+    )

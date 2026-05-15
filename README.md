@@ -31,5 +31,6 @@ API:
 - GET /api/metrics
 
 Notes:
-- The app uses Eventlet for Socket.IO async handling.
+- The app defaults to Socket.IO `threading` async mode (`SIM_ASYNC_MODE=threading`).
+- You can override async mode with `SIM_ASYNC_MODE` if needed.
 - The benchmark path skips real-time Socket.IO logging so throughput comparisons stay focused on the algorithm.
