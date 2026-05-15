@@ -58,6 +58,49 @@ def vehicles():
     return jsonify([])
 
 
+@app.route("/api/config", methods=["GET", "POST"])
+def config():
+    """Get or update simulation config."""
+    if request.method == "POST":
+        data = request.get_json() or {}
+        # Validate input keys
+        valid_keys = {"green_duration", "yellow_duration", "red_duration",
+                      "scenario", "road_type", "right_turn_free", "speed_factor"}
+        filtered = {k: v for k, v in data.items() if k in valid_keys}
+        if sim:
+            sim.update_config(**filtered)
+        return jsonify({"ok": True, "updated": filtered})
+    
+    if sim:
+        cfg = sim.config
+        return jsonify({
+            "green_duration": cfg.green_duration,
+            "yellow_duration": cfg.yellow_duration,
+            "red_duration": cfg.red_duration,
+            "scenario": cfg.scenario,
+            "road_type": cfg.road_type,
+            "right_turn_free": cfg.right_turn_free,
+            "speed_factor": cfg.speed_factor,
+        })
+    return jsonify({})
+
+
+@app.route("/api/metrics")
+def metrics():
+    """Return aggregated metrics and queue information."""
+    if sim:
+        stats = sim.get_stats()
+        return jsonify({
+            "total_passed": stats["total_passed"],
+            "avg_wait": stats["avg_wait"],
+            "cycles": stats["cycles"],
+            "sim_time": stats["sim_time"],
+            "active_vehicles": stats["active_vehicles"],
+            "queues": stats["queues"],
+        })
+    return jsonify({"total_passed": 0, "avg_wait": 0.0})
+
+
 # ─── SocketIO events ──────────────────────────────────────────────────────────
 
 @socketio.on("connect")
@@ -106,13 +149,13 @@ def on_reset(data=None):
 @socketio.on("cmd_update_config")
 def on_update_config(data):
     if sim:
-        updates = {}
-        for k in ("green_duration","yellow_duration","red_duration",
-                "scenario","road_type","right_turn_free","speed_factor"):
-            if k in data:
-                updates[k] = data[k]
+        # Validate keys
+        valid_keys = {"green_duration", "yellow_duration", "red_duration",
+                      "scenario", "road_type", "right_turn_free", "speed_factor"}
+        updates = {k: data[k] for k in valid_keys if k in data}
         sim.update_config(**updates)
         emit("ack", {"ok": True, "action": "config_updated"})
+        socketio.emit("log", {"msg": f"⚙️ Config updated: {list(updates.keys())}", "cls": "blue", "sim_time": sim.env.now})
 
 
 def _apply_cfg(cfg: SimConfig, data: dict):
