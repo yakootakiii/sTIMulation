@@ -8,6 +8,7 @@ import random
 import threading
 import time
 import math
+from collections import deque
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Optional, Callable
 from enum import Enum
@@ -139,13 +140,16 @@ class TrafficSimulation:
         # State
         self.stats    = SimStats()
         self.vehicles: Dict[int, Vehicle] = {}
-        self.queues:   Dict[str, List[int]] = {"N":[],"S":[],"E":[],"W":[]}
+        # Use deque for efficient popleft/appendleft operations
+        self.queues:   Dict[str, deque] = {"N":deque(),"S":deque(),"E":deque(),"W":deque()}
         self.phase    = Phase.NS_GREEN
         self._next_vid = 1
         self._wait_times: List[float] = []
 
         # SimPy resources (one per direction for queue discipline)
         self._lane_resources: Dict[str, simpy.Resource] = {}
+        # cached turn values to avoid recreating lists
+        self._turn_values = tuple(t.value for t in Turn)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -249,15 +253,18 @@ class TrafficSimulation:
         """Release waiting vehicles when light goes green."""
         lanes = self._lanes_per_dir()
         for d in dirs:
-            q = list(self.queues[d])
-            batch = min(len(q), lanes * 2)
-            for i, vid in enumerate(q[:batch]):
+            batch = min(len(self.queues[d]), lanes * 2)
+            # pop left batch times and schedule moves
+            for i in range(batch):
+                try:
+                    vid = self.queues[d].popleft()
+                except IndexError:
+                    break
                 v = self.vehicles.get(vid)
                 if v:
                     delay = i * 1.8 + random.uniform(0, 0.4)
                     self.env.process(self._move_vehicle(v, delay, require_green=True))
-            self.queues[d] = q[batch:]
-            # Update queue positions
+            # Update queue positions for remaining vehicles
             for pos, vid in enumerate(self.queues[d]):
                 if vid in self.vehicles:
                     self.vehicles[vid].queue_pos = pos
@@ -269,13 +276,13 @@ class TrafficSimulation:
             yield self.env.timeout(iat)
 
             vid  = self._next_vid; self._next_vid += 1
-            turn = random.choice(list(Turn))
+            turn = random.choice(self._turn_values)
             color = random.choice(VEHICLE_COLORS)
             lanes = self._lanes_per_dir()
             lane_idx = (vid - 1) % lanes
 
             v = Vehicle(
-                vid=vid, direction=direction, turn=turn.value,
+                vid=vid, direction=direction, turn=turn,
                 color=color, arrive_time=self.env.now,
                 wait_start=self.env.now, lane_idx=lane_idx,
                 queue_pos=len(self.queues[direction]),
@@ -288,7 +295,7 @@ class TrafficSimulation:
                 continue
 
             self.vehicles[vid] = v
-            self._log(f"🚗 Car #{vid} arrives {direction}→{turn.value}", "gray")
+            self._log(f"🚗 Car #{vid} arrives {direction}→{turn}", "gray")
             self._emit("vehicle_arrive", v.to_dict())
 
             # Right turn on red: skip queue
@@ -316,7 +323,7 @@ class TrafficSimulation:
             return
         if require_green and self._light_for(v.direction) != LightColor.GREEN:
             if v.vid not in self.queues[v.direction]:
-                self.queues[v.direction].insert(0, v.vid)
+                self.queues[v.direction].appendleft(v.vid)
             for pos, vid in enumerate(self.queues[v.direction]):
                 if vid in self.vehicles:
                     self.vehicles[vid].queue_pos = pos
