@@ -142,6 +142,7 @@ class TrafficSimulation:
         self.vehicles: Dict[int, Vehicle] = {}
         # Use deque for efficient popleft/appendleft operations
         self.queues:   Dict[str, deque] = {"N":deque(),"S":deque(),"E":deque(),"W":deque()}
+        self._queued_ids: Dict[str, set] = {"N":set(),"S":set(),"E":set(),"W":set()}
         self.phase    = Phase.NS_GREEN
         self._next_vid = 1
         self._wait_times: List[float] = []
@@ -191,6 +192,36 @@ class TrafficSimulation:
         if turn == Turn.RIGHT.value and self.config.right_turn_free:
             return True
         return False
+
+    def _refresh_queue_positions(self, direction: str):
+        for pos, vid in enumerate(self.queues[direction]):
+            vehicle = self.vehicles.get(vid)
+            if vehicle:
+                vehicle.queue_pos = pos
+
+    def _queue_append(self, direction: str, vid: int):
+        self.queues[direction].append(vid)
+        self._queued_ids[direction].add(vid)
+        vehicle = self.vehicles.get(vid)
+        if vehicle:
+            vehicle.queue_pos = len(self.queues[direction]) - 1
+
+    def _queue_appendleft(self, direction: str, vid: int):
+        self.queues[direction].appendleft(vid)
+        self._queued_ids[direction].add(vid)
+        self._refresh_queue_positions(direction)
+
+    def _queue_popleft_many(self, direction: str, count: int):
+        popped = []
+        queue = self.queues[direction]
+        queued_ids = self._queued_ids[direction]
+        for _ in range(count):
+            if not queue:
+                break
+            vid = queue.popleft()
+            queued_ids.discard(vid)
+            popped.append(vid)
+        return popped
 
     def _emit(self, etype: str, data: dict):
         if self.event_cb:
@@ -262,11 +293,7 @@ class TrafficSimulation:
             batch = min(len(self.queues[d]), lanes * 2)
             # pop left batch times and schedule moves in a single batched process
             pairs = []
-            for i in range(batch):
-                try:
-                    vid = self.queues[d].popleft()
-                except IndexError:
-                    break
+            for i, vid in enumerate(self._queue_popleft_many(d, batch)):
                 v = self.vehicles.get(vid)
                 if v:
                     delay = i * 1.8 + random.uniform(0, 0.4)
@@ -274,9 +301,7 @@ class TrafficSimulation:
             if pairs:
                 self.env.process(self._batch_move(pairs, require_green=True))
             # Update queue positions for remaining vehicles
-            for pos, vid in enumerate(self.queues[d]):
-                if vid in self.vehicles:
-                    self.vehicles[vid].queue_pos = pos
+            self._refresh_queue_positions(d)
         self._profile["release_time"] += (time.perf_counter() - start)
 
     def _batch_move(self, pairs: List[tuple], require_green: bool = False):
@@ -299,11 +324,8 @@ class TrafficSimulation:
                 continue
             if require_green and self._light_for(v.direction) != LightColor.GREEN:
                 # return to head of queue
-                if v.vid not in self.queues[v.direction]:
-                    self.queues[v.direction].appendleft(v.vid)
-                for pos, qvid in enumerate(self.queues[v.direction]):
-                    if qvid in self.vehicles:
-                        self.vehicles[qvid].queue_pos = pos
+                if v.vid not in self._queued_ids[v.direction]:
+                    self._queue_appendleft(v.direction, v.vid)
                 v.state = "queued"
                 self._emit("vehicle_queued", v.to_dict())
                 continue
@@ -371,7 +393,7 @@ class TrafficSimulation:
                 self.env.process(self._move_vehicle(v, 0))
             else:
                 # Join queue
-                self.queues[direction].append(vid)
+                self._queue_append(direction, vid)
                 v.state = "queued"
                 self._emit("vehicle_queued", v.to_dict())
 
@@ -384,11 +406,8 @@ class TrafficSimulation:
         if v.vid not in self.vehicles:
             return
         if require_green and self._light_for(v.direction) != LightColor.GREEN:
-            if v.vid not in self.queues[v.direction]:
-                self.queues[v.direction].appendleft(v.vid)
-            for pos, vid in enumerate(self.queues[v.direction]):
-                if vid in self.vehicles:
-                    self.vehicles[vid].queue_pos = pos
+            if v.vid not in self._queued_ids[v.direction]:
+                self._queue_appendleft(v.direction, v.vid)
             v.state = "queued"
             self._emit("vehicle_queued", v.to_dict())
             return
