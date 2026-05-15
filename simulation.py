@@ -146,6 +146,7 @@ class TrafficSimulation:
         self.phase    = Phase.NS_GREEN
         self._next_vid = 1
         self._wait_times: List[float] = []
+        self._trace_enabled = event_cb is not None
 
         # lightweight profiling counters (seconds)
         self._profile = {
@@ -238,7 +239,8 @@ class TrafficSimulation:
             self.phase = Phase.NS_GREEN
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "green", "ew": "red"})
-            self._log(f"🟢 N-S GREEN ({cfg.green_duration}s)", "green")
+            if self._trace_enabled:
+                self._log(f"🟢 N-S GREEN ({cfg.green_duration}s)", "green")
             self._release_queues(["N", "S"])
             yield self.env.timeout(cfg.green_duration)
 
@@ -246,21 +248,24 @@ class TrafficSimulation:
             self.phase = Phase.NS_YELLOW
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "yellow", "ew": "red"})
-            self._log(f"🟡 N-S YELLOW ({cfg.yellow_duration}s)", "yellow")
+            if self._trace_enabled:
+                self._log(f"🟡 N-S YELLOW ({cfg.yellow_duration}s)", "yellow")
             yield self.env.timeout(cfg.yellow_duration)
 
             # All-red clearance
             self.phase = Phase.NS_RED
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
-            self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
+            if self._trace_enabled:
+                self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
             yield self.env.timeout(cfg.red_duration)
 
             # EW Green
             self.phase = Phase.EW_GREEN
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "green"})
-            self._log(f"🟢 E-W GREEN ({cfg.green_duration}s)", "green")
+            if self._trace_enabled:
+                self._log(f"🟢 E-W GREEN ({cfg.green_duration}s)", "green")
             self._release_queues(["E", "W"])
             yield self.env.timeout(cfg.green_duration)
 
@@ -268,14 +273,16 @@ class TrafficSimulation:
             self.phase = Phase.EW_YELLOW
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "yellow"})
-            self._log(f"🟡 E-W YELLOW ({cfg.yellow_duration}s)", "yellow")
+            if self._trace_enabled:
+                self._log(f"🟡 E-W YELLOW ({cfg.yellow_duration}s)", "yellow")
             yield self.env.timeout(cfg.yellow_duration)
 
             # All-red clearance
             self.phase = Phase.EW_RED
             self._update_lights()
             self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
-            self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
+            if self._trace_enabled:
+                self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
             yield self.env.timeout(cfg.red_duration)
 
             self.stats.cycles += 1
@@ -327,7 +334,8 @@ class TrafficSimulation:
                 if v.vid not in self._queued_ids[v.direction]:
                     self._queue_appendleft(v.direction, v.vid)
                 v.state = "queued"
-                self._emit("vehicle_queued", v.to_dict())
+                if self._trace_enabled:
+                    self._emit("vehicle_queued", v.to_dict())
                 continue
 
             v.state = "moving"
@@ -337,15 +345,17 @@ class TrafficSimulation:
             self.stats.total_wait += wait_t
             self.stats.total_passed += 1
 
-            self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait_t:.1f}s", "blue")
-            self._emit("vehicle_move", v.to_dict())
+            if self._trace_enabled:
+                self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait_t:.1f}s", "blue")
+                self._emit("vehicle_move", v.to_dict())
 
             # Travel through intersection
             travel = 2.5 + random.uniform(0.5, 2.0)
             yield self.env.timeout(travel)
 
             v.state = "exited"
-            self._emit("vehicle_exit", {"vid": v.vid})
+            if self._trace_enabled:
+                self._emit("vehicle_exit", {"vid": v.vid})
             if v.vid in self.vehicles:
                 del self.vehicles[v.vid]
         self._profile["batch_move_time"] += (time.perf_counter() - start)
@@ -361,8 +371,9 @@ class TrafficSimulation:
             vid  = self._next_vid; self._next_vid += 1
             # Check queue capacity early to avoid expensive allocations
             if len(self.queues[direction]) >= self._max_queue():
-                self._log(f"🚫 Car #{vid} diverted — {direction} queue full", "red")
-                self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
+                if self._trace_enabled:
+                    self._log(f"🚫 Car #{vid} diverted — {direction} queue full", "red")
+                    self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
                 continue
 
             turn = random.choice(self._turn_values)
@@ -378,13 +389,15 @@ class TrafficSimulation:
             )
 
             self.vehicles[vid] = v
-            self._log(f"🚗 Car #{vid} arrives {direction}→{turn}", "gray")
-            self._emit("vehicle_arrive", v.to_dict())
+            if self._trace_enabled:
+                self._log(f"🚗 Car #{vid} arrives {direction}→{turn}", "gray")
+                self._emit("vehicle_arrive", v.to_dict())
 
             # Right turn on red: skip queue
             if v.turn == Turn.RIGHT.value and self.config.right_turn_free and self._light_for(direction) != LightColor.GREEN:
                 v.wait_end = self.env.now
-                self._log(f"↪  Car #{vid} free right turn at {direction}", "blue")
+                if self._trace_enabled:
+                    self._log(f"↪  Car #{vid} free right turn at {direction}", "blue")
                 self.env.process(self._move_vehicle(v, 0))
                 continue
 
@@ -395,7 +408,8 @@ class TrafficSimulation:
                 # Join queue
                 self._queue_append(direction, vid)
                 v.state = "queued"
-                self._emit("vehicle_queued", v.to_dict())
+                if self._trace_enabled:
+                    self._emit("vehicle_queued", v.to_dict())
 
     def _move_vehicle(self, v: Vehicle, delay: float, require_green: bool = False):
         """Process: vehicle moves through intersection."""
@@ -409,7 +423,8 @@ class TrafficSimulation:
             if v.vid not in self._queued_ids[v.direction]:
                 self._queue_appendleft(v.direction, v.vid)
             v.state = "queued"
-            self._emit("vehicle_queued", v.to_dict())
+            if self._trace_enabled:
+                self._emit("vehicle_queued", v.to_dict())
             return
 
         v.state    = "moving"
@@ -419,15 +434,17 @@ class TrafficSimulation:
         self.stats.total_wait  += wait
         self.stats.total_passed += 1
 
-        self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
-        self._emit("vehicle_move", v.to_dict())
+        if self._trace_enabled:
+            self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
+            self._emit("vehicle_move", v.to_dict())
 
         # Travel through intersection
         travel = 2.5 + random.uniform(0.5, 2.0)
         yield self.env.timeout(travel)
 
         v.state = "exited"
-        self._emit("vehicle_exit", {"vid": v.vid})
+        if self._trace_enabled:
+            self._emit("vehicle_exit", {"vid": v.vid})
         if v.vid in self.vehicles:
             del self.vehicles[v.vid]
         self._profile["move_vehicle_time"] += (time.perf_counter() - start)
