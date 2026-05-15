@@ -1,7 +1,7 @@
 """SocketIO event batching and rate limiting utilities."""
 import time
 from collections import deque
-from typing import Dict, List, Callable, Any
+from typing import Dict, Callable
 
 
 class EventBatcher:
@@ -11,7 +11,7 @@ class EventBatcher:
         self.batch_size = batch_size
         self.flush_interval = flush_interval
         self.batches: Dict[str, deque] = {}
-        self.last_flush = time.time()
+        self.last_flush = time.monotonic()
         self.emit_fn: Callable[[str, dict], None] = None
     
     def add(self, event_type: str, data: dict):
@@ -40,11 +40,16 @@ class EventBatcher:
                 self.emit_fn("events_batch", payload)
         
         self.batches.clear()
-        self.last_flush = time.time()
+        self.last_flush = time.monotonic()
     
     def should_flush(self) -> bool:
         """Check if enough time has elapsed to flush."""
-        return (time.time() - self.last_flush) >= self.flush_interval
+        return (time.monotonic() - self.last_flush) >= self.flush_interval
+
+    def flush_if_due(self):
+        """Flush only when the flush interval has elapsed."""
+        if self.should_flush():
+            self.flush()
 
 
 class RateLimiter:
@@ -57,7 +62,7 @@ class RateLimiter:
     
     def allow(self, event_type: str) -> bool:
         """Check if event should be emitted."""
-        now = time.time()
+        now = time.monotonic()
         last = self.last_emit.get(event_type, 0.0)
         
         if (now - last) >= self.min_interval:

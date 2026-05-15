@@ -7,6 +7,7 @@ import eventlet
 eventlet.monkey_patch()
 
 import threading
+from socketio_utils import EventBatcher, RateLimiter
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from simulation import TrafficSimulation, SimConfig
@@ -18,11 +19,32 @@ socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 # ─── Global simulation instance ───────────────────────────────────────────────
 sim: TrafficSimulation = None
 sim_lock = threading.Lock()
+event_batcher = EventBatcher(batch_size=20, flush_interval=0.05)
+event_batcher.emit_fn = socketio.emit
+rate_limiter = RateLimiter(max_per_second=80)
+
+
+def _emit_event(event_type: str, data: dict):
+    """Route Socket.IO events through batching/rate limiting when appropriate."""
+    if event_type == "log" and not rate_limiter.allow(event_type):
+        return
+
+    if event_type in {"vehicle_arrive", "vehicle_queued", "vehicle_move", "vehicle_exit", "vehicle_diverted"}:
+        event_batcher.add(event_type, data)
+        event_batcher.flush_if_due()
+        return
+
+    if event_type in {"stats", "light_change", "reset", "ack"}:
+        event_batcher.flush()
+        socketio.emit(event_type, data)
+        return
+
+    socketio.emit(event_type, data)
 
 
 def make_event_cb():
     def cb(etype: str, data: dict):
-        socketio.emit(etype, data)
+        _emit_event(etype, data)
     return cb
 
 
@@ -106,6 +128,15 @@ def metrics():
                 out["metrics"] = {"error": "failed to collect metrics"}
         return jsonify(out)
     return jsonify({"total_passed": 0, "avg_wait": 0.0})
+
+
+def _flush_event_batches():
+    while True:
+        event_batcher.flush_if_due()
+        eventlet.sleep(0.05)
+
+
+eventlet.spawn_n(_flush_event_batches)
 
 
 # ─── SocketIO events ──────────────────────────────────────────────────────────
