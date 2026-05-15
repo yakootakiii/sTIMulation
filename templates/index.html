@@ -368,22 +368,15 @@ function drawScene(){
   const g = geo();
   const{W,H,cx,cy,rw,lw,lanes} = g;
   ctx.clearRect(0,0,W,H);
-
-  // ── Background ──
-  ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
-
-  // ── Grass/zones ──
-  const grassGrad = ctx.createLinearGradient(0,0,W,H);
-  grassGrad.addColorStop(0,'#0e1c0e');
-  grassGrad.addColorStop(1,'#0a140a');
-  ctx.fillStyle=grassGrad;
-  [[0,0,cx-rw/2,H],[cx+rw/2,0,W-cx-rw/2,H],
-   [cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r=>ctx.fillRect(...r));
-
-  // Grid lines on grass
-  ctx.strokeStyle='rgba(255,255,255,.02)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
-  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  // ── Background / Tiles (Stardew v2 palette) ──
+  ctx.fillStyle='#0b0f12'; ctx.fillRect(0,0,W,H);
+  // simple palette inspired by Stardew v2
+  const PALETTE = {
+    grassA: '#0f2a18', grassB: '#173a21', grassC: '#0d1f12',
+    dirt: '#8b6a3d', path:'#6b5a3e', water:'#15324a'
+  };
+  // draw tiled grass zones around roads
+  drawTiles(g, PALETTE);
 
   // ── Road pavement ──
   ctx.fillStyle='#1e2332';
@@ -505,6 +498,42 @@ function drawLights(g){
     // Label
     ctx.fillStyle='#6b7280'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
     ctx.fillText(dir, x+11, y+64);
+  });
+}
+
+// ── Tile renderer (simple placeholders for Stardew look) ──
+function drawTiles(g, palette){
+  const {W,H,cx,cy,rw} = g;
+  const tile = 24;
+  // draw four grass blocks (left, right, top, bottom)
+  const zones = [
+    {x:0,y:0,w:cx-rw/2,h:H},
+    {x:cx+rw/2,y:0,w:W-(cx+rw/2),h:H},
+    {x:cx-rw/2,y:0,w:rw,h:cy-rw/2},
+    {x:cx-rw/2,y:cy+rw/2,w:rw,h:H-(cy+rw/2)},
+  ];
+  zones.forEach(z=>{
+    const cols = Math.ceil(z.w / tile)+1;
+    const rows = Math.ceil(z.h / tile)+1;
+    for(let ry=0; ry<rows; ry++){
+      for(let cxn=0; cxn<cols; cxn++){
+        const px = Math.floor(z.x + cxn*tile - (tile/4));
+        const py = Math.floor(z.y + ry*tile - (tile/6));
+        // pick subtle variation
+        const pick = (cxn+ry) % 3;
+        ctx.fillStyle = pick===0 ? palette.grassA : pick===1 ? palette.grassB : palette.grassC;
+        ctx.fillRect(px, py, tile+2, tile+2);
+        // small dirt speck
+        if(Math.random() < 0.06){ ctx.fillStyle = palette.dirt; ctx.fillRect(px+6, py+6, 3, 3); }
+      }
+    }
+  });
+
+  // optional corner sprite placeholders
+  const spriteSize = 36;
+  [[cx-rw/2- spriteSize - 8, cy-rw/2 - spriteSize - 8],[cx+rw/2+8, cy+rw/2+8]].forEach(([sx,sy])=>{
+    ctx.fillStyle = palette.path; roundRect(sx, sy, spriteSize, spriteSize, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.06)'; roundRect(sx+6, sy+6, spriteSize-12, spriteSize-12,4); ctx.fill();
   });
 }
 

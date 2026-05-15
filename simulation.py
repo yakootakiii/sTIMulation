@@ -146,6 +146,15 @@ class TrafficSimulation:
         self._next_vid = 1
         self._wait_times: List[float] = []
 
+        # lightweight profiling counters (seconds)
+        self._profile = {
+            "batch_move_time": 0.0,
+            "move_vehicle_time": 0.0,
+            "release_time": 0.0,
+            "vehicle_spawn_time": 0.0,
+            "env_ticks": 0,
+        }
+
         # SimPy resources (one per direction for queue discipline)
         self._lane_resources: Dict[str, simpy.Resource] = {}
         # cached turn values to avoid recreating lists
@@ -247,6 +256,7 @@ class TrafficSimulation:
 
     def _release_queues(self, dirs: List[str]):
         """Release waiting vehicles when light goes green."""
+        start = time.perf_counter()
         lanes = self._lanes_per_dir()
         for d in dirs:
             batch = min(len(self.queues[d]), lanes * 2)
@@ -267,6 +277,7 @@ class TrafficSimulation:
             for pos, vid in enumerate(self.queues[d]):
                 if vid in self.vehicles:
                     self.vehicles[vid].queue_pos = pos
+        self._profile["release_time"] += (time.perf_counter() - start)
 
     def _batch_move(self, pairs: List[tuple], require_green: bool = False):
         """Process that moves a batch of vehicles with staggered delays.
@@ -274,6 +285,7 @@ class TrafficSimulation:
         This reduces the overhead of creating many small processes.
         """
         # sort by delay to compute incremental sleeps
+        start = time.perf_counter()
         pairs_sorted = sorted(pairs, key=lambda x: x[1])
         last = 0.0
         for vid, delay in pairs_sorted:
@@ -314,14 +326,23 @@ class TrafficSimulation:
             self._emit("vehicle_exit", {"vid": v.vid})
             if v.vid in self.vehicles:
                 del self.vehicles[v.vid]
+        self._profile["batch_move_time"] += (time.perf_counter() - start)
 
     def _vehicle_process(self, direction: str):
         """Spawns vehicles for a given direction continuously."""
         while True:
+            sstart = time.perf_counter()
             iat = self._arrival_rate()
             yield self.env.timeout(iat)
+            self._profile["vehicle_spawn_time"] += (time.perf_counter() - sstart)
 
             vid  = self._next_vid; self._next_vid += 1
+            # Check queue capacity early to avoid expensive allocations
+            if len(self.queues[direction]) >= self._max_queue():
+                self._log(f"🚫 Car #{vid} diverted — {direction} queue full", "red")
+                self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
+                continue
+
             turn = random.choice(self._turn_values)
             color = random.choice(VEHICLE_COLORS)
             lanes = self._lanes_per_dir()
@@ -333,12 +354,6 @@ class TrafficSimulation:
                 wait_start=self.env.now, lane_idx=lane_idx,
                 queue_pos=len(self.queues[direction]),
             )
-
-            # Check queue capacity
-            if len(self.queues[direction]) >= self._max_queue():
-                self._log(f"🚫 Car #{vid} diverted — {direction} queue full", "red")
-                self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
-                continue
 
             self.vehicles[vid] = v
             self._log(f"🚗 Car #{vid} arrives {direction}→{turn}", "gray")
@@ -362,6 +377,7 @@ class TrafficSimulation:
 
     def _move_vehicle(self, v: Vehicle, delay: float, require_green: bool = False):
         """Process: vehicle moves through intersection."""
+        start = time.perf_counter()
         if delay > 0:
             yield self.env.timeout(delay)
 
@@ -395,6 +411,7 @@ class TrafficSimulation:
         self._emit("vehicle_exit", {"vid": v.vid})
         if v.vid in self.vehicles:
             del self.vehicles[v.vid]
+        self._profile["move_vehicle_time"] += (time.perf_counter() - start)
 
     def _stats_reporter(self):
         """Emits stats snapshot every 0.5 sim-seconds."""
@@ -435,6 +452,8 @@ class TrafficSimulation:
                 continue
             wall_step = STEP / max(self.config.speed_factor, 0.1)
             self.env.run(until=self.env.now + STEP)
+            # track loop ticks for simple throughput measurement
+            self._profile["env_ticks"] += 1
             time.sleep(wall_step)
 
     def _direction_spawner(self, direction: str, offset: float):
@@ -463,3 +482,11 @@ class TrafficSimulation:
         self.stats.queues         = {d: len(q) for d, q in self.queues.items()}
         self.stats.active_vehicles = len(self.vehicles)
         return self.stats.to_dict()
+
+    def get_metrics(self) -> dict:
+        """Return profiling and benchmark-related metrics."""
+        return {
+            "profile": {k: round(v, 6) for k, v in self._profile.items()},
+            "wait_samples": len(self._wait_times),
+            "avg_wait_sample": round((sum(self._wait_times)/len(self._wait_times)) if self._wait_times else 0.0, 4),
+        }

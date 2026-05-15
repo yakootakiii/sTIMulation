@@ -90,14 +90,21 @@ def metrics():
     """Return aggregated metrics and queue information."""
     if sim:
         stats = sim.get_stats()
-        return jsonify({
+        out = {
             "total_passed": stats["total_passed"],
             "avg_wait": stats["avg_wait"],
             "cycles": stats["cycles"],
             "sim_time": stats["sim_time"],
             "active_vehicles": stats["active_vehicles"],
             "queues": stats["queues"],
-        })
+        }
+        # attach lightweight profiler metrics when available
+        if hasattr(sim, "get_metrics"):
+            try:
+                out["metrics"] = sim.get_metrics()
+            except Exception:
+                out["metrics"] = {"error": "failed to collect metrics"}
+        return jsonify(out)
     return jsonify({"total_passed": 0, "avg_wait": 0.0})
 
 
