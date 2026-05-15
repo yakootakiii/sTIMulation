@@ -150,6 +150,15 @@ class TrafficSimulation:
         self._lane_resources: Dict[str, simpy.Resource] = {}
         # cached turn values to avoid recreating lists
         self._turn_values = tuple(t.value for t in Turn)
+        # cached direction-light mapping for fast lookups
+        self._phase_light_map = {
+            Phase.NS_GREEN:  {"N": LightColor.GREEN,  "S": LightColor.GREEN,  "E": LightColor.RED,    "W": LightColor.RED},
+            Phase.NS_YELLOW: {"N": LightColor.YELLOW, "S": LightColor.YELLOW, "E": LightColor.RED,    "W": LightColor.RED},
+            Phase.NS_RED:    {"N": LightColor.RED,    "S": LightColor.RED,    "E": LightColor.RED,    "W": LightColor.RED},
+            Phase.EW_GREEN:  {"N": LightColor.RED,    "S": LightColor.RED,    "E": LightColor.GREEN,  "W": LightColor.GREEN},
+            Phase.EW_YELLOW: {"N": LightColor.RED,    "S": LightColor.RED,    "E": LightColor.YELLOW, "W": LightColor.YELLOW},
+            Phase.EW_RED:    {"N": LightColor.RED,    "S": LightColor.RED,    "E": LightColor.RED,    "W": LightColor.RED},
+        }
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -164,20 +173,7 @@ class TrafficSimulation:
         return base * (0.5 + random.random() * 0.9)
 
     def _light_for(self, direction: str) -> str:
-        ns = direction in ("N", "S")
-        if self.phase == Phase.NS_GREEN:
-            return LightColor.GREEN if ns else LightColor.RED
-        if self.phase == Phase.NS_YELLOW:
-            return LightColor.YELLOW if ns else LightColor.RED
-        if self.phase == Phase.NS_RED:
-            return LightColor.RED
-        if self.phase == Phase.EW_GREEN:
-            return LightColor.RED if ns else LightColor.GREEN
-        if self.phase == Phase.EW_YELLOW:
-            return LightColor.RED if ns else LightColor.YELLOW
-        if self.phase == Phase.EW_RED:
-            return LightColor.RED
-        return LightColor.RED
+        return self._phase_light_map.get(self.phase, {}).get(direction, LightColor.RED)
 
     def _can_go(self, direction: str, turn: str) -> bool:
         lc = self._light_for(direction)
@@ -254,7 +250,8 @@ class TrafficSimulation:
         lanes = self._lanes_per_dir()
         for d in dirs:
             batch = min(len(self.queues[d]), lanes * 2)
-            # pop left batch times and schedule moves
+            # pop left batch times and schedule moves in a single batched process
+            pairs = []
             for i in range(batch):
                 try:
                     vid = self.queues[d].popleft()
@@ -263,11 +260,60 @@ class TrafficSimulation:
                 v = self.vehicles.get(vid)
                 if v:
                     delay = i * 1.8 + random.uniform(0, 0.4)
-                    self.env.process(self._move_vehicle(v, delay, require_green=True))
+                    pairs.append((vid, delay))
+            if pairs:
+                self.env.process(self._batch_move(pairs, require_green=True))
             # Update queue positions for remaining vehicles
             for pos, vid in enumerate(self.queues[d]):
                 if vid in self.vehicles:
                     self.vehicles[vid].queue_pos = pos
+
+    def _batch_move(self, pairs: List[tuple], require_green: bool = False):
+        """Process that moves a batch of vehicles with staggered delays.
+        `pairs` is a list of (vid, delay) where delay is relative to now.
+        This reduces the overhead of creating many small processes.
+        """
+        # sort by delay to compute incremental sleeps
+        pairs_sorted = sorted(pairs, key=lambda x: x[1])
+        last = 0.0
+        for vid, delay in pairs_sorted:
+            wait = max(0.0, delay - last)
+            if wait > 0:
+                yield self.env.timeout(wait)
+            last = delay
+
+            v = self.vehicles.get(vid)
+            if not v:
+                continue
+            if require_green and self._light_for(v.direction) != LightColor.GREEN:
+                # return to head of queue
+                if v.vid not in self.queues[v.direction]:
+                    self.queues[v.direction].appendleft(v.vid)
+                for pos, qvid in enumerate(self.queues[v.direction]):
+                    if qvid in self.vehicles:
+                        self.vehicles[qvid].queue_pos = pos
+                v.state = "queued"
+                self._emit("vehicle_queued", v.to_dict())
+                continue
+
+            v.state = "moving"
+            v.wait_end = self.env.now
+            wait_t = v.wait_time()
+            self._wait_times.append(wait_t)
+            self.stats.total_wait += wait_t
+            self.stats.total_passed += 1
+
+            self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait_t:.1f}s", "blue")
+            self._emit("vehicle_move", v.to_dict())
+
+            # Travel through intersection
+            travel = 2.5 + random.uniform(0.5, 2.0)
+            yield self.env.timeout(travel)
+
+            v.state = "exited"
+            self._emit("vehicle_exit", {"vid": v.vid})
+            if v.vid in self.vehicles:
+                del self.vehicles[v.vid]
 
     def _vehicle_process(self, direction: str):
         """Spawns vehicles for a given direction continuously."""
