@@ -311,6 +311,33 @@ select:focus{border-color:var(--accent)}
     </div>
   </div>
 
+  <!-- Monitoring -->
+  <div class="p-section">
+    <div class="sec-title">System Monitoring</div>
+    <div class="metrics-grid" id="monitor-grid">
+      <div class="metric">
+        <div class="metric-label">API</div>
+        <div class="metric-val mv-blue" id="mon-api">—</div>
+        <div class="metric-sub" id="mon-api-sub">not polled</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Socket</div>
+        <div class="metric-val mv-green" id="mon-socket">—</div>
+        <div class="metric-sub" id="mon-socket-sub">idle</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Poll</div>
+        <div class="metric-val mv-yellow" id="mon-poll">—</div>
+        <div class="metric-sub">last refresh</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Profile</div>
+        <div class="metric-val mv-purple" id="mon-profile">—</div>
+        <div class="metric-sub" id="mon-profile-sub">no data</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Log -->
   <div class="p-section">
     <div class="sec-title">Live Log</div>
@@ -347,6 +374,13 @@ let STATE = {
   logs: [],
   phaseStart: 0,
   phaseDur:   20,
+  monitoring: {
+    api: '—',
+    socket: 'Disconnected',
+    poll: '—',
+    profile: '—',
+    profileSub: 'no data',
+  },
 };
 
 // vehicle visual state (separate from sim state for smooth animation)
@@ -501,40 +535,85 @@ function drawLights(g){
   });
 }
 
-// ── Tile renderer (simple placeholders for Stardew look) ──
+// ── Tile renderer (deterministic sprite-style ground layer) ──
 function drawTiles(g, palette){
   const {W,H,cx,cy,rw} = g;
   const tile = 24;
-  // draw four grass blocks (left, right, top, bottom)
   const zones = [
     {x:0,y:0,w:cx-rw/2,h:H},
     {x:cx+rw/2,y:0,w:W-(cx+rw/2),h:H},
     {x:cx-rw/2,y:0,w:rw,h:cy-rw/2},
     {x:cx-rw/2,y:cy+rw/2,w:rw,h:H-(cy+rw/2)},
   ];
-  zones.forEach(z=>{
-    const cols = Math.ceil(z.w / tile)+1;
-    const rows = Math.ceil(z.h / tile)+1;
+
+  zones.forEach((z, zoneIndex)=>{
+    const cols = Math.ceil(z.w / tile) + 1;
+    const rows = Math.ceil(z.h / tile) + 1;
     for(let ry=0; ry<rows; ry++){
       for(let cxn=0; cxn<cols; cxn++){
-        const px = Math.floor(z.x + cxn*tile - (tile/4));
-        const py = Math.floor(z.y + ry*tile - (tile/6));
-        // pick subtle variation
-        const pick = (cxn+ry) % 3;
-        ctx.fillStyle = pick===0 ? palette.grassA : pick===1 ? palette.grassB : palette.grassC;
-        ctx.fillRect(px, py, tile+2, tile+2);
-        // small dirt speck
-        if(Math.random() < 0.06){ ctx.fillStyle = palette.dirt; ctx.fillRect(px+6, py+6, 3, 3); }
+        const px = Math.floor(z.x + cxn * tile - (tile / 4));
+        const py = Math.floor(z.y + ry * tile - (tile / 6));
+        const hash = tileNoise(cxn, ry, zoneIndex);
+        const pick = hash % 3;
+        ctx.fillStyle = pick === 0 ? palette.grassA : pick === 1 ? palette.grassB : palette.grassC;
+        ctx.fillRect(px, py, tile + 2, tile + 2);
+
+        // layered grass blades / flowers for a more sprite-like feel
+        if ((hash & 7) === 0) {
+          ctx.fillStyle = 'rgba(198, 231, 167, 0.65)';
+          ctx.fillRect(px + 4, py + 7, 2, 6);
+          ctx.fillRect(px + 10, py + 9, 2, 4);
+        } else if ((hash & 11) === 3) {
+          ctx.fillStyle = 'rgba(248, 202, 119, 0.8)';
+          ctx.fillRect(px + 6, py + 6, 2, 2);
+          ctx.fillRect(px + 7, py + 5, 2, 2);
+        } else if ((hash & 15) === 5) {
+          ctx.fillStyle = palette.dirt;
+          ctx.fillRect(px + 5, py + 5, 4, 3);
+        }
       }
     }
   });
 
-  // optional corner sprite placeholders
+  // corner props as small sprite-like lots, hedges, and signboards
   const spriteSize = 36;
-  [[cx-rw/2- spriteSize - 8, cy-rw/2 - spriteSize - 8],[cx+rw/2+8, cy+rw/2+8]].forEach(([sx,sy])=>{
-    ctx.fillStyle = palette.path; roundRect(sx, sy, spriteSize, spriteSize, 6); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.06)'; roundRect(sx+6, sy+6, spriteSize-12, spriteSize-12,4); ctx.fill();
+  const props = [
+    {x:cx-rw/2-spriteSize-8, y:cy-rw/2-spriteSize-8, type:'lot'},
+    {x:cx+rw/2+8, y:cy+rw/2+8, type:'hedge'},
+  ];
+  props.forEach((prop, index)=>{
+    ctx.save();
+    const x = prop.x;
+    const y = prop.y;
+    if (prop.type === 'lot') {
+      ctx.fillStyle = palette.path;
+      roundRect(x, y, spriteSize, spriteSize, 6); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      roundRect(x + 5, y + 5, spriteSize - 10, spriteSize - 10, 4); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 4.5, y + 4.5, spriteSize - 9, spriteSize - 9);
+      ctx.fillStyle = '#7d5b35';
+      roundRect(x + 12, y + 12, 12, 12, 3); ctx.fill();
+      ctx.fillStyle = '#d8c39f';
+      ctx.fillRect(x + 14, y + 14, 3, 8);
+      ctx.fillRect(x + 19, y + 14, 3, 8);
+    } else {
+      ctx.fillStyle = '#264d28';
+      roundRect(x, y, spriteSize, spriteSize, 8); ctx.fill();
+      ctx.fillStyle = '#3d6f3f';
+      roundRect(x + 4, y + 4, spriteSize - 8, spriteSize - 8, 6); ctx.fill();
+      ctx.fillStyle = '#e6d58b';
+      ctx.fillRect(x + 8, y + 16, spriteSize - 16, 3);
+      ctx.fillRect(x + 15, y + 8, 3, spriteSize - 16);
+    }
+    ctx.restore();
   });
+}
+
+function tileNoise(x, y, zoneIndex){
+  const n = (x * 73856093) ^ (y * 19349663) ^ (zoneIndex * 83492791);
+  return (n >>> 0);
 }
 
 function roundRect(x,y,w,h,r){
@@ -792,20 +871,34 @@ const socket = io({
 socket.on('connect',()=>{
   document.getElementById('hdr-conn').className='pill pill-green';
   document.getElementById('hdr-conn').textContent='Connected';
+  STATE.monitoring.socket = 'Connected';
+  STATE.monitoring.profile = 'live';
+  STATE.monitoring.profileSub = 'socket open';
+  updateMonitoringUI();
   addLog({msg:'🔌 Connected to simulation server', cls:'green', sim_time:0});
 });
 socket.on('disconnect',()=>{
   document.getElementById('hdr-conn').className='pill pill-red';
   document.getElementById('hdr-conn').textContent='Disconnected';
+  STATE.monitoring.socket = 'Disconnected';
+  STATE.monitoring.profile = '—';
+  STATE.monitoring.profileSub = 'socket closed';
+  updateMonitoringUI();
 });
 socket.on('connect_error',()=>{
   document.getElementById('hdr-conn').className='pill pill-red';
   document.getElementById('hdr-conn').textContent='Reconnecting';
+  STATE.monitoring.socket = 'Reconnecting';
+  STATE.monitoring.profileSub = 'retrying connection';
+  updateMonitoringUI();
 });
 
 socket.on('stats', data=>{
   STATE.stats=data;
   updateStatsUI(data);
+  STATE.monitoring.api = data.running ? 'live' : 'idle';
+  STATE.monitoring.profileSub = `T=${Math.round(data.sim_time || 0)}s`;
+  updateMonitoringUI();
 });
 
 socket.on('vehicles_snapshot', list=>{
@@ -840,6 +933,9 @@ socket.on('light_change', data=>{
   STATE.phaseStart = data.sim_time || STATE.stats.sim_time || 0;
   phaseProgress=0;
   updatePhaseHeaders(data);
+  STATE.monitoring.profile = data.phase;
+  STATE.monitoring.profileSub = `${data.ns.toUpperCase()} / ${data.ew.toUpperCase()}`;
+  updateMonitoringUI();
 });
 
 socket.on('log', entry=>{ addLog(entry); });
@@ -848,6 +944,10 @@ socket.on('reset', ()=>{
   STATE.vehicles={}; STATE.stats={...STATE.stats, total_passed:0, avg_wait:0, cycles:0, sim_time:0};
   Object.keys(VIS).forEach(k=>delete VIS[k]);
   updateStatsUI(STATE.stats);
+  STATE.monitoring.api = 'reset';
+  STATE.monitoring.profile = '—';
+  STATE.monitoring.profileSub = 'state cleared';
+  updateMonitoringUI();
 });
 
 socket.on('ack', data=>{
@@ -903,6 +1003,41 @@ function updateStatsUI(d){
   document.getElementById('sb-ew').style.color=ewc;
 }
 
+function updateMonitoringUI(){
+  document.getElementById('mon-api').textContent = STATE.monitoring.api;
+  document.getElementById('mon-api-sub').textContent = STATE.monitoring.api === 'live' ? 'server responding' : STATE.monitoring.api;
+  document.getElementById('mon-socket').textContent = STATE.monitoring.socket;
+  document.getElementById('mon-socket-sub').textContent = STATE.monitoring.socket === 'Connected' ? 'events streaming' : STATE.monitoring.profileSub;
+  document.getElementById('mon-poll').textContent = STATE.monitoring.poll;
+  document.getElementById('mon-profile').textContent = STATE.monitoring.profile;
+  document.getElementById('mon-profile-sub').textContent = STATE.monitoring.profileSub;
+}
+
+async function pollMetrics(){
+  try {
+    const res = await fetch('/api/metrics', {cache:'no-store'});
+    if(!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    STATE.monitoring.api = 'live';
+    STATE.monitoring.poll = new Date().toLocaleTimeString();
+    if(data.metrics && !data.metrics.error){
+      const profile = data.metrics.profile || {};
+      const firstKey = Object.keys(profile)[0];
+      STATE.monitoring.profile = firstKey ? `${firstKey}: ${profile[firstKey].toFixed ? profile[firstKey].toFixed(4) : profile[firstKey]}` : 'profile';
+      STATE.monitoring.profileSub = `${data.metrics.wait_samples || 0} samples`;
+    }
+    updateMonitoringUI();
+  } catch (error) {
+    STATE.monitoring.api = 'offline';
+    STATE.monitoring.poll = 'error';
+    STATE.monitoring.profileSub = 'poll failed';
+    updateMonitoringUI();
+  }
+}
+
+pollMetrics();
+setInterval(pollMetrics, 5000);
+
 function updatePhaseHeaders(data){
   const{phase,ns,ew}=data;
   const pc=phase.includes('green')?'pill-green':phase.includes('yellow')?'pill-yellow':'pill-red';
@@ -922,11 +1057,20 @@ function addLog(entry){
   renderLog();
 }
 function renderLog(){
-  logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>`
-    <div class="log-entry">
-      <span class="log-time">${(l.sim_time||0).toFixed(1)}s</span>
-      <span class="log-msg c-${l.cls||'gray'}">${l.msg}</span>
-    </div>`).join('');
+  logScroll.textContent='';
+  STATE.logs.slice(0,50).forEach(l=>{
+    const row=document.createElement('div');
+    row.className='log-entry';
+    const time=document.createElement('span');
+    time.className='log-time';
+    time.textContent=`${(l.sim_time||0).toFixed(1)}s`;
+    const msg=document.createElement('span');
+    msg.className=`log-msg c-${l.cls||'gray'}`;
+    msg.textContent=l.msg;
+    row.appendChild(time);
+    row.appendChild(msg);
+    logScroll.appendChild(row);
+  });
 }
 
 // ─── Commands ─────────────────────────────────────────────────────

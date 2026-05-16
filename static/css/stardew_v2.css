@@ -20,6 +20,11 @@ html, body {
   background: var(--sv-bg);
   color: var(--sv-text);
   font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 header {
@@ -126,6 +131,7 @@ input[type="range"] {
   background: linear-gradient(90deg, #ddd, #999);
   outline: none;
   cursor: pointer;
+  appearance: none;
   -webkit-appearance: none;
 }
 
@@ -170,10 +176,26 @@ select:focus {
 
 /* Canvas area */
 #canvas-wrap, .canvas-wrap {
-  background: linear-gradient(135deg, #f5f1e8 0%, #e7dbc6 100%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.35), transparent 35%),
+    radial-gradient(circle at 80% 10%, rgba(59,122,87,0.08), transparent 28%),
+    linear-gradient(135deg, #f7f2e7 0%, #e5d5bc 100%);
   border: 3px solid var(--sv-border);
-  padding: 6px;
-  box-shadow: inset 2px 2px 4px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.1);
+  padding: 8px;
+  box-shadow:
+    inset 2px 2px 4px rgba(0,0,0,0.08),
+    inset -1px -1px 0 rgba(255,255,255,0.4),
+    0 2px 8px rgba(0,0,0,0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #0a0e14;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 /* Stats area */
@@ -232,6 +254,55 @@ select:focus {
   background: #d0e7ff;
   color: var(--sv-accent2);
   border: 1px solid var(--sv-accent2);
+}
+
+/* Log and scrollbars */
+.log-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(157,139,116,0.8) transparent;
+}
+
+.log-scroll::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.log-scroll::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-scroll::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: rgba(157,139,116,0.8);
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0);
+  background-clip: padding-box;
+}
+
+.log-entry {
+  line-height: 1.45;
+}
+
+/* Status bar */
+#status-bar {
+  background: rgba(245,241,232,0.92);
+  border-top: 1px solid rgba(157,139,116,0.85);
+  color: var(--sv-muted);
+  box-shadow: 0 -1px 0 rgba(255,255,255,0.5) inset;
+  backdrop-filter: blur(5px);
+}
+
+.sb-dot {
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+/* Small screen tuning */
+@media (max-width: 1100px) {
+  #canvas-wrap, .canvas-wrap {
+    padding: 6px;
+  }
 }
 
 /* Responsive */

@@ -8,11 +8,17 @@ from socketio_utils import EventBatcher, RateLimiter
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from simulation import TrafficSimulation, SimConfig
+from security_utils import validate_config_input, require_json
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "traffic-sim-2024"
+app.config["SECRET_KEY"] = os.getenv("SIM_SECRET_KEY") or os.urandom(32).hex()
 ASYNC_MODE = os.getenv("SIM_ASYNC_MODE", "threading")
-socketio = SocketIO(app, async_mode=ASYNC_MODE, cors_allowed_origins="*")
+cors_origins = os.getenv("SIM_CORS_ALLOWED_ORIGINS", "http://localhost:5001,http://127.0.0.1:5001")
+socketio = SocketIO(
+    app,
+    async_mode=ASYNC_MODE,
+    cors_allowed_origins=[origin.strip() for origin in cors_origins.split(",") if origin.strip()],
+)
 
 # ─── Global simulation instance ───────────────────────────────────────────────
 sim: TrafficSimulation = None
@@ -79,14 +85,12 @@ def vehicles():
 
 
 @app.route("/api/config", methods=["GET", "POST"])
+@require_json
 def config():
     """Get or update simulation config."""
     if request.method == "POST":
-        data = request.get_json() or {}
-        # Validate input keys
-        valid_keys = {"green_duration", "yellow_duration", "red_duration",
-                      "scenario", "road_type", "right_turn_free", "speed_factor"}
-        filtered = {k: v for k, v in data.items() if k in valid_keys}
+        data = request.get_json(silent=True) or {}
+        filtered = validate_config_input(data)
         if sim:
             sim.update_config(**filtered)
         return jsonify({"ok": True, "updated": filtered})
@@ -132,6 +136,15 @@ def _flush_event_batches():
     while True:
         event_batcher.flush_if_due()
     socketio.sleep(0.05)
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "same-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
 
 
 socketio.start_background_task(_flush_event_batches)

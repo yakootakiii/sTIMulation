@@ -1,7 +1,8 @@
 """SocketIO event batching and rate limiting utilities."""
 import time
+import threading
 from collections import deque
-from typing import Dict, Callable
+from typing import Dict, Callable, Optional
 
 
 class EventBatcher:
@@ -12,35 +13,48 @@ class EventBatcher:
         self.flush_interval = flush_interval
         self.batches: Dict[str, deque] = {}
         self.last_flush = time.monotonic()
-        self.emit_fn: Callable[[str, dict], None] = None
+        self.emit_fn: Optional[Callable[[str, dict], None]] = None
+        self._lock = threading.Lock()
     
     def add(self, event_type: str, data: dict):
         """Add an event to the batch."""
-        if event_type not in self.batches:
-            self.batches[event_type] = deque()
-        
-        self.batches[event_type].append(data)
-        
-        # Flush if batch is full
-        if len(self.batches[event_type]) >= self.batch_size:
+        with self._lock:
+            if event_type not in self.batches:
+                self.batches[event_type] = deque()
+
+            self.batches[event_type].append(data)
+
+            # Flush if batch is full
+            if len(self.batches[event_type]) >= self.batch_size:
+                # call flush without holding the lock to avoid re-entrancy
+                pass
+
+        # perform flush outside lock
+        if len(self.batches.get(event_type, ())) >= self.batch_size:
             self.flush()
     
     def flush(self):
         """Emit all batched events."""
+        # Snapshot and clear under lock, then emit without holding the lock
         if not self.emit_fn:
             return
-        
-        for event_type, events in self.batches.items():
-            if events:
-                payload = {
-                    "type": event_type,
-                    "events": list(events),
-                    "count": len(events),
-                }
+
+        with self._lock:
+            snapshot = {k: list(v) for k, v in self.batches.items() if v}
+            self.batches.clear()
+            self.last_flush = time.monotonic()
+
+        for event_type, events in snapshot.items():
+            payload = {
+                "type": event_type,
+                "events": events,
+                "count": len(events),
+            }
+            try:
                 self.emit_fn("events_batch", payload)
-        
-        self.batches.clear()
-        self.last_flush = time.monotonic()
+            except Exception:
+                # never allow an emit failure to crash the batcher
+                pass
     
     def should_flush(self) -> bool:
         """Check if enough time has elapsed to flush."""
@@ -59,14 +73,16 @@ class RateLimiter:
         self.max_per_second = max_per_second
         self.min_interval = 1.0 / max_per_second
         self.last_emit: Dict[str, float] = {}
+        self._lock = threading.Lock()
     
     def allow(self, event_type: str) -> bool:
         """Check if event should be emitted."""
         now = time.monotonic()
-        last = self.last_emit.get(event_type, 0.0)
-        
-        if (now - last) >= self.min_interval:
-            self.last_emit[event_type] = now
-            return True
-        
-        return False
+        with self._lock:
+            last = self.last_emit.get(event_type, 0.0)
+
+            if (now - last) >= self.min_interval:
+                self.last_emit[event_type] = now
+                return True
+
+            return False
