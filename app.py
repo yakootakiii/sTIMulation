@@ -2,10 +2,11 @@
 Traffic Simulation — Flask + SocketIO server
 """
 
-import threading
 import eventlet
+# Ensure eventlet monkey-patching runs before other stdlib imports
 eventlet.monkey_patch()
 
+import threading
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from simulation import TrafficSimulation, SimConfig
@@ -57,6 +58,74 @@ def vehicles():
     return jsonify([])
 
 
+@app.route("/api/config", methods=["GET", "POST"])
+def config_endpoint():
+    """Get or update the simulation configuration."""
+    global sim
+
+    # Ensure there's a simulation object to read/update config from
+    if sim is None:
+        sim = new_sim(SimConfig())
+
+    if request.method == "GET":
+        # Expose config as a plain dict
+        return jsonify({
+            "green_duration": sim.config.green_duration,
+            "yellow_duration": sim.config.yellow_duration,
+            "red_duration": sim.config.red_duration,
+            "scenario": sim.config.scenario,
+            "road_type": sim.config.road_type,
+            "right_turn_free": sim.config.right_turn_free,
+            "speed_factor": sim.config.speed_factor,
+        })
+
+    # POST: update config
+    data = request.get_json(silent=True) or {}
+    if not data:
+        return jsonify({"error": "Payload cannot be empty"}), 400
+
+    # Only allow known keys
+    allowed = {
+        "green_duration": float,
+        "yellow_duration": float,
+        "red_duration": float,
+        "scenario": str,
+        "road_type": int,
+        "right_turn_free": bool,
+        "speed_factor": float,
+    }
+
+    updates = {}
+    for k, cast in allowed.items():
+        if k in data:
+            try:
+                updates[k] = cast(data[k])
+            except (TypeError, ValueError):
+                return jsonify({"error": f"Invalid value for '{k}'"}), 400
+
+    sim.update_config(**updates)
+    return jsonify({
+        "message": "Configuration updated successfully",
+        "config": {
+            "green_duration": sim.config.green_duration,
+            "yellow_duration": sim.config.yellow_duration,
+            "red_duration": sim.config.red_duration,
+            "scenario": sim.config.scenario,
+            "road_type": sim.config.road_type,
+            "right_turn_free": sim.config.right_turn_free,
+            "speed_factor": sim.config.speed_factor,
+        },
+    })
+
+
+@app.route("/api/metrics")
+def metrics_endpoint():
+    """Return aggregated metrics/stats snapshot."""
+    if sim is None:
+        return jsonify({"error": "simulation not started"}), 400
+    return jsonify(sim.get_stats())
+
+
 # ─── SocketIO events ──────────────────────────────────────────────────────────
 
 @socketio.on("connect")
@@ -77,7 +146,7 @@ def on_start(data=None):
     s.start()
     emit("ack", {"ok": True, "action": "start"})
     socketio.emit("log", {"msg": "▶ Simulation started", "cls": "green",
-                          "sim_time": 0})
+                        "sim_time": 0})
 
 
 @socketio.on("cmd_pause")
