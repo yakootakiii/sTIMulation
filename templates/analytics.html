@@ -8,106 +8,200 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#070a13;--bg2:#0f1422;--bg3:#1a202c;--bg4:#252d3f;
-  --border:#2a3d52;--border2:#3a5070;--border-light:#4a6090;
-  --text:#f0f4f9;--text2:#a0b0c8;--text3:#708090;
-  --green:#10b981;--green-light:#34d399;--green-bg:#011810;
-  --yellow:#f59e0b;--yellow-light:#fbbf24;--yellow-bg:#331800;
-  --red:#ef4444;--red-light:#f87171;--red-bg:#1c0a0a;
-  --blue:#3b82f6;--blue-light:#60a5fa;--blue-bg:#0c1a3d;
-  --purple:#a78bfa;--purple-light:#c4b5fd;--purple-bg:#2d1b69;
-  --radius:12px; --radius-sm:8px;
-  --shadow:0 4px 20px rgba(0,0,0,.3);--shadow-sm:0 2px 8px rgba(0,0,0,.15);
-  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  /* ── Core palette ── */
+  --bg:#1b1d36;
+  --bg2:#22253f;
+  --bg3:#2a2e4a;
+  --bg4:#323660;
+
+  --surface:#e1e7ed;
+  --surface2:#c8d2dc;
+
+  --pink:#fca6d1;
+  --pink-light:#fdc4e2;
+  --pink-dim:#c4718f;
+  --pink-bg:rgba(252,166,209,.12);
+
+  --cyan:#99d7ea;
+  --cyan-light:#b8e5f2;
+  --cyan-dim:#5fa8c0;
+  --cyan-bg:rgba(153,215,234,.12);
+
+  /* semantic aliases */
+  --green:#99d7ea;
+  --green-light:#b8e5f2;
+  --green-bg:rgba(153,215,234,.10);
+  --yellow:#fca6d1;
+  --yellow-light:#fdc4e2;
+  --yellow-bg:rgba(252,166,209,.10);
+  --red:#f87171;
+  --red-light:#fca5a5;
+  --red-bg:rgba(248,113,113,.10);
+  --blue:#99d7ea;
+  --blue-light:#b8e5f2;
+  --blue-bg:rgba(153,215,234,.10);
+  --purple:#fca6d1;
+  --purple-light:#fdc4e2;
+  --purple-bg:rgba(252,166,209,.10);
+
+  --border:rgba(153,215,234,.22);
+  --border2:rgba(153,215,234,.35);
+  --border-light:rgba(252,166,209,.45);
+
+  --text:#e1e7ed;
+  --text2:#a8b8cc;
+  --text3:#6a7f96;
+
+  --radius:12px;
+  --radius-sm:8px;
+
+  font-family:'JetBrains Mono',monospace;
 }
-body{background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:grid;
-  grid-template-rows:48px 1fr;}
+body{
+  background:var(--bg);color:var(--text);
+  height:100vh;overflow:hidden;
+  display:grid;grid-template-rows:48px 1fr;
+}
+
 header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;background:rgba(15,20,34,.95);backdrop-filter:blur(8px);
-  border-bottom:1px solid rgba(42,61,82,.5);z-index:20;height:48px;
-  transition:all .2s ease;
+  padding:0 20px;
+  background:rgba(27,29,54,.96);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  z-index:20;height:48px;
 }
 .header-left{display:flex;align-items:center;gap:12px}
-.logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.3px;
-  transition:transform .2s ease;cursor:default}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-size:14px;font-weight:700;letter-spacing:.5px;
+  transition:transform .2s ease;cursor:default;
+  font-family:'JetBrains Mono',monospace;
+}
 .logo:hover{transform:translateY(-1px)}
-.logo-icon{width:28px;height:28px;position:relative}
-.logo-icon svg{width:100%;height:100%;transition:filter .2s ease}
+.logo-icon{width:28px;height:28px}
+.logo-icon svg{width:100%;height:100%}
 .header-right{display:flex;align-items:center;gap:10px}
-.pill{padding:4px 12px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
-  border:1px solid currentColor;background:transparent;transition:all .15s ease;cursor:default}
-.pill-green{color:var(--green);border-color:rgba(16,185,129,.3)}
-.pill-yellow{color:var(--yellow);border-color:rgba(245,158,11,.3)}
-.pill-red{color:var(--red);border-color:rgba(239,68,68,.3)}
-.pill-blue{color:var(--blue);border-color:rgba(59,130,246,.3)}
-.pill-gray{color:var(--text2);border-color:rgba(112,128,144,.3)}
+
+.pill{
+  padding:4px 12px;border-radius:20px;
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  border:1px solid currentColor;background:transparent;
+  transition:all .15s ease;cursor:default;
+  font-family:'JetBrains Mono',monospace;
+}
+.pill-green{color:var(--cyan);border-color:rgba(153,215,234,.4)}
+.pill-yellow{color:var(--pink);border-color:rgba(252,166,209,.4)}
+.pill-red{color:var(--red);border-color:rgba(248,113,113,.4)}
+.pill-blue{color:var(--cyan);border-color:rgba(153,215,234,.4)}
+.pill-gray{color:var(--text2);border-color:rgba(168,184,204,.3)}
 
 .main{display:grid;grid-template-columns:1.85fr 1fr;gap:18px;padding:18px;height:100%;overflow:hidden}
 .left{display:flex;flex-direction:column;gap:16px;overflow:hidden}
 .right{display:flex;flex-direction:column;gap:16px;overflow:hidden}
 
 .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.kpi-card{background:var(--bg3);border-radius:var(--radius);padding:12px 14px;border:1px solid var(--border);
-  transition:all .15s ease;cursor:default}
-.kpi-card:hover{background:var(--bg4);border-color:var(--border-light);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
-.kpi-label{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;transition:color .2s ease}
-.kpi-val{font-size:24px;font-weight:700;line-height:1.2;margin-top:4px;transition:color .2s ease}
-.kpi-sub{font-size:10px;color:var(--text3);margin-top:2px;transition:color .2s ease}
-.kpi-green{color:var(--green)}
-.kpi-yellow{color:var(--yellow)}
-.kpi-blue{color:var(--blue)}
-.kpi-purple{color:var(--purple)}
+.kpi-card{
+  background:var(--bg3);border-radius:var(--radius);
+  padding:12px 14px;border:1px solid var(--border);
+  transition:all .15s ease;cursor:default;
+}
+.kpi-card:hover{
+  background:var(--bg4);border-color:var(--border-light);
+  transform:translateY(-2px);
+  box-shadow:0 4px 16px rgba(252,166,209,.08);
+}
+.kpi-label{
+  font-size:10px;color:var(--text3);font-weight:700;
+  text-transform:uppercase;letter-spacing:.6px;
+  font-family:'JetBrains Mono',monospace;
+}
+.kpi-val{font-size:24px;font-weight:700;line-height:1.2;margin-top:4px}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.kpi-green{color:var(--cyan)}
+.kpi-yellow{color:var(--pink)}
+.kpi-blue{color:var(--cyan)}
+.kpi-purple{color:var(--pink)}
 .kpi-red{color:var(--red)}
 
 .charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;flex:1;overflow:auto;padding-right:2px}
-.chart-card{background:var(--bg3);border-radius:var(--radius);padding:12px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:240px}
-.chart-title{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.chart-card{
+  background:var(--bg3);border-radius:var(--radius);
+  padding:12px;border:1px solid var(--border);
+  display:flex;flex-direction:column;min-height:240px;
+}
+.chart-title{
+  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--pink);margin-bottom:8px;
+  font-family:'JetBrains Mono',monospace;
+}
 .chart-wrap{flex:1;position:relative}
 .chart-wrap canvas{width:100% !important;height:100% !important}
 
-.card{background:var(--bg3);border-radius:var(--radius);padding:14px;border:1px solid var(--border)}
-.card-title{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.card{
+  background:var(--bg3);border-radius:var(--radius);
+  padding:14px;border:1px solid var(--border);
+}
+.card-title{
+  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--pink);margin-bottom:10px;
+  font-family:'JetBrains Mono',monospace;
+}
 
 .btn-row{display:flex;gap:8px;flex-wrap:wrap}
 .btn{
-  padding:9px 12px;font-size:12px;font-weight:600;letter-spacing:.3px;
+  padding:9px 12px;font-size:11px;font-weight:700;letter-spacing:.4px;
   border:1px solid var(--border2);border-radius:var(--radius-sm);
   background:var(--bg3);color:var(--text2);cursor:pointer;
   transition:all .15s cubic-bezier(.4,0,.2,1);text-transform:uppercase;
-  user-select:none;
+  user-select:none;font-family:'JetBrains Mono',monospace;
 }
 .btn:hover{
-  background:var(--bg4);color:var(--text);border-color:var(--text3);
-  transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.2)
+  background:var(--bg4);color:var(--cyan);border-color:var(--cyan-dim);
+  transform:translateY(-1px);box-shadow:0 2px 10px rgba(153,215,234,.15);
 }
-.btn:active{transform:translateY(0);box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.btn.active-blue{background:var(--blue-bg);color:var(--blue);border-color:#1e3a8a}
-.btn.active-red{background:var(--red-bg);color:var(--red);border-color:#991b1b}
+.btn:active{transform:translateY(0);box-shadow:none}
+.btn.active-blue{background:var(--blue-bg);color:var(--cyan);border-color:var(--cyan-dim)}
+.btn.active-red{background:var(--red-bg);color:var(--red);border-color:#b45454}
 
 .session-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.session-item{background:var(--bg4);border-radius:var(--radius-sm);padding:8px;border:1px solid var(--border);
-  transition:all .15s ease;cursor:default}
+.session-item{
+  background:var(--bg4);border-radius:var(--radius-sm);
+  padding:8px;border:1px solid var(--border);
+  transition:all .15s ease;cursor:default;
+}
 .session-item:hover{background:var(--bg3);border-color:var(--border-light)}
-.session-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;transition:color .2s ease}
-.session-val{font-size:13px;font-weight:700;margin-top:4px;transition:color .2s ease}
-.session-hint{font-size:11px;color:var(--text3);margin-top:8px;transition:color .2s ease}
+.session-label{
+  font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;
+  font-family:'JetBrains Mono',monospace;
+}
+.session-val{font-size:13px;font-weight:700;margin-top:4px;color:var(--cyan);font-family:'JetBrains Mono',monospace}
+.session-hint{font-size:11px;color:var(--text3);margin-top:8px;font-family:'JetBrains Mono',monospace}
 
 .log-scroll{flex:1;overflow-y:auto;padding-right:2px}
 .log-scroll::-webkit-scrollbar{width:3px}
 .log-scroll::-webkit-scrollbar-track{background:transparent}
-.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;transition:background .2s ease}
-.log-scroll::-webkit-scrollbar-thumb:hover{background:var(--border)}
-.log-entry{display:flex;gap:6px;padding:4px 0;border-bottom:1px solid rgba(42,61,82,.3);font-size:10.5px;
-  font-family:'Cascadia Code','Consolas',monospace;line-height:1.5;transition:all .2s ease}
-.log-entry:hover{background:rgba(59,130,246,.05)}
-.log-time{color:var(--text3);min-width:40px;transition:color .2s ease}
-.log-msg{flex:1;word-break:break-word;transition:color .2s ease}
-.c-green{color:var(--green)}.c-yellow{color:var(--yellow)}
-.c-red{color:var(--red)}.c-blue{color:var(--blue)}.c-gray{color:var(--text2)}
+.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.log-scroll::-webkit-scrollbar-thumb:hover{background:var(--border-light)}
+
+.log-entry{
+  display:flex;gap:6px;padding:4px 0;
+  border-bottom:1px solid rgba(153,215,234,.07);
+  font-size:10.5px;font-family:'JetBrains Mono',monospace;
+  line-height:1.5;transition:all .15s ease;
+}
+.log-entry:hover{background:rgba(153,215,234,.04)}
+.log-time{color:var(--text3);min-width:40px}
+.log-msg{flex:1;word-break:break-word}
+.c-green{color:var(--cyan)}
+.c-yellow{color:var(--pink)}
+.c-red{color:var(--red)}
+.c-blue{color:var(--cyan)}
+.c-gray{color:var(--text2)}
 
 @media (max-width: 1100px){
   .main{grid-template-columns:1fr;overflow:auto}
@@ -119,17 +213,19 @@ header{
 <body>
 <header>
   <div class="header-left">
-    <a class="pill pill-gray" href="/" style="text-decoration:none;cursor:pointer;transition:all .15s ease;display:inline-block" onmouseover="this.style.transform='translateX(-2px)'" onmouseout="this.style.transform='translateX(0)'">← Back to Simulator</a>
+    <a class="pill pill-gray" href="/" style="text-decoration:none;cursor:pointer;transition:all .15s ease;display:inline-block"
+       onmouseover="this.style.transform='translateX(-2px)'"
+       onmouseout="this.style.transform='translateX(0)'">← Back to Simulator</a>
     <div class="logo">
       <div class="logo-icon">
         <svg viewBox="0 0 28 28" fill="none">
-          <rect x="11" y="0" width="6" height="28" rx="2" fill="#2a3352"/>
-          <rect x="0" y="11" width="28" height="6" rx="2" fill="#2a3352"/>
-          <rect x="11" y="0" width="6" height="11" rx="2" fill="#3b82f6" opacity=".8"/>
-          <rect x="17" y="11" width="11" height="6" rx="2" fill="#ef4444" opacity=".8"/>
-          <rect x="11" y="17" width="6" height="11" rx="2" fill="#ef4444" opacity=".8"/>
-          <rect x="0" y="11" width="11" height="6" rx="2" fill="#3b82f6" opacity=".8"/>
-          <circle cx="14" cy="14" r="4" fill="#1e2434"/>
+          <rect x="11" y="0" width="6" height="28" rx="2" fill="rgba(153,215,234,.2)"/>
+          <rect x="0" y="11" width="28" height="6" rx="2" fill="rgba(153,215,234,.2)"/>
+          <rect x="11" y="0" width="6" height="11" rx="2" fill="#99d7ea" opacity=".9"/>
+          <rect x="17" y="11" width="11" height="6" rx="2" fill="#fca6d1" opacity=".9"/>
+          <rect x="11" y="17" width="6" height="11" rx="2" fill="#fca6d1" opacity=".9"/>
+          <rect x="0" y="11" width="11" height="6" rx="2" fill="#99d7ea" opacity=".9"/>
+          <circle cx="14" cy="14" r="4" fill="#1b1d36"/>
         </svg>
       </div>
       Analytics Dashboard
@@ -234,7 +330,10 @@ header{
     <div class="card" style="flex:1;display:flex;flex-direction:column">
       <div class="card-title">Live Log</div>
       <div class="log-scroll" id="log-scroll">
-        <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
+        <div class="log-entry">
+          <span class="log-time">-</span>
+          <span class="log-msg c-gray">Waiting for simulation to start…</span>
+        </div>
       </div>
     </div>
   </div>
@@ -249,9 +348,7 @@ const MAX_PERSIST_PHASE_EVENTS = 500;
 let lastSimTime = 0;
 
 const makeId = () => {
-  if(window.crypto && typeof window.crypto.randomUUID === 'function'){
-    return window.crypto.randomUUID();
-  }
+  if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
   return `sess-${Math.random().toString(36).slice(2,10)}${Date.now().toString(36)}`;
 };
 
@@ -260,14 +357,8 @@ const PERSIST_META_KEY = 'stimulation_analytics_meta_v1';
 const NAME_KEY = 'stimulation_analytics_state_v1:';
 
 const sessionTemplate = () => ({
-  id: makeId(),
-  startTime: null,
-  endTime: null,
-  config: {},
-  queueSnapshots: [],
-  phaseEvents: [],
-  vehicleEvents: [],
-  statsSummary: {}
+  id: makeId(), startTime: null, endTime: null, config: {},
+  queueSnapshots: [], phaseEvents: [], vehicleEvents: [], statsSummary: {}
 });
 let session = sessionTemplate();
 
@@ -293,33 +384,24 @@ let lastPhaseTime = null;
 const phaseSegments = [];
 
 const kpiPassed = document.getElementById('kpi-passed');
-const kpiWait = document.getElementById('kpi-wait');
+const kpiWait   = document.getElementById('kpi-wait');
 const kpiCycles = document.getElementById('kpi-cycles');
 const kpiActive = document.getElementById('kpi-active');
-const kpiNs = document.getElementById('kpi-ns');
-const kpiEw = document.getElementById('kpi-ew');
-
-const sessionIdEl = document.getElementById('session-id');
+const kpiNs     = document.getElementById('kpi-ns');
+const kpiEw     = document.getElementById('kpi-ew');
+const sessionIdEl       = document.getElementById('session-id');
 const sessionDurationEl = document.getElementById('session-duration');
-const sessionPointsEl = document.getElementById('session-points');
+const sessionPointsEl   = document.getElementById('session-points');
 const sessionVehiclesEl = document.getElementById('session-vehicles');
-const sessionHintEl = document.getElementById('session-hint');
-
+const sessionHintEl     = document.getElementById('session-hint');
 const logScroll = document.getElementById('log-scroll');
 let logs = [];
 
 function updateConnBadge(state){
   const el = document.getElementById('hdr-conn');
-  if(state === 'connected'){
-    el.className = 'pill pill-green';
-    el.textContent = 'Connected';
-  } else if(state === 'reconnecting'){
-    el.className = 'pill pill-yellow';
-    el.textContent = 'Reconnecting';
-  } else {
-    el.className = 'pill pill-red';
-    el.textContent = 'Disconnected';
-  }
+  if(state === 'connected'){ el.className='pill pill-green'; el.textContent='Connected'; }
+  else if(state === 'reconnecting'){ el.className='pill pill-yellow'; el.textContent='Reconnecting'; }
+  else { el.className='pill pill-red'; el.textContent='Disconnected'; }
 }
 
 function addLog(entry){
@@ -331,35 +413,19 @@ function addLog(entry){
 let persistTimer = null;
 function schedulePersist(){
   if(persistTimer) return;
-  persistTimer = setTimeout(()=>{
-    persistTimer = null;
-    persistState();
-  }, 800);
+  persistTimer = setTimeout(()=>{ persistTimer=null; persistState(); }, 800);
 }
 
-function encodeState(str){
-  try{
-    return btoa(unescape(encodeURIComponent(str)));
-  }catch(e){
-    return null;
-  }
-}
-
-function decodeState(str){
-  try{
-    return decodeURIComponent(escape(atob(str)));
-  }catch(e){
-    return null;
-  }
-}
+function encodeState(str){ try{ return btoa(unescape(encodeURIComponent(str))); }catch(e){ return null; } }
+function decodeState(str){ try{ return decodeURIComponent(escape(atob(str))); }catch(e){ return null; } }
 
 function persistState(){
   try{
     const persistedSession = {
       ...session,
-      queueSnapshots: (session.queueSnapshots || []).slice(-MAX_QUEUE_SNAPSHOTS),
-      phaseEvents: (session.phaseEvents || []).slice(-MAX_PERSIST_PHASE_EVENTS),
-      vehicleEvents: (session.vehicleEvents || []).slice(-MAX_PERSIST_VEHICLES)
+      queueSnapshots: (session.queueSnapshots||[]).slice(-MAX_QUEUE_SNAPSHOTS),
+      phaseEvents: (session.phaseEvents||[]).slice(-MAX_PERSIST_PHASE_EVENTS),
+      vehicleEvents: (session.vehicleEvents||[]).slice(-MAX_PERSIST_VEHICLES)
     };
     const payload = {
       session: persistedSession,
@@ -380,415 +446,320 @@ function persistState(){
     localStorage.setItem(PERSIST_META_KEY, JSON.stringify({savedAt:new Date().toISOString()}));
     sessionStorage.setItem(PERSIST_KEY, data);
     const encoded = encodeState(data);
-    if(encoded){
-      window.name = NAME_KEY + encoded;
-    }
+    if(encoded) window.name = NAME_KEY + encoded;
   }catch(e){}
 }
 
 function restoreState(){
   try{
     let raw = localStorage.getItem(PERSIST_KEY) || sessionStorage.getItem(PERSIST_KEY);
-    if(!raw && typeof window.name === 'string' && window.name.startsWith(NAME_KEY)){
+    if(!raw && typeof window.name==='string' && window.name.startsWith(NAME_KEY)){
       const decoded = decodeState(window.name.slice(NAME_KEY.length));
       if(decoded) raw = decoded;
     }
     if(!raw) return;
     const parsed = JSON.parse(raw);
     if(parsed && parsed.session){
-      session = {
-        ...sessionTemplate(),
-        ...parsed.session,
-        queueSnapshots: parsed.session.queueSnapshots || [],
-        phaseEvents: parsed.session.phaseEvents || [],
-        vehicleEvents: parsed.session.vehicleEvents || []
+      session = { ...sessionTemplate(), ...parsed.session,
+        queueSnapshots: parsed.session.queueSnapshots||[],
+        phaseEvents: parsed.session.phaseEvents||[],
+        vehicleEvents: parsed.session.vehicleEvents||[]
       };
-      sessionIdEl.textContent = (session.id || '').slice(0,8) || sessionIdEl.textContent;
+      sessionIdEl.textContent = (session.id||'').slice(0,8)||sessionIdEl.textContent;
       sessionHintEl.textContent = session.startTime ? 'Recording session data.' : 'Start the simulation to see data.';
-      sessionPointsEl.textContent = (session.queueSnapshots || []).length;
-      sessionVehiclesEl.textContent = (session.vehicleEvents || []).length;
-      if(session.statsSummary){
-        updateKpis(session.statsSummary);
-        sessionDurationEl.textContent = (session.statsSummary.sim_time || 0).toFixed(1) + 's';
-      }
+      sessionPointsEl.textContent = (session.queueSnapshots||[]).length;
+      sessionVehiclesEl.textContent = (session.vehicleEvents||[]).length;
+      if(session.statsSummary){ updateKpis(session.statsSummary); sessionDurationEl.textContent=(session.statsSummary.sim_time||0).toFixed(1)+'s'; }
     }
     if(parsed && parsed.live){
       const live = parsed.live;
-      liveState.queueSeries = live.queueSeries || liveState.queueSeries;
-      liveState.waitBuckets = live.waitBuckets || liveState.waitBuckets;
-      liveState.throughput = live.throughput || liveState.throughput;
-      liveState.phaseSegments = live.phaseSegments || liveState.phaseSegments;
-      liveState.lastTotalPassed = live.lastTotalPassed ?? liveState.lastTotalPassed;
+      liveState.queueSeries = live.queueSeries||liveState.queueSeries;
+      liveState.waitBuckets = live.waitBuckets||liveState.waitBuckets;
+      liveState.throughput  = live.throughput||liveState.throughput;
+      liveState.phaseSegments = live.phaseSegments||liveState.phaseSegments;
+      liveState.lastTotalPassed   = live.lastTotalPassed   ?? liveState.lastTotalPassed;
       liveState.currentCycleCount = live.currentCycleCount ?? liveState.currentCycleCount;
-      liveState.cycleIndex = live.cycleIndex ?? liveState.cycleIndex;
-      liveState.lastPhase = live.lastPhase ?? liveState.lastPhase;
+      liveState.cycleIndex  = live.cycleIndex  ?? liveState.cycleIndex;
+      liveState.lastPhase   = live.lastPhase   ?? liveState.lastPhase;
       liveState.lastPhaseTime = live.lastPhaseTime ?? liveState.lastPhaseTime;
-
-      lastTotalPassed = liveState.lastTotalPassed;
-      currentCycleCount = liveState.currentCycleCount;
-      cycleIndex = liveState.cycleIndex;
-      lastPhase = liveState.lastPhase;
-      lastPhaseTime = liveState.lastPhaseTime;
-      phaseSegments.length = 0;
-      liveState.phaseSegments.forEach(s=>phaseSegments.push(s));
+      lastTotalPassed=liveState.lastTotalPassed; currentCycleCount=liveState.currentCycleCount;
+      cycleIndex=liveState.cycleIndex; lastPhase=liveState.lastPhase; lastPhaseTime=liveState.lastPhaseTime;
+      phaseSegments.length=0; liveState.phaseSegments.forEach(s=>phaseSegments.push(s));
 
       if(queueChart){
-        queueChart.data.labels = [...(liveState.queueSeries.labels || [])];
-        queueChart.data.datasets[0].data = [...(liveState.queueSeries.N || [])];
-        queueChart.data.datasets[1].data = [...(liveState.queueSeries.S || [])];
-        queueChart.data.datasets[2].data = [...(liveState.queueSeries.E || [])];
-        queueChart.data.datasets[3].data = [...(liveState.queueSeries.W || [])];
+        queueChart.data.labels=[...( liveState.queueSeries.labels||[])];
+        queueChart.data.datasets[0].data=[...(liveState.queueSeries.N||[])];
+        queueChart.data.datasets[1].data=[...(liveState.queueSeries.S||[])];
+        queueChart.data.datasets[2].data=[...(liveState.queueSeries.E||[])];
+        queueChart.data.datasets[3].data=[...(liveState.queueSeries.W||[])];
         queueChart.update('none');
       }
-      if(waitChart){
-        waitChart.data.datasets[0].data = [...(liveState.waitBuckets || [0,0,0,0,0])];
-        waitChart.update('none');
-      }
+      if(waitChart){ waitChart.data.datasets[0].data=[...(liveState.waitBuckets||[0,0,0,0,0])]; waitChart.update('none'); }
       if(throughputChart){
-        throughputChart.data.labels = [...(liveState.throughput.labels || [])];
-        throughputChart.data.datasets[0].data = [...(liveState.throughput.data || [])];
+        throughputChart.data.labels=[...(liveState.throughput.labels||[])];
+        throughputChart.data.datasets[0].data=[...(liveState.throughput.data||[])];
         throughputChart.update('none');
       }
-      if(phaseChart){
-        updatePhaseChart();
-      }
+      if(phaseChart) updatePhaseChart();
     }
   }catch(e){}
 }
 
-window.addEventListener('beforeunload', ()=>{ persistState(); });
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'hidden'){
-    persistState();
-  }
-});
+window.addEventListener('beforeunload',()=>{ persistState(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') persistState(); });
 
 function renderLog(){
   if(!logs.length){
-    logScroll.innerHTML = '<div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>';
+    logScroll.innerHTML='<div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>';
     return;
   }
-  logScroll.innerHTML = logs.map(l=>`
+  logScroll.innerHTML=logs.map(l=>`
     <div class="log-entry">
-      <span class="log-time">${(l.sim_time || 0).toFixed(1)}s</span>
-      <span class="log-msg c-${l.cls || 'gray'}">${l.msg}</span>
-    </div>
-  `).join('');
-  logScroll.scrollTop = 0;
+      <span class="log-time">${(l.sim_time||0).toFixed(1)}s</span>
+      <span class="log-msg c-${l.cls||'gray'}">${l.msg}</span>
+    </div>`).join('');
+  logScroll.scrollTop=0;
 }
 
-let chartsReady = true;
-let queueChart = null;
-let waitChart = null;
-let throughputChart = null;
-let phaseChart = null;
-
-const ChartLib = window.Chart || null;
+let chartsReady=true;
+let queueChart=null, waitChart=null, throughputChart=null, phaseChart=null;
+const ChartLib = window.Chart||null;
 
 if(!ChartLib){
-  chartsReady = false;
-  addLog({msg:'Warning: Chart.js failed to load. Charts disabled.', cls:'yellow', sim_time:0});
+  chartsReady=false;
+  addLog({msg:'Warning: Chart.js failed to load. Charts disabled.',cls:'yellow',sim_time:0});
 } else {
-  ChartLib.defaults.color = '#a0b0c8';
-  ChartLib.defaults.borderColor = '#2a3d52';
-  ChartLib.defaults.font.family = "'Inter','Segoe UI',system-ui,sans-serif";
+  ChartLib.defaults.color='#a8b8cc';
+  ChartLib.defaults.borderColor='rgba(153,215,234,.18)';
+  ChartLib.defaults.font.family="'JetBrains Mono',monospace";
 }
 
-function formatNumber(val){
-  if(val === undefined || val === null || Number.isNaN(val)) return 0;
-  return val;
-}
+function formatNumber(val){ return (val===undefined||val===null||Number.isNaN(val))?0:val; }
 
 function updateKpis(stats){
-  const queues = stats.queues || {N:0,S:0,E:0,W:0};
-  kpiPassed.textContent = formatNumber(stats.total_passed);
-  kpiWait.textContent = (stats.avg_wait || 0).toFixed(1) + 's';
-  kpiCycles.textContent = formatNumber(stats.cycles);
-  kpiActive.textContent = formatNumber(stats.active_vehicles);
-  kpiNs.textContent = (queues.N || 0) + (queues.S || 0);
-  kpiEw.textContent = (queues.E || 0) + (queues.W || 0);
+  const queues=stats.queues||{N:0,S:0,E:0,W:0};
+  kpiPassed.textContent=formatNumber(stats.total_passed);
+  kpiWait.textContent=(stats.avg_wait||0).toFixed(1)+'s';
+  kpiCycles.textContent=formatNumber(stats.cycles);
+  kpiActive.textContent=formatNumber(stats.active_vehicles);
+  kpiNs.textContent=(queues.N||0)+(queues.S||0);
+  kpiEw.textContent=(queues.E||0)+(queues.W||0);
   schedulePersist();
 }
 
 function ensureSessionStarted(stats){
-  if(!session.startTime){
-    session.startTime = new Date().toISOString();
-    sessionHintEl.textContent = 'Recording session data.';
-  }
-  session.statsSummary = {
-    total_passed: stats.total_passed || 0,
-    avg_wait: stats.avg_wait || 0,
-    cycles: stats.cycles || 0,
-    sim_time: stats.sim_time || 0
-  };
-  sessionDurationEl.textContent = (stats.sim_time || 0).toFixed(1) + 's';
-  sessionPointsEl.textContent = session.queueSnapshots.length;
-  sessionVehiclesEl.textContent = session.vehicleEvents.length;
-  sessionIdEl.textContent = session.id.slice(0,8);
+  if(!session.startTime){ session.startTime=new Date().toISOString(); sessionHintEl.textContent='Recording session data.'; }
+  session.statsSummary={ total_passed:stats.total_passed||0, avg_wait:stats.avg_wait||0, cycles:stats.cycles||0, sim_time:stats.sim_time||0 };
+  sessionDurationEl.textContent=(stats.sim_time||0).toFixed(1)+'s';
+  sessionPointsEl.textContent=session.queueSnapshots.length;
+  sessionVehiclesEl.textContent=session.vehicleEvents.length;
+  sessionIdEl.textContent=session.id.slice(0,8);
   schedulePersist();
 }
 
 function captureQueueSnapshot(stats){
-  const q = stats.queues || {N:0,S:0,E:0,W:0};
-  session.queueSnapshots.push({
-    sim_time: stats.sim_time || 0,
-    N: q.N || 0,
-    S: q.S || 0,
-    E: q.E || 0,
-    W: q.W || 0
-  });
-  if(session.queueSnapshots.length > MAX_QUEUE_SNAPSHOTS){
-    session.queueSnapshots.shift();
-  }
+  const q=stats.queues||{N:0,S:0,E:0,W:0};
+  session.queueSnapshots.push({sim_time:stats.sim_time||0,N:q.N||0,S:q.S||0,E:q.E||0,W:q.W||0});
+  if(session.queueSnapshots.length>MAX_QUEUE_SNAPSHOTS) session.queueSnapshots.shift();
   schedulePersist();
 }
 
 function resetSession(){
-  session = sessionTemplate();
-  logs = [];
-  lastTotalPassed = null;
-  currentCycleCount = 0;
-  cycleIndex = -1;
-  lastPhase = null;
-  lastPhaseTime = null;
-  lastSimTime = 0;
-  phaseSegments.length = 0;
-  liveState.queueSeries = {labels:[], N:[], S:[], E:[], W:[]};
-  liveState.waitBuckets = [0,0,0,0,0];
-  liveState.throughput = {labels:[], data:[]};
-  liveState.phaseSegments = [];
-  liveState.lastTotalPassed = null;
-  liveState.currentCycleCount = 0;
-  liveState.cycleIndex = -1;
-  liveState.lastPhase = null;
-  liveState.lastPhaseTime = null;
+  session=sessionTemplate();
+  logs=[];
+  lastTotalPassed=null; currentCycleCount=0; cycleIndex=-1;
+  lastPhase=null; lastPhaseTime=null; lastSimTime=0;
+  phaseSegments.length=0;
+  liveState.queueSeries={labels:[],N:[],S:[],E:[],W:[]};
+  liveState.waitBuckets=[0,0,0,0,0];
+  liveState.throughput={labels:[],data:[]};
+  liveState.phaseSegments=[];
+  liveState.lastTotalPassed=null; liveState.currentCycleCount=0;
+  liveState.cycleIndex=-1; liveState.lastPhase=null; liveState.lastPhaseTime=null;
   updateKpis({});
   updateCharts(true);
   renderLog();
-  sessionIdEl.textContent = session.id.slice(0,8);
-  sessionDurationEl.textContent = '0.0s';
-  sessionPointsEl.textContent = '0';
-  sessionVehiclesEl.textContent = '0';
-  sessionHintEl.textContent = 'Start the simulation to see data.';
-  try{
-    localStorage.removeItem(PERSIST_KEY);
-    localStorage.removeItem(PERSIST_META_KEY);
-  }catch(e){}
+  sessionIdEl.textContent=session.id.slice(0,8);
+  sessionDurationEl.textContent='0.0s';
+  sessionPointsEl.textContent='0';
+  sessionVehiclesEl.textContent='0';
+  sessionHintEl.textContent='Start the simulation to see data.';
+  try{ localStorage.removeItem(PERSIST_KEY); localStorage.removeItem(PERSIST_META_KEY); }catch(e){}
 }
 
 function exportJson(){
-  const payload = {
-    session_id: session.id,
-    exported_at: new Date().toISOString(),
-    config: session.config || {},
-    summary: session.statsSummary || {},
-    queue_history: session.queueSnapshots || [],
-    phase_events: session.phaseEvents || [],
-    vehicle_events: session.vehicleEvents || []
+  const payload={
+    session_id:session.id, exported_at:new Date().toISOString(),
+    config:session.config||{}, summary:session.statsSummary||{},
+    queue_history:session.queueSnapshots||[], phase_events:session.phaseEvents||[],
+    vehicle_events:session.vehicleEvents||[]
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `stimulation_session_${Date.now()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`stimulation_session_${Date.now()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 
 function exportCsv(){
-  const rows = ['sim_time,queue_N,queue_S,queue_E,queue_W'];
-  session.queueSnapshots.forEach(r=>{
-    rows.push(`${r.sim_time},${r.N},${r.S},${r.E},${r.W}`);
-  });
-  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `stimulation_queues_${Date.now()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const rows=['sim_time,queue_N,queue_S,queue_E,queue_W'];
+  session.queueSnapshots.forEach(r=>rows.push(`${r.sim_time},${r.N},${r.S},${r.E},${r.W}`));
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`stimulation_queues_${Date.now()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 
 function escapeHtml(value){
-  return String(value ?? '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#39;');
+  return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function exportReport(){
-  const summary = session.statsSummary || {};
-  const config = session.config || {};
-  const exportedAt = new Date().toISOString();
-
-  const charts = {
-    queues: queueChart ? queueChart.toBase64Image() : null,
-    waits: waitChart ? waitChart.toBase64Image() : null,
-    throughput: throughputChart ? throughputChart.toBase64Image() : null,
-    phases: phaseChart ? phaseChart.toBase64Image() : null
+  const summary=session.statsSummary||{};
+  const config=session.config||{};
+  const exportedAt=new Date().toISOString();
+  const charts={
+    queues:queueChart?queueChart.toBase64Image():null,
+    waits:waitChart?waitChart.toBase64Image():null,
+    throughput:throughputChart?throughputChart.toBase64Image():null,
+    phases:phaseChart?phaseChart.toBase64Image():null
   };
-
-  const report = document.createElement('div');
-  report.style.fontFamily = "'Inter','Segoe UI',system-ui,sans-serif";
-  report.style.color = '#0f172a';
-  report.style.padding = '24px';
-  report.innerHTML = `
-    <h1 style="margin:0 0 6px;font-size:20px;">sTIMulation Session Report</h1>
-    <div style="font-size:12px;color:#64748b;margin-bottom:14px;">
+  const report=document.createElement('div');
+  report.style.fontFamily="'JetBrains Mono',monospace";
+  report.style.color='#1b1d36'; report.style.padding='24px';
+  report.innerHTML=`
+    <h1 style="margin:0 0 6px;font-size:20px;font-family:'JetBrains Mono',monospace">sTIMulation Session Report</h1>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px;font-family:'JetBrains Mono',monospace">
       Session ID: <strong>${escapeHtml(session.id)}</strong> · Exported: ${escapeHtml(exportedAt)}
     </div>
-
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;">Summary</h2>
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;font-family:'JetBrains Mono',monospace">Summary</h2>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;">Total Passed: <b>${escapeHtml(summary.total_passed ?? 0)}</b></div>
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;">Avg Wait: <b>${escapeHtml((summary.avg_wait ?? 0).toFixed ? (summary.avg_wait ?? 0).toFixed(2) : summary.avg_wait)}</b> s</div>
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;">Cycles: <b>${escapeHtml(summary.cycles ?? 0)}</b></div>
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;">Sim Time: <b>${escapeHtml(summary.sim_time ?? 0)}</b> s</div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Total Passed: <b>${escapeHtml(summary.total_passed??0)}</b></div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Avg Wait: <b>${escapeHtml((summary.avg_wait??0).toFixed?(summary.avg_wait??0).toFixed(2):summary.avg_wait)}</b> s</div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Cycles: <b>${escapeHtml(summary.cycles??0)}</b></div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Sim Time: <b>${escapeHtml(summary.sim_time??0)}</b> s</div>
     </div>
-
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;">Configuration</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:12px;">
-      <tr><th style="text-align:left;border:1px solid #cbd5f5;padding:6px 8px;background:#f1f5f9;">Key</th><th style="text-align:left;border:1px solid #cbd5f5;padding:6px 8px;background:#f1f5f9;">Value</th></tr>
-      ${Object.keys(config).map(k=>`<tr><td style="border:1px solid #cbd5f5;padding:6px 8px;">${escapeHtml(k)}</td><td style="border:1px solid #cbd5f5;padding:6px 8px;">${escapeHtml(config[k])}</td></tr>`).join('') || '<tr><td style="border:1px solid #cbd5f5;padding:6px 8px;" colspan="2">No config data</td></tr>'}
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;font-family:'JetBrains Mono',monospace">Configuration</h2>
+    <table style="border-collapse:collapse;width:100%;font-size:12px;font-family:'JetBrains Mono',monospace">
+      <tr><th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Key</th><th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Value</th></tr>
+      ${Object.keys(config).map(k=>`<tr><td style="border:1px solid #cbd5e1;padding:6px 8px">${escapeHtml(k)}</td><td style="border:1px solid #cbd5e1;padding:6px 8px">${escapeHtml(config[k])}</td></tr>`).join('')||'<tr><td style="border:1px solid #cbd5e1;padding:6px 8px" colspan="2">No config data</td></tr>'}
     </table>
-
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;">Charts</h2>
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;font-family:'JetBrains Mono',monospace">Charts</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      ${charts.queues ? `<div><div style="font-size:12px;color:#475569;margin-bottom:6px;">Queue Lengths Over Time</div><img src="${charts.queues}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;" /></div>` : ''}
-      ${charts.waits ? `<div><div style="font-size:12px;color:#475569;margin-bottom:6px;">Wait Time Distribution</div><img src="${charts.waits}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;" /></div>` : ''}
-      ${charts.throughput ? `<div><div style="font-size:12px;color:#475569;margin-bottom:6px;">Vehicles Passed Per Cycle</div><img src="${charts.throughput}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;" /></div>` : ''}
-      ${charts.phases ? `<div><div style="font-size:12px;color:#475569;margin-bottom:6px;">Signal Phase Timing</div><img src="${charts.phases}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;" /></div>` : ''}
-    </div>
-  `;
-
-  const options = {
-    margin: 0.5,
-    filename: `stimulation_report_${Date.now()}.pdf`,
-    image: { type: 'jpeg', quality: 0.96 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      ${charts.queues?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Queue Lengths Over Time</div><img src="${charts.queues}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
+      ${charts.waits?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Wait Time Distribution</div><img src="${charts.waits}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
+      ${charts.throughput?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Vehicles Passed Per Cycle</div><img src="${charts.throughput}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
+      ${charts.phases?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Signal Phase Timing</div><img src="${charts.phases}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
+    </div>`;
+  const options={
+    margin:0.5, filename:`stimulation_report_${Date.now()}.pdf`,
+    image:{type:'jpeg',quality:0.96},
+    html2canvas:{scale:2,useCORS:true},
+    jsPDF:{unit:'in',format:'letter',orientation:'portrait'}
   };
-
-  if(window.html2pdf){
-    window.html2pdf().set(options).from(report).save();
-  } else {
-    alert('PDF export unavailable. Please refresh and try again.');
-  }
+  if(window.html2pdf) window.html2pdf().set(options).from(report).save();
+  else alert('PDF export unavailable. Please refresh and try again.');
 }
 
-const queueCtx = document.getElementById('chart-queues');
-const waitCtx = document.getElementById('chart-waits');
+/* ── Charts ── */
+const queueCtx      = document.getElementById('chart-queues');
+const waitCtx       = document.getElementById('chart-waits');
 const throughputCtx = document.getElementById('chart-throughput');
-const phaseCtx = document.getElementById('chart-phases');
+const phaseCtx      = document.getElementById('chart-phases');
+
+const GRID_COLOR  = 'rgba(153,215,234,.12)';
+const TICK_COLOR  = '#a8b8cc';
 
 if(chartsReady){
-  queueChart = new ChartLib(queueCtx, {
+  queueChart = new ChartLib(queueCtx,{
     type:'line',
-    data:{labels:[], datasets:[
-      {label:'N', data:[], borderColor:'#3b82f6', tension:.35, fill:false, pointRadius:0},
-      {label:'S', data:[], borderColor:'#60a5fa', tension:.35, fill:false, pointRadius:0},
-      {label:'E', data:[], borderColor:'#f97316', tension:.35, fill:false, pointRadius:0},
-      {label:'W', data:[], borderColor:'#ef4444', tension:.35, fill:false, pointRadius:0}
+    data:{labels:[],datasets:[
+      {label:'N',data:[],borderColor:'#99d7ea',tension:.35,fill:false,pointRadius:0},
+      {label:'S',data:[],borderColor:'#b8e5f2',tension:.35,fill:false,pointRadius:0},
+      {label:'E',data:[],borderColor:'#fca6d1',tension:.35,fill:false,pointRadius:0},
+      {label:'W',data:[],borderColor:'#fdc4e2',tension:.35,fill:false,pointRadius:0}
     ]},
     options:{
-      responsive:true,
-      maintainAspectRatio:false,
+      responsive:true,maintainAspectRatio:false,
       scales:{
-        x:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}},
-        y:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}, beginAtZero:true}
+        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}},
+        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true}
       },
-      plugins:{legend:{labels:{color:'#a0b0c8'}}}
+      plugins:{legend:{labels:{color:TICK_COLOR}}}
     }
   });
 
-  const waitGradient = (()=>{
-    const ctx = waitCtx.getContext('2d');
-    const grad = ctx.createLinearGradient(0,0,0,240);
-    grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--yellow').trim());
-    grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--yellow-bg').trim());
-    return grad;
+  const waitGradient=(()=>{
+    const c=waitCtx.getContext('2d');
+    const g=c.createLinearGradient(0,0,0,240);
+    g.addColorStop(0,'#fca6d1'); g.addColorStop(1,'rgba(252,166,209,.1)');
+    return g;
   })();
 
-  waitChart = new ChartLib(waitCtx, {
+  waitChart = new ChartLib(waitCtx,{
     type:'bar',
     data:{
       labels:['0-5s','5-10s','10-20s','20-40s','40s+'],
-      datasets:[{label:'Vehicles', data:[0,0,0,0,0], backgroundColor:waitGradient}]
+      datasets:[{label:'Vehicles',data:[0,0,0,0,0],backgroundColor:waitGradient}]
     },
     options:{
-      responsive:true,
-      maintainAspectRatio:false,
+      responsive:true,maintainAspectRatio:false,
       scales:{
-        x:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}},
-        y:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}, beginAtZero:true}
+        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}},
+        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true}
       },
       plugins:{legend:{display:false}}
     }
   });
 
-  throughputChart = new ChartLib(throughputCtx, {
+  throughputChart = new ChartLib(throughputCtx,{
     type:'bar',
-    data:{labels:[], datasets:[{label:'Vehicles', data:[], backgroundColor:'#10b981'}]},
+    data:{labels:[],datasets:[{label:'Vehicles',data:[],backgroundColor:'#99d7ea'}]},
     options:{
-      responsive:true,
-      maintainAspectRatio:false,
+      responsive:true,maintainAspectRatio:false,
       scales:{
-        x:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}},
-        y:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}, beginAtZero:true}
+        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}},
+        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true}
       },
       plugins:{legend:{display:false}}
     }
   });
 
-  phaseChart = new ChartLib(phaseCtx, {
+  phaseChart = new ChartLib(phaseCtx,{
     type:'bar',
-    data:{labels:[], datasets:[
-      {label:'NS Green', data:[], backgroundColor:'#10b981', stack:'phase'},
-      {label:'NS Yellow', data:[], backgroundColor:'#f59e0b', stack:'phase'},
-      {label:'NS Red', data:[], backgroundColor:'#ef4444', stack:'phase'},
-      {label:'EW Green', data:[], backgroundColor:'#10b981', stack:'phase'},
-      {label:'EW Yellow', data:[], backgroundColor:'#f59e0b', stack:'phase'},
-      {label:'EW Red', data:[], backgroundColor:'#ef4444', stack:'phase'}
+    data:{labels:[],datasets:[
+      {label:'NS Green',  data:[],backgroundColor:'#99d7ea',  stack:'phase'},
+      {label:'NS Yellow', data:[],backgroundColor:'#fca6d1',  stack:'phase'},
+      {label:'NS Red',    data:[],backgroundColor:'#f87171',  stack:'phase'},
+      {label:'EW Green',  data:[],backgroundColor:'#b8e5f2',  stack:'phase'},
+      {label:'EW Yellow', data:[],backgroundColor:'#fdc4e2',  stack:'phase'},
+      {label:'EW Red',    data:[],backgroundColor:'#fca5a5',  stack:'phase'}
     ]},
     options:{
-      indexAxis:'y',
-      responsive:true,
-      maintainAspectRatio:false,
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
       scales:{
-        x:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}, beginAtZero:true},
-        y:{grid:{color:'#2a3d52'}, ticks:{color:'#a0b0c8'}}
+        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true},
+        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}}
       },
-      plugins:{legend:{labels:{color:'#a0b0c8'}}}
+      plugins:{legend:{labels:{color:TICK_COLOR}}}
     }
   });
 }
 
 function updateQueueChart(stats){
   if(!queueChart) return;
-  const queues = stats.queues || {N:0,S:0,E:0,W:0};
-  const t = (stats.sim_time || 0).toFixed(1);
-  liveState.queueSeries.labels.push(t);
-  liveState.queueSeries.N.push(queues.N || 0);
-  liveState.queueSeries.S.push(queues.S || 0);
-  liveState.queueSeries.E.push(queues.E || 0);
-  liveState.queueSeries.W.push(queues.W || 0);
+  const queues=stats.queues||{N:0,S:0,E:0,W:0};
+  const t=(stats.sim_time||0).toFixed(1);
+  liveState.queueSeries.labels.push(t); liveState.queueSeries.N.push(queues.N||0);
+  liveState.queueSeries.S.push(queues.S||0); liveState.queueSeries.E.push(queues.E||0);
+  liveState.queueSeries.W.push(queues.W||0);
   queueChart.data.labels.push(t);
-  queueChart.data.datasets[0].data.push(queues.N || 0);
-  queueChart.data.datasets[1].data.push(queues.S || 0);
-  queueChart.data.datasets[2].data.push(queues.E || 0);
-  queueChart.data.datasets[3].data.push(queues.W || 0);
-  if(queueChart.data.labels.length > MAX_POINTS){
-    liveState.queueSeries.labels.shift();
-    liveState.queueSeries.N.shift();
-    liveState.queueSeries.S.shift();
-    liveState.queueSeries.E.shift();
-    liveState.queueSeries.W.shift();
+  queueChart.data.datasets[0].data.push(queues.N||0);
+  queueChart.data.datasets[1].data.push(queues.S||0);
+  queueChart.data.datasets[2].data.push(queues.E||0);
+  queueChart.data.datasets[3].data.push(queues.W||0);
+  if(queueChart.data.labels.length>MAX_POINTS){
+    ['labels','N','S','E','W'].forEach(k=>{ if(k==='labels') liveState.queueSeries.labels.shift(); else liveState.queueSeries[k].shift(); });
     queueChart.data.labels.shift();
     queueChart.data.datasets.forEach(ds=>ds.data.shift());
   }
@@ -797,116 +768,75 @@ function updateQueueChart(stats){
 }
 
 function updateThroughput(stats){
-  if(lastTotalPassed === null){
-    lastTotalPassed = stats.total_passed || 0;
-    liveState.lastTotalPassed = lastTotalPassed;
-    return;
-  }
-  const delta = Math.max(0, (stats.total_passed || 0) - lastTotalPassed);
-  lastTotalPassed = stats.total_passed || 0;
-  currentCycleCount += delta;
-  liveState.lastTotalPassed = lastTotalPassed;
-  liveState.currentCycleCount = currentCycleCount;
+  if(lastTotalPassed===null){ lastTotalPassed=stats.total_passed||0; liveState.lastTotalPassed=lastTotalPassed; return; }
+  const delta=Math.max(0,(stats.total_passed||0)-lastTotalPassed);
+  lastTotalPassed=stats.total_passed||0; currentCycleCount+=delta;
+  liveState.lastTotalPassed=lastTotalPassed; liveState.currentCycleCount=currentCycleCount;
   schedulePersist();
 }
 
 function updateWaitBuckets(waitTime){
-  if(!waitChart) return;
-  if(waitTime === undefined || waitTime === null) return;
-  const t = Number(waitTime);
-  let idx = 0;
-  if(t >= 5 && t < 10) idx = 1;
-  else if(t >= 10 && t < 20) idx = 2;
-  else if(t >= 20 && t < 40) idx = 3;
-  else if(t >= 40) idx = 4;
-  waitChart.data.datasets[0].data[idx] += 1;
-  liveState.waitBuckets[idx] = waitChart.data.datasets[0].data[idx];
-  waitChart.update('none');
-  schedulePersist();
+  if(!waitChart||waitTime===undefined||waitTime===null) return;
+  const t=Number(waitTime);
+  let idx=0;
+  if(t>=5&&t<10) idx=1; else if(t>=10&&t<20) idx=2; else if(t>=20&&t<40) idx=3; else if(t>=40) idx=4;
+  waitChart.data.datasets[0].data[idx]+=1;
+  liveState.waitBuckets[idx]=waitChart.data.datasets[0].data[idx];
+  waitChart.update('none'); schedulePersist();
 }
 
 function pushCycleCount(){
   if(!throughputChart) return;
-  if(cycleIndex < 0){
-    cycleIndex = 0;
-  } else {
-    cycleIndex += 1;
-  }
+  cycleIndex = cycleIndex<0 ? 0 : cycleIndex+1;
   throughputChart.data.labels.push(String(cycleIndex));
   throughputChart.data.datasets[0].data.push(currentCycleCount);
   liveState.throughput.labels.push(String(cycleIndex));
   liveState.throughput.data.push(currentCycleCount);
-  if(throughputChart.data.labels.length > 20){
-    throughputChart.data.labels.shift();
-    throughputChart.data.datasets[0].data.shift();
-    liveState.throughput.labels.shift();
-    liveState.throughput.data.shift();
+  if(throughputChart.data.labels.length>20){
+    throughputChart.data.labels.shift(); throughputChart.data.datasets[0].data.shift();
+    liveState.throughput.labels.shift(); liveState.throughput.data.shift();
   }
   throughputChart.update('none');
-  currentCycleCount = 0;
-  liveState.cycleIndex = cycleIndex;
-  liveState.currentCycleCount = currentCycleCount;
+  currentCycleCount=0; liveState.cycleIndex=cycleIndex; liveState.currentCycleCount=currentCycleCount;
   schedulePersist();
 }
 
-function recordPhaseSegment(phase, simTime){
-  if(lastPhase !== null && lastPhaseTime !== null){
-    const duration = Math.max(0, simTime - lastPhaseTime);
-    phaseSegments.push({phase:lastPhase, duration, cycle:cycleIndex < 0 ? 0 : cycleIndex});
-    liveState.phaseSegments.push({phase:lastPhase, duration, cycle:cycleIndex < 0 ? 0 : cycleIndex});
-    if(phaseSegments.length > 200) phaseSegments.shift();
-    if(liveState.phaseSegments.length > 200) liveState.phaseSegments.shift();
+function recordPhaseSegment(phase,simTime){
+  if(lastPhase!==null&&lastPhaseTime!==null){
+    const duration=Math.max(0,simTime-lastPhaseTime);
+    const seg={phase:lastPhase,duration,cycle:cycleIndex<0?0:cycleIndex};
+    phaseSegments.push(seg); liveState.phaseSegments.push(seg);
+    if(phaseSegments.length>200) phaseSegments.shift();
+    if(liveState.phaseSegments.length>200) liveState.phaseSegments.shift();
   }
-  lastPhase = phase;
-  lastPhaseTime = simTime;
-  liveState.lastPhase = lastPhase;
-  liveState.lastPhaseTime = lastPhaseTime;
+  lastPhase=phase; lastPhaseTime=simTime;
+  liveState.lastPhase=lastPhase; liveState.lastPhaseTime=lastPhaseTime;
   schedulePersist();
 }
 
 function updatePhaseChart(){
   if(!phaseChart) return;
-  const recentCycles = Array.from(new Set(phaseSegments.map(s=>s.cycle))).slice(-10);
-  phaseChart.data.labels = recentCycles.map(c=>`Cycle ${c}`);
-  const phases = ['ns_green','ns_yellow','ns_red','ew_green','ew_yellow','ew_red'];
-  const datasetMap = {
-    ns_green: phaseChart.data.datasets[0],
-    ns_yellow: phaseChart.data.datasets[1],
-    ns_red: phaseChart.data.datasets[2],
-    ew_green: phaseChart.data.datasets[3],
-    ew_yellow: phaseChart.data.datasets[4],
-    ew_red: phaseChart.data.datasets[5]
-  };
-  phases.forEach(p=>{datasetMap[p].data = []});
+  const recentCycles=Array.from(new Set(phaseSegments.map(s=>s.cycle))).slice(-10);
+  phaseChart.data.labels=recentCycles.map(c=>`Cycle ${c}`);
+  const phases=['ns_green','ns_yellow','ns_red','ew_green','ew_yellow','ew_red'];
+  const dsMap={ns_green:phaseChart.data.datasets[0],ns_yellow:phaseChart.data.datasets[1],
+    ns_red:phaseChart.data.datasets[2],ew_green:phaseChart.data.datasets[3],
+    ew_yellow:phaseChart.data.datasets[4],ew_red:phaseChart.data.datasets[5]};
+  phases.forEach(p=>{ dsMap[p].data=[]; });
   recentCycles.forEach(cycle=>{
-    const perPhase = {ns_green:0,ns_yellow:0,ns_red:0,ew_green:0,ew_yellow:0,ew_red:0};
-    phaseSegments.filter(s=>s.cycle === cycle).forEach(s=>{perPhase[s.phase] += s.duration;});
-    phases.forEach(p=>datasetMap[p].data.push(Number(perPhase[p].toFixed(2))));
+    const perPhase={ns_green:0,ns_yellow:0,ns_red:0,ew_green:0,ew_yellow:0,ew_red:0};
+    phaseSegments.filter(s=>s.cycle===cycle).forEach(s=>{ perPhase[s.phase]+=s.duration; });
+    phases.forEach(p=>dsMap[p].data.push(Number(perPhase[p].toFixed(2))));
   });
   phaseChart.update('none');
 }
 
 function updateCharts(reset=false){
   if(reset){
-    if(queueChart){
-      queueChart.data.labels = [];
-      queueChart.data.datasets.forEach(ds=>ds.data = []);
-      queueChart.update('none');
-    }
-    if(waitChart){
-      waitChart.data.datasets[0].data = [0,0,0,0,0];
-      waitChart.update('none');
-    }
-    if(throughputChart){
-      throughputChart.data.labels = [];
-      throughputChart.data.datasets[0].data = [];
-      throughputChart.update('none');
-    }
-    if(phaseChart){
-      phaseChart.data.labels = [];
-      phaseChart.data.datasets.forEach(ds=>ds.data = []);
-      phaseChart.update('none');
-    }
+    if(queueChart){ queueChart.data.labels=[]; queueChart.data.datasets.forEach(ds=>ds.data=[]); queueChart.update('none'); }
+    if(waitChart){ waitChart.data.datasets[0].data=[0,0,0,0,0]; waitChart.update('none'); }
+    if(throughputChart){ throughputChart.data.labels=[]; throughputChart.data.datasets[0].data=[]; throughputChart.update('none'); }
+    if(phaseChart){ phaseChart.data.labels=[]; phaseChart.data.datasets.forEach(ds=>ds.data=[]); phaseChart.update('none'); }
     return;
   }
   if(queueChart) queueChart.update('none');
@@ -916,152 +846,89 @@ function updateCharts(reset=false){
 }
 
 function handleStats(stats){
-  if(!stats || typeof stats !== 'object') return;
-  const simTime = stats.sim_time || 0;
-  const totalPassed = stats.total_passed ?? 0;
-  const cycles = stats.cycles ?? 0;
-  const resetSignal = (simTime < lastSimTime)
-    || (lastTotalPassed !== null && totalPassed < lastTotalPassed)
-    || (session.startTime && simTime === 0 && totalPassed === 0 && cycles === 0);
-  if(resetSignal){
-    resetSession();
-  }
-  if(cycles > 0 && cycleIndex < 0){
-    cycleIndex = cycles - 1;
-    liveState.cycleIndex = cycleIndex;
-  }
-  if(cycleIndex >= 0 && cycles < cycleIndex){
-    resetSession();
-  }
-  lastSimTime = simTime;
-  updateKpis(stats);
-  ensureSessionStarted(stats);
-  captureQueueSnapshot(stats);
-  updateQueueChart(stats);
-  updateThroughput(stats);
+  if(!stats||typeof stats!=='object') return;
+  const simTime=stats.sim_time||0;
+  const totalPassed=stats.total_passed??0;
+  const cycles=stats.cycles??0;
+  const resetSignal=(simTime<lastSimTime)||(lastTotalPassed!==null&&totalPassed<lastTotalPassed)
+    ||(session.startTime&&simTime===0&&totalPassed===0&&cycles===0);
+  if(resetSignal) resetSession();
+  if(cycles>0&&cycleIndex<0){ cycleIndex=cycles-1; liveState.cycleIndex=cycleIndex; }
+  if(cycleIndex>=0&&cycles<cycleIndex) resetSession();
+  lastSimTime=simTime;
+  updateKpis(stats); ensureSessionStarted(stats); captureQueueSnapshot(stats); updateQueueChart(stats); updateThroughput(stats);
 }
 
 function handleLightChange(data){
   if(!data) return;
-  const simTime = data.sim_time || 0;
-  session.phaseEvents.push({phase:data.phase, sim_time:simTime});
-  recordPhaseSegment(data.phase, simTime);
-  if(data.phase === 'ns_green'){
-    pushCycleCount();
-  }
+  const simTime=data.sim_time||0;
+  session.phaseEvents.push({phase:data.phase,sim_time:simTime});
+  recordPhaseSegment(data.phase,simTime);
+  if(data.phase==='ns_green') pushCycleCount();
   updatePhaseChart();
 }
 
 function handleVehicleMove(data){
   if(!data) return;
-  session.vehicleEvents.push({
-    vid: data.vid,
-    direction: data.direction,
-    turn: data.turn,
-    wait_time: data.wait_time,
-    sim_time: data.sim_time
-  });
+  session.vehicleEvents.push({vid:data.vid,direction:data.direction,turn:data.turn,wait_time:data.wait_time,sim_time:data.sim_time});
   updateWaitBuckets(data.wait_time);
 }
 
 async function fetchConfig(){
-  try{
-    const res = await fetch('/api/config');
-    if(res.ok){
-      session.config = await res.json();
-    }
-  }catch(e){}
+  try{ const res=await fetch('/api/config'); if(res.ok) session.config=await res.json(); }catch(e){}
 }
-
 async function fetchMetrics(){
   try{
-    const res = await fetch('/api/metrics');
-    if(!res.ok) return;
-    const data = await res.json();
-    if(data && (data.sim_time === 0 || data.sim_time === 0.0) && data.total_passed === 0 && data.cycles === 0){
-      resetSession();
-      return;
-    }
+    const res=await fetch('/api/metrics'); if(!res.ok) return;
+    const data=await res.json();
+    if(data&&(data.sim_time===0||data.sim_time===0.0)&&data.total_passed===0&&data.cycles===0){ resetSession(); return; }
     handleStats(data);
   }catch(e){}
 }
-
 async function fetchStatus(){
   try{
-    const res = await fetch('/api/status');
-    if(!res.ok) return;
-    const data = await res.json();
-    if(data && data.running === false && session.startTime && !session.endTime){
-      session.endTime = new Date().toISOString();
-    }
+    const res=await fetch('/api/status'); if(!res.ok) return;
+    const data=await res.json();
+    if(data&&data.running===false&&session.startTime&&!session.endTime) session.endTime=new Date().toISOString();
   }catch(e){}
 }
 
 function startPolling(){
   if(pollTimer) return;
-  pollTimer = setInterval(()=>{
-    fetchStatus();
-    fetchMetrics();
-  }, 3000);
+  pollTimer=setInterval(()=>{ fetchStatus(); fetchMetrics(); },3000);
 }
+function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
 
-function stopPolling(){
-  if(pollTimer){
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-}
-
-const socket = io({
-  transports: ['websocket'],
-  reconnection: true,
-  reconnectionAttempts: Infinity,
-  reconnectionDelay: 500,
-  reconnectionDelayMax: 3000
+const socket=io({
+  transports:['websocket'],reconnection:true,
+  reconnectionAttempts:Infinity,reconnectionDelay:500,reconnectionDelayMax:3000
 });
 
-socket.on('connect',()=>{
-  socketConnected = true;
-  updateConnBadge('connected');
-  stopPolling();
-  addLog({msg:'🔌 Connected to simulation server', cls:'green', sim_time:0});
-});
-
-socket.on('disconnect',()=>{
-  socketConnected = false;
-  updateConnBadge('disconnected');
-  startPolling();
-});
-
-socket.on('connect_error',()=>{
-  socketConnected = false;
-  updateConnBadge('reconnecting');
-  startPolling();
-});
-
-socket.on('stats', data=>{ handleStats(data); });
-socket.on('light_change', data=>{ handleLightChange(data); });
-socket.on('vehicle_move', data=>{ handleVehicleMove(data); });
-socket.on('vehicle_exit', ()=>{});
-socket.on('log', entry=>{ addLog(entry); });
-socket.on('reset', ()=>{ resetSession(); });
+socket.on('connect',()=>{ socketConnected=true; updateConnBadge('connected'); stopPolling(); addLog({msg:'🔌 Connected to simulation server',cls:'green',sim_time:0}); });
+socket.on('disconnect',()=>{ socketConnected=false; updateConnBadge('disconnected'); startPolling(); });
+socket.on('connect_error',()=>{ socketConnected=false; updateConnBadge('reconnecting'); startPolling(); });
+socket.on('stats',data=>{ handleStats(data); });
+socket.on('light_change',data=>{ handleLightChange(data); });
+socket.on('vehicle_move',data=>{ handleVehicleMove(data); });
+socket.on('vehicle_exit',()=>{});
+socket.on('log',entry=>{ addLog(entry); });
+socket.on('reset',()=>{ resetSession(); });
 
 async function init(){
-  sessionIdEl.textContent = session.id.slice(0,8);
+  sessionIdEl.textContent=session.id.slice(0,8);
   restoreState();
   await fetchConfig();
   await fetchStatus();
   await fetchMetrics();
 }
-
 init();
 
-setInterval(()=>{ persistState(); }, 5000);
+setInterval(()=>{ persistState(); },5000);
 
-document.getElementById('btn-export-json').addEventListener('click', exportJson);
-document.getElementById('btn-export-csv').addEventListener('click', exportCsv);
-document.getElementById('btn-export-report').addEventListener('click', exportReport);
-document.getElementById('btn-clear').addEventListener('click', resetSession);
+document.getElementById('btn-export-json').addEventListener('click',exportJson);
+document.getElementById('btn-export-csv').addEventListener('click',exportCsv);
+document.getElementById('btn-export-report').addEventListener('click',exportReport);
+document.getElementById('btn-clear').addEventListener('click',resetSession);
 </script>
 </body>
 </html>

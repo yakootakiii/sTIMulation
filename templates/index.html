@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sTIMulation - Modern Traffic Simulator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+<<<<<<< HEAD
 /* ── Reset & Modern Design ────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;transition:color .15s,border-color .15s}
 :root{
@@ -21,12 +23,61 @@
   --radius:12px; --radius-sm:8px;
   --shadow:0 4px 20px rgba(0,0,0,.3);--shadow-sm:0 2px 8px rgba(0,0,0,.15);
   font-family:'Inter','Segoe UI',system-ui,sans-serif;
+=======
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1b1d36;
+  --bg2:#22253f;
+  --bg3:#2a2e4a;
+  --bg4:#323660;
+  --surface:#e1e7ed;
+  --surface2:#c8d2dc;
+  --surface3:#b0bfcc;
+  --pink:#fca6d1;
+  --pink-light:#fdc4e2;
+  --pink-dim:#c4718f;
+  --pink-bg:rgba(252,166,209,.12);
+  --cyan:#99d7ea;
+  --cyan-light:#b8e5f2;
+  --cyan-dim:#5fa8c0;
+  --cyan-bg:rgba(153,215,234,.12);
+  --green:#99d7ea;
+  --green-light:#b8e5f2;
+  --green-bg:rgba(153,215,234,.10);
+  --yellow:#fca6d1;
+  --yellow-light:#fdc4e2;
+  --yellow-bg:rgba(252,166,209,.10);
+  --red:#f87171;
+  --red-light:#fca5a5;
+  --red-bg:rgba(248,113,113,.10);
+  --blue:#99d7ea;
+  --blue-light:#b8e5f2;
+  --blue-bg:rgba(153,215,234,.10);
+  --purple:#fca6d1;
+  --purple-light:#fdc4e2;
+  --purple-bg:rgba(252,166,209,.10);
+  --border:rgba(153,215,234,.22);
+  --border2:rgba(153,215,234,.35);
+  --border-light:rgba(252,166,209,.45);
+  --text:#e1e7ed;
+  --text2:#a8b8cc;
+  --text3:#6a7f96;
+  --accent:#99d7ea;
+  --accent2:#fca6d1;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 4px 20px rgba(0,0,0,.4);
+  --shadow-sm:0 2px 8px rgba(0,0,0,.2);
+  --panel-w:380px;
+  font-family:'JetBrains Mono',monospace;
+>>>>>>> 33b81fe (temporary UI)
 }
 body{background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:grid;
   grid-template-rows:48px 1fr;grid-template-columns:1fr 340px}
 
-/* ── Header ──────────────────────────────────────────────────── */
+/* ── Header ── */
 header{
+<<<<<<< HEAD
   grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
   padding:0 20px;background:var(--bg2);border-bottom:1px solid var(--border);
   z-index:20;
@@ -41,9 +92,55 @@ header{
 .pill-red{background:var(--red-bg);color:var(--red);border:1px solid #991b1b}
 .pill-blue{background:var(--blue-bg);color:var(--blue);border:1px solid #1e3a8a}
 .pill-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+=======
+  position:fixed;top:0;left:0;right:0;height:48px;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  padding:0 20px;
+  background:rgba(27,29,54,.96);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  z-index:30;
+}
+.header-left{
+  display:flex;align-items:center;gap:10px;
+  justify-content:flex-start;
+}
+.header-center{
+  display:flex;align-items:center;justify-content:center;
+}
+.header-right{
+  display:flex;align-items:center;gap:8px;
+  justify-content:flex-end;
+}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-size:14px;font-weight:700;letter-spacing:.5px;
+  cursor:default;white-space:nowrap;
+  font-family:'JetBrains Mono',monospace;
+}
+.logo-icon{width:28px;height:28px;flex-shrink:0;}
+.logo-icon svg{width:100%;height:100%;}
+>>>>>>> 33b81fe (temporary UI)
 
-/* ── Canvas area ──────────────────────────────────────────────── */
+.pill{
+  padding:4px 12px;border-radius:20px;
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  border:1px solid currentColor;background:transparent;
+  transition:all .15s ease;cursor:default;
+  font-family:'JetBrains Mono',monospace;
+  white-space:nowrap;
+}
+.pill-green{color:var(--cyan);border-color:rgba(153,215,234,.4)}
+.pill-yellow{color:var(--pink);border-color:rgba(252,166,209,.4)}
+.pill-red{color:var(--red);border-color:rgba(248,113,113,.4)}
+.pill-blue{color:var(--cyan);border-color:rgba(153,215,234,.4)}
+.pill-gray{color:var(--text2);border-color:rgba(168,184,204,.3)}
+
+/* ── Canvas area ── */
 #canvas-wrap{
+<<<<<<< HEAD
   background:#0a0e14;position:relative;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
 }
@@ -51,9 +148,87 @@ canvas{display:block}
 
 /* ── Side panel ──────────────────────────────────────────────── */
 #panel{
+=======
+  width:100%;height:100%;
+  background:#14162b;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;margin-top:48px;
+}
+canvas{display:block;width:100%;height:100%}
+
+/* ── Floating bottom-left info widgets ── */
+#info-widgets{
+  position:absolute;
+  bottom:48px; /* sit just above the status bar */
+  left:16px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  z-index:15;
+  pointer-events:none; /* let clicks pass through to canvas */
+}
+.info-widget{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(27,29,54,.82);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:6px 12px;
+  font-family:'JetBrains Mono',monospace;
+  width:fit-content;
+  transition:border-color .2s;
+}
+.info-widget:hover{border-color:var(--border-light)}
+.widget-icon{
+  font-size:11px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--text3);
+  min-width:44px;
+}
+.widget-val{
+  font-size:12px;font-weight:700;letter-spacing:.4px;
+  text-transform:uppercase;
+}
+.widget-dot{
+  width:6px;height:6px;border-radius:50%;flex-shrink:0;
+}
+
+/* ── Floating toggle buttons ── */
+.float-btn{
+  position:fixed;bottom:24px;
+  width:48px;height:48px;
+  border-radius:50%;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--cyan);
+  transition:right .35s cubic-bezier(.4,0,.2,1),
+             background .2s ease,color .2s ease,
+             transform .2s cubic-bezier(.4,0,.2,1),
+             box-shadow .2s ease;
+  z-index:25;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+  text-decoration:none;
+}
+.float-btn:hover{
+  background:var(--bg3);color:var(--pink);
+  border-color:var(--border-light);
+  transform:scale(1.1);
+  box-shadow:0 8px 24px rgba(252,166,209,.2);
+}
+.float-btn:active{transform:scale(0.95)}
+#btn-controls-toggle{right:72px;}
+#btn-analytics-toggle{right:16px;}
+.panel-open #btn-controls-toggle{right:calc(var(--panel-w) + 72px);}
+.panel-open #btn-analytics-toggle{right:calc(var(--panel-w) + 16px);}
+
+/* ── Side panel ── */
+.side-panel{
+  position:fixed;right:0;top:48px;bottom:0;width:var(--panel-w);
+>>>>>>> 33b81fe (temporary UI)
   background:var(--bg2);border-left:1px solid var(--border);
   display:flex;flex-direction:column;overflow:hidden;
 }
+<<<<<<< HEAD
 .p-section{
   border-bottom:1px solid var(--border);padding:14px 16px;
 }
@@ -82,18 +257,87 @@ canvas{display:block}
 .ctrl:last-child{margin-bottom:0}
 .ctrl-label{font-size:11px;color:var(--text2);min-width:72px;font-weight:500}
 .ctrl-val{font-size:11px;font-weight:700;color:var(--text);min-width:30px;text-align:right}
+=======
+.side-panel.active{transform:translateX(0)}
+.panel-inner{
+  flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;
+  padding-bottom:24px;
+}
+.panel-inner::-webkit-scrollbar{width:4px}
+.panel-inner::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.panel-inner::-webkit-scrollbar-track{background:transparent}
+.p-section{border-bottom:1px solid var(--border);padding:16px 20px;}
+.p-section:last-child{border-bottom:none;flex:1;display:flex;flex-direction:column;}
+.sec-title{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--pink);margin-bottom:12px;font-family:'JetBrains Mono',monospace;
+}
+
+/* ── Buttons ── */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  flex:1;min-width:72px;padding:10px 10px;
+  font-size:11px;font-weight:700;letter-spacing:.4px;
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--bg3);color:var(--text2);cursor:pointer;
+  transition:all .15s cubic-bezier(.4,0,.2,1);text-transform:uppercase;
+  user-select:none;display:flex;align-items:center;justify-content:center;gap:5px;
+  font-family:'JetBrains Mono',monospace;
+}
+.btn:hover:not(:disabled){
+  background:var(--bg4);color:var(--cyan);border-color:var(--cyan-dim);
+  transform:translateY(-1px);box-shadow:0 2px 12px rgba(153,215,234,.15);
+}
+.btn:active:not(:disabled){transform:translateY(0);box-shadow:none}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.active-green{background:var(--green-bg);color:var(--cyan);border-color:var(--cyan-dim)}
+.btn.active-yellow{background:var(--yellow-bg);color:var(--pink);border-color:var(--pink-dim)}
+.btn.active-red{background:var(--red-bg);color:var(--red);border-color:#b45454}
+.btn.active-blue{background:var(--blue-bg);color:var(--cyan);border-color:var(--cyan-dim)}
+
+/* ── Form controls ── */
+.ctrl{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ctrl:last-child{margin-bottom:0}
+.ctrl-label{
+  font-size:11px;color:var(--text2);min-width:76px;font-weight:500;
+  flex-shrink:0;font-family:'JetBrains Mono',monospace;
+}
+.ctrl-val{
+  font-size:11px;font-weight:700;color:var(--cyan);
+  min-width:34px;text-align:right;font-family:'JetBrains Mono',monospace;
+}
+>>>>>>> 33b81fe (temporary UI)
 input[type=range]{
   flex:1;-webkit-appearance:none;height:3px;
   background:var(--border2);border-radius:2px;outline:none;cursor:pointer;
 }
+<<<<<<< HEAD
 input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
   background:var(--accent);cursor:pointer;border:2px solid var(--bg2);
 }
+=======
+input[type=range]:hover{background:var(--border-light)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--cyan);cursor:pointer;border:2px solid var(--bg2);
+  box-shadow:0 2px 8px rgba(153,215,234,.5);
+}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--pink);box-shadow:0 2px 10px rgba(252,166,209,.5);}
+input[type=number]{
+  flex:1;font-size:11px;padding:7px 10px;
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--bg3);color:var(--text);cursor:text;outline:none;
+  font-family:'JetBrains Mono',monospace;
+}
+input[type=number]:hover{border-color:var(--cyan-dim)}
+input[type=number]:focus{border-color:var(--cyan);background:var(--bg4)}
+>>>>>>> 33b81fe (temporary UI)
 select{
   flex:1;font-size:11px;padding:5px 8px;
   border:1px solid var(--border2);border-radius:var(--radius-sm);
   background:var(--bg3);color:var(--text);cursor:pointer;outline:none;
+<<<<<<< HEAD
 }
 select:focus{border-color:var(--accent)}
 .toggle-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
@@ -105,9 +349,26 @@ select:focus{border-color:var(--accent)}
 .toggle-slider:before{
   content:'';position:absolute;width:11px;height:11px;
   left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;
+=======
+  font-family:'JetBrains Mono',monospace;
 }
-.toggle input:checked + .toggle-slider{background:var(--green)}
+select:hover{border-color:var(--cyan-dim)}
+select:focus{border-color:var(--cyan);background:var(--bg4)}
+.toggle{position:relative;width:32px;height:17px;cursor:pointer;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{
+  position:absolute;inset:0;background:var(--border2);border-radius:9px;
+  transition:.2s cubic-bezier(.4,0,.2,1);
+}
+.toggle-slider:before{
+  content:'';position:absolute;width:11px;height:11px;
+  left:3px;top:3px;background:#fff;border-radius:50%;
+  transition:.2s cubic-bezier(.4,0,.2,1);
+>>>>>>> 33b81fe (temporary UI)
+}
+.toggle input:checked + .toggle-slider{background:var(--cyan)}
 .toggle input:checked + .toggle-slider:before{transform:translateX(15px)}
+<<<<<<< HEAD
 
 /* ── Queue bars ──────────────────────────────────────────────── */
 .q-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
@@ -139,10 +400,61 @@ select:focus{border-color:var(--accent)}
 .log-msg{flex:1;word-break:break-word}
 .c-green{color:var(--green)}.c-yellow{color:var(--yellow)}
 .c-red{color:var(--red)}.c-blue{color:var(--blue)}.c-gray{color:var(--text2)}
+=======
+.toggle:hover .toggle-slider{box-shadow:0 0 0 3px rgba(153,215,234,.2)}
 
-/* ── Status bar (bottom of canvas) ─────────────────────────── */
+/* ── Queue bars ── */
+.q-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.q-row:last-child{margin-bottom:0}
+.q-dir{font-size:11px;font-weight:700;color:var(--cyan);width:20px;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.q-track{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.q-fill{height:100%;border-radius:4px;transition:width .4s cubic-bezier(.4,0,.2,1);width:0%}
+.q-ns{background:linear-gradient(90deg,var(--cyan),var(--cyan-light))}
+.q-ew{background:linear-gradient(90deg,var(--pink-dim),var(--pink))}
+.q-count{font-size:11px;font-weight:700;min-width:26px;text-align:right;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+
+/* ── Metric cards ── */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:2px}
+.metric{
+  background:var(--bg3);border-radius:var(--radius-sm);
+  padding:12px 14px;border:1px solid var(--border);
+  transition:all .15s ease;cursor:default;
+}
+.metric:hover{background:var(--bg4);border-color:var(--border-light);}
+.metric-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.6px;font-family:'JetBrains Mono',monospace;}
+.metric-val{font-size:22px;font-weight:700;line-height:1.2;margin-top:4px;}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.mv-green{color:var(--cyan)}
+.mv-blue{color:var(--cyan)}
+.mv-yellow{color:var(--pink)}
+.mv-purple{color:var(--pink)}
+
+/* ── Log ── */
+.log-wrap{flex:1;display:flex;flex-direction:column;min-height:0;padding:16px 20px 0;}
+.log-scroll{flex:1;overflow-y:auto;padding-right:4px;min-height:120px}
+.log-scroll::-webkit-scrollbar{width:3px}
+.log-scroll::-webkit-scrollbar-track{background:transparent}
+.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.log-scroll::-webkit-scrollbar-thumb:hover{background:var(--border-light)}
+.log-entry{
+  display:flex;gap:6px;padding:5px 0;
+  border-bottom:1px solid rgba(153,215,234,.08);
+  font-size:10.5px;font-family:'JetBrains Mono',monospace;line-height:1.5;
+}
+.log-entry:hover{background:rgba(153,215,234,.04);padding-left:3px}
+.log-time{color:var(--text3);min-width:42px;}
+.log-msg{flex:1;word-break:break-word;}
+.c-green{color:var(--cyan)}
+.c-yellow{color:var(--pink)}
+.c-red{color:var(--red)}
+.c-blue{color:var(--cyan)}
+.c-gray{color:var(--text2)}
+>>>>>>> 33b81fe (temporary UI)
+
+/* ── Status bar ── */
 #status-bar{
   position:absolute;bottom:0;left:0;right:0;
+<<<<<<< HEAD
   background:rgba(10,14,20,.85);backdrop-filter:blur(4px);
   border-top:1px solid var(--border);
   display:flex;align-items:center;gap:12px;padding:6px 14px;
@@ -153,32 +465,61 @@ select:focus{border-color:var(--accent)}
 
 /* ── Connection badge ─────────────────────────────────────── */
 #conn-badge{position:absolute;top:10px;left:14px;z-index:10}
+=======
+  background:rgba(27,29,54,.90);backdrop-filter:blur(6px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:7px 16px;
+  font-size:11px;color:var(--text2);z-index:10;
+  font-family:'JetBrains Mono',monospace;
+}
+.sb-item{display:flex;align-items:center;gap:5px;}
+.sb-dot{width:7px;height:7px;border-radius:50%;}
+
+.float-btn svg{
+  width:20px;height:20px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+>>>>>>> 33b81fe (temporary UI)
 </style>
 </head>
 <body>
 
 <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
 <header>
-  <div class="logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 28 28" fill="none">
-        <rect x="11" y="0" width="6" height="28" rx="2" fill="#2a3352"/>
-        <rect x="0" y="11" width="28" height="6" rx="2" fill="#2a3352"/>
-        <rect x="11" y="0" width="6" height="11" rx="2" fill="#3b82f6" opacity=".8"/>
-        <rect x="17" y="11" width="11" height="6" rx="2" fill="#ef4444" opacity=".8"/>
-        <rect x="11" y="17" width="6" height="11" rx="2" fill="#ef4444" opacity=".8"/>
-        <rect x="0" y="11" width="11" height="6" rx="2" fill="#3b82f6" opacity=".8"/>
-        <circle cx="14" cy="14" r="4" fill="#1e2434"/>
-      </svg>
+  <!-- Left: logo -->
+  <div class="header-left">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 28 28" fill="none">
+          <rect x="11" y="0" width="6" height="28" rx="2" fill="rgba(153,215,234,.2)"/>
+          <rect x="0" y="11" width="28" height="6" rx="2" fill="rgba(153,215,234,.2)"/>
+          <rect x="11" y="0" width="6" height="11" rx="2" fill="#99d7ea" opacity=".9"/>
+          <rect x="17" y="11" width="11" height="6" rx="2" fill="#fca6d1" opacity=".9"/>
+          <rect x="11" y="17" width="6" height="11" rx="2" fill="#fca6d1" opacity=".9"/>
+          <rect x="0" y="11" width="11" height="6" rx="2" fill="#99d7ea" opacity=".9"/>
+          <circle cx="14" cy="14" r="4" fill="#1b1d36"/>
+        </svg>
+      </div>
     </div>
-    4-Way Intersection Traffic Simulator
   </div>
+
+  <!-- Center: title -->
+  <div class="header-center">
+    <span style="font-size:14px;font-weight:700;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+      4-Way Intersection Traffic Simulator
+    </span>
+  </div>
+
+  <!-- Right: connection status only -->
   <div class="header-right">
+<<<<<<< HEAD
     <a class="pill pill-blue" href="/analytics" style="text-decoration:none">📊 Analytics</a>
     <span id="hdr-scenario" class="pill pill-blue">Normal</span>
     <span id="hdr-phase" class="pill pill-green">N-S Green</span>
     <span id="hdr-cycles" class="pill pill-gray">Cycle 0</span>
     <span id="hdr-time" class="pill pill-gray">T = 0.0s</span>
+=======
+>>>>>>> 33b81fe (temporary UI)
     <span id="hdr-conn" class="pill pill-red">Disconnected</span>
   </div>
 </header>
@@ -186,7 +527,45 @@ select:focus{border-color:var(--accent)}
 <!-- ══ CANVAS ══════════════════════════════════════════════════════ -->
 <div id="canvas-wrap">
   <canvas id="c"></canvas>
+
+  <!-- ── Floating bottom-left info widgets ── -->
+  <div id="info-widgets">
+    <!-- Scenario -->
+    <div class="info-widget">
+      <span class="widget-icon">Mode</span>
+      <span class="widget-val" id="w-scenario" style="color:var(--cyan)">Normal</span>
+    </div>
+    <!-- Phase -->
+    <div class="info-widget">
+      <span class="widget-icon">Phase</span>
+      <div class="widget-dot" id="w-phase-dot" style="background:var(--cyan)"></div>
+      <span class="widget-val" id="w-phase" style="color:var(--cyan)">N-S Green</span>
+    </div>
+    <!-- Cycle -->
+    <div class="info-widget">
+      <span class="widget-icon">Cycle</span>
+      <span class="widget-val" id="w-cycles" style="color:var(--text2)">0</span>
+    </div>
+    <!-- Sim time -->
+    <div class="info-widget">
+      <span class="widget-icon">Time</span>
+      <span class="widget-val" id="w-time" style="color:var(--text2)">T = 0.0s</span>
+    </div>
+    <!-- Phase progress bar widget -->
+    <div class="info-widget" style="flex-direction:column;align-items:flex-start;gap:4px;min-width:180px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <span class="widget-icon" style="min-width:unset;">Phase</span>
+        <span id="phase-label" style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.4px;">NS GREEN</span>
+      </div>
+      <div style="width:100%;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;">
+        <div id="phase-bar" style="height:100%;width:0%;background:var(--cyan);transition:width .3s;border-radius:2px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Status bar ── -->
   <div id="status-bar">
+<<<<<<< HEAD
     <div class="sb-item"><div class="sb-dot" style="background:var(--green)"></div>N-S: <span id="sb-ns">GREEN</span></div>
     <div class="sb-item"><div class="sb-dot" style="background:var(--red)"></div>E-W: <span id="sb-ew">RED</span></div>
     <div class="sb-item">Active vehicles: <b id="sb-active">0</b></div>
@@ -254,6 +633,41 @@ select:focus{border-color:var(--accent)}
       <span style="font-size:11px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span>
     </div>
   </div>
+=======
+    <div class="sb-item">
+      <div class="sb-dot" style="background:var(--cyan)"></div>
+      N-S: <span id="sb-ns" style="color:var(--cyan)">GREEN</span>
+    </div>
+    <div class="sb-item">
+      <div class="sb-dot" style="background:var(--red)"></div>
+      E-W: <span id="sb-ew" style="color:var(--red)">RED</span>
+    </div>
+    <div class="sb-item">Active: <b id="sb-active">0</b></div>
+    <div class="sb-item">Queue N+S: <b id="sb-ns-q">0</b></div>
+    <div class="sb-item">Queue E+W: <b id="sb-ew-q">0</b></div>
+  </div>
+</div>
+
+<!-- ══ FLOATING BUTTONS ════════════════════════════════════════════ -->
+<button class="float-btn" id="btn-controls-toggle" title="Toggle Controls Panel" onclick="togglePanel()">
+  <svg viewBox="0 0 24 24">
+    <path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5
+             m3 6h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5
+             m3 6h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5"/>
+  </svg>
+</button>
+
+<a class="float-btn" id="btn-analytics-toggle" href="/analytics" title="Analytics Dashboard">
+  <svg viewBox="0 0 24 24">
+    <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75
+             C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75Z
+             M9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25
+             c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625Z
+             M16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75
+             c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+  </svg>
+</a>
+>>>>>>> 33b81fe (temporary UI)
 
   <!-- Signal Timing -->
   <div class="p-section">
@@ -278,6 +692,7 @@ select:focus{border-color:var(--accent)}
     </div>
   </div>
 
+<<<<<<< HEAD
   <!-- Queue bars -->
   <div class="p-section">
     <div class="sec-title">Queue Lengths</div>
@@ -310,22 +725,137 @@ select:focus{border-color:var(--accent)}
         <div class="metric-label">Active</div>
         <div class="metric-val mv-purple" id="m-active">0</div>
         <div class="metric-sub">vehicles</div>
+=======
+    <div class="p-section">
+      <div class="sec-title">Simulation Controls</div>
+      <div class="btn-row">
+        <button class="btn" id="btn-start" onclick="cmdStart()">Start</button>
+        <button class="btn" id="btn-pause" onclick="cmdPause()" disabled>Pause</button>
+        <button class="btn" id="btn-stop" onclick="cmdStop()" disabled style="display:none">Stop</button>
+        <button class="btn" id="btn-reset" onclick="cmdReset()">Reset</button>
+>>>>>>> 33b81fe (temporary UI)
       </div>
     </div>
   </div>
 
+<<<<<<< HEAD
   <!-- Log -->
   <div class="p-section">
     <div class="sec-title">Live Log</div>
     <div class="log-scroll" id="log-scroll">
       <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
     </div>
+=======
+    <div class="p-section">
+      <div class="sec-title">Scenario &amp; Configuration</div>
+      <div class="ctrl">
+        <span class="ctrl-label">Scenario</span>
+        <select id="sel-scenario" onchange="onCfgChange()">
+          <option value="normal">Normal Traffic</option>
+          <option value="rush">Rush Hour</option>
+          <option value="low">Low Traffic</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Road type</span>
+        <select id="sel-road" onchange="onCfgChange()">
+          <option value="2">2-lane (1 per direction)</option>
+          <option value="4" selected>4-lane (2 per direction)</option>
+          <option value="6">6-lane (3 per direction)</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Speed</span>
+        <input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4"
+          oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()">
+        <span class="ctrl-val" id="v-speed">4×</span>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Seed</span>
+        <input type="number" id="sl-seed" value="42" onchange="onCfgChange()">
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Right Turn</span>
+        <label class="toggle">
+          <input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()">
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:11px;color:var(--text2);margin-left:4px;font-family:'JetBrains Mono',monospace" id="rt-label">Allowed on Red</span>
+      </div>
+    </div>
+
+    <div class="p-section">
+      <div class="sec-title">Signal Timing</div>
+      <div class="ctrl">
+        <span class="ctrl-label">Green (s)</span>
+        <input type="range" id="sl-green" min="5" max="60" value="20"
+          oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()">
+        <span class="ctrl-val" id="v-green">20</span>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Yellow (s)</span>
+        <input type="range" id="sl-yellow" min="2" max="10" value="4"
+          oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()">
+        <span class="ctrl-val" id="v-yellow">4</span>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">All-Red (s)</span>
+        <input type="range" id="sl-red" min="0" max="5" step="0.5" value="1"
+          oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()">
+        <span class="ctrl-val" id="v-red">1</span>
+      </div>
+    </div>
+
+    <div class="p-section">
+      <div class="sec-title">Queue Lengths</div>
+      <div class="q-row"><span class="q-dir">N</span><div class="q-track"><div class="q-fill q-ns" id="qb-n"></div></div><span class="q-count" id="qn-n">0</span></div>
+      <div class="q-row"><span class="q-dir">S</span><div class="q-track"><div class="q-fill q-ns" id="qb-s"></div></div><span class="q-count" id="qn-s">0</span></div>
+      <div class="q-row"><span class="q-dir">E</span><div class="q-track"><div class="q-fill q-ew" id="qb-e"></div></div><span class="q-count" id="qn-e">0</span></div>
+      <div class="q-row"><span class="q-dir">W</span><div class="q-track"><div class="q-fill q-ew" id="qb-w"></div></div><span class="q-count" id="qn-w">0</span></div>
+    </div>
+
+    <div class="p-section">
+      <div class="sec-title">Statistics</div>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-label">Cars Passed</div>
+          <div class="metric-val mv-green" id="m-passed">0</div>
+          <div class="metric-sub">total vehicles</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Avg Wait</div>
+          <div class="metric-val mv-yellow" id="m-wait">0.0s</div>
+          <div class="metric-sub">per vehicle</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Cycles</div>
+          <div class="metric-val mv-blue" id="m-cycles">0</div>
+          <div class="metric-sub">completed</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Active</div>
+          <div class="metric-val mv-purple" id="m-active">0</div>
+          <div class="metric-sub">in simulation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="log-wrap">
+      <div class="sec-title">Live Log</div>
+      <div class="log-scroll" id="log-scroll">
+        <div class="log-entry">
+          <span class="log-time">-</span>
+          <span class="log-msg c-gray">Waiting for simulation to start...</span>
+        </div>
+      </div>
+    </div>
+
+>>>>>>> 33b81fe (temporary UI)
   </div>
 </div>
 
 <!-- ══ CANVAS RENDERER ══════════════════════════════════════════════ -->
 <script>
-// ─── Canvas setup ──────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const wrap   = document.getElementById('canvas-wrap');
@@ -337,7 +867,22 @@ function resize(){
 resize();
 window.addEventListener('resize', resize);
 
+<<<<<<< HEAD
 // ─── State ─────────────────────────────────────────────────────────
+=======
+const controlsPanel = document.getElementById('controls-panel');
+function togglePanel(){
+  const isOpen = controlsPanel.classList.contains('active');
+  if(isOpen){
+    controlsPanel.classList.remove('active');
+    document.body.classList.remove('panel-open');
+  } else {
+    controlsPanel.classList.add('active');
+    document.body.classList.add('panel-open');
+  }
+}
+
+>>>>>>> 33b81fe (temporary UI)
 let STATE = {
   simRunning: false,
   simPaused:  false,
@@ -356,7 +901,6 @@ let STATE = {
 // vehicle visual state (separate from sim state for smooth animation)
 const VIS = {};  // vid -> {x,y,angle,targetX,targetY,targetAngle,progress,alpha}
 
-// ─── Geometry ──────────────────────────────────────────────────────
 function geo(){
   const W=canvas.width, H=canvas.height;
   const cx=W/2, cy=H/2;
@@ -367,23 +911,27 @@ function geo(){
   return{W,H,cx,cy,rw,lw,lanes};
 }
 
-// ─── Drawing ───────────────────────────────────────────────────────
 function drawScene(){
   const g = geo();
   const{W,H,cx,cy,rw,lw,lanes} = g;
   ctx.clearRect(0,0,W,H);
 
+<<<<<<< HEAD
   // ── Background ──
   ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
+=======
+  ctx.fillStyle='#14162b'; ctx.fillRect(0,0,W,H);
+>>>>>>> 33b81fe (temporary UI)
 
   // ── Grass/zones ──
   const grassGrad = ctx.createLinearGradient(0,0,W,H);
-  grassGrad.addColorStop(0,'#0e1c0e');
-  grassGrad.addColorStop(1,'#0a140a');
+  grassGrad.addColorStop(0,'#181a30');
+  grassGrad.addColorStop(1,'#14162b');
   ctx.fillStyle=grassGrad;
   [[0,0,cx-rw/2,H],[cx+rw/2,0,W-cx-rw/2,H],
    [cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r=>ctx.fillRect(...r));
 
+<<<<<<< HEAD
   // Grid lines on grass
   ctx.strokeStyle='rgba(255,255,255,.02)'; ctx.lineWidth=1;
   for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
@@ -400,6 +948,20 @@ function drawScene(){
 
   // ── Intersection diagonal markings ──
   ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
+=======
+  ctx.strokeStyle='rgba(153,215,234,.03)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+
+  ctx.fillStyle='#1e2040';
+  ctx.fillRect(cx-rw/2, 0, rw, H);
+  ctx.fillRect(0, cy-rw/2, W, rw);
+
+  ctx.fillStyle='#252848';
+  ctx.fillRect(cx-rw/2, cy-rw/2, rw, rw);
+
+  ctx.strokeStyle='rgba(153,215,234,.03)'; ctx.lineWidth=1;
+>>>>>>> 33b81fe (temporary UI)
   for(let i=-rw;i<rw*2;i+=16){
     ctx.beginPath();
     ctx.moveTo(cx-rw/2+i, cy-rw/2);
@@ -407,9 +969,14 @@ function drawScene(){
     ctx.stroke();
   }
 
+<<<<<<< HEAD
   // ── Lane dashes (white) ──
   ctx.setLineDash([26,18]); ctx.lineWidth=2;
   ctx.strokeStyle='rgba(255,255,255,.22)';
+=======
+  ctx.setLineDash([20,14]); ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(153,215,234,.14)';
+>>>>>>> 33b81fe (temporary UI)
   for(let i=1;i<lanes*2;i++){
     const x=cx-rw/2+i*lw;
     if(Math.abs(x-cx)>4){
@@ -424,6 +991,7 @@ function drawScene(){
   }
   ctx.setLineDash([]);
 
+<<<<<<< HEAD
   // ── Center median — stops at the stop line (50px from intersection edge) ──
   [-2,2].forEach(d=>{
     ctx.strokeStyle='#e8b800'; ctx.lineWidth=1.5;
@@ -446,6 +1014,26 @@ function drawScene(){
   ctx.beginPath();ctx.moveTo(cx+rw/2+50, cy-rw/2);ctx.lineTo(cx+rw/2+50, cy);ctx.stroke();
   // W: eastbound lanes
   ctx.beginPath();ctx.moveTo(cx-rw/2-50, cy);ctx.lineTo(cx-rw/2-50, cy+rw/2);ctx.stroke();
+=======
+  ctx.strokeStyle='rgba(252,166,209,.3)'; ctx.lineWidth=2;
+  [[cx,0,cx,cy-rw/2],[cx,cy+rw/2,cx,H],[0,cy,cx-rw/2,cy],[cx+rw/2,cy,W,cy]]
+    .forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()});
+
+  ctx.strokeStyle='rgba(225,231,237,.6)'; ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(cx-rw/2,cy-rw/2-2);ctx.lineTo(cx,cy-rw/2-2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy+rw/2+2);ctx.lineTo(cx+rw/2,cy+rw/2+2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+rw/2+2,cy-rw/2);ctx.lineTo(cx+rw/2+2,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-rw/2-2,cy);ctx.lineTo(cx-rw/2-2,cy+rw/2);ctx.stroke();
+
+  const sw=7,sg=4;
+  ctx.fillStyle='rgba(225,231,237,.08)';
+  for(let i=0;i<4;i++){
+    ctx.fillRect(cx-rw/2,cy-rw/2-14-(i*(sw+sg)),rw/2,sw);
+    ctx.fillRect(cx,cy+rw/2+6+(i*(sw+sg)),rw/2,sw);
+    ctx.fillRect(cx+rw/2+6+(i*(sw+sg)),cy-rw/2,sw,rw/2);
+    ctx.fillRect(cx-rw/2-14-(i*(sw+sg)),cy,sw,rw/2);
+  }
+>>>>>>> 33b81fe (temporary UI)
 
   // ── Pedestrian crosswalks (white stripes) ──
 ctx.fillStyle = 'rgba(255,255,255,.90)';
@@ -506,11 +1094,15 @@ function drawLights(g){
     // Post
     const px=x+11, py1=dir==='N'||dir==='W'?y+60:y;
     const py2=dir==='N'||dir==='W'?cy-rw/2:cy+rw/2;
-    ctx.strokeStyle='#374151'; ctx.lineWidth=3;
+    ctx.strokeStyle='rgba(153,215,234,.2)'; ctx.lineWidth=3;
     ctx.beginPath();ctx.moveTo(px,py1);ctx.lineTo(px,py2);ctx.stroke();
 
+<<<<<<< HEAD
     // Housing
     ctx.fillStyle='#111827'; ctx.strokeStyle='#374151'; ctx.lineWidth=1;
+=======
+    ctx.fillStyle='#1b1d36'; ctx.strokeStyle='rgba(153,215,234,.25)'; ctx.lineWidth=1;
+>>>>>>> 33b81fe (temporary UI)
     roundRect(x,y,22,58,5); ctx.fill(); ctx.stroke();
 
     // Bulbs
@@ -518,8 +1110,12 @@ function drawLights(g){
       const bx=x+11, by=y+10+i*16;
       const on=lc===c;
       if(on){
+<<<<<<< HEAD
         const hx=c==='green'?'#22c55e':c==='yellow'?'#eab308':'#ef4444';
         // outer glow
+=======
+        const hx = c==='green' ? '#99d7ea' : c==='yellow' ? '#fca6d1' : '#f87171';
+>>>>>>> 33b81fe (temporary UI)
         const grd=ctx.createRadialGradient(bx,by,0,bx,by,14);
         grd.addColorStop(0,hx+'55');grd.addColorStop(1,'transparent');
         ctx.fillStyle=grd;ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fill();
@@ -529,14 +1125,20 @@ function drawLights(g){
         ctx.fillStyle=bgrd;
         ctx.shadowColor=hx;ctx.shadowBlur=16;
       } else {
-        ctx.fillStyle=c==='green'?'#052e16':c==='yellow'?'#1c1500':'#1c0000';
+        ctx.fillStyle = c==='green' ? '#0d1e26' : c==='yellow' ? '#1e0d1a' : '#1e0d0d';
         ctx.shadowBlur=0;
       }
       ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);ctx.fill();
       ctx.shadowBlur=0;
     });
+<<<<<<< HEAD
     // Label
     ctx.fillStyle='#6b7280'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+=======
+    ctx.fillStyle='rgba(153,215,234,.5)';
+    ctx.font='bold 9px "JetBrains Mono",monospace';
+    ctx.textAlign='center';
+>>>>>>> 33b81fe (temporary UI)
     ctx.fillText(dir, x+11, y+64);
   });
 }
@@ -556,9 +1158,12 @@ function getQueuePos(v, g){
   const qi=v.visual_queue_pos ?? v.queue_pos;
   const gap=22;
   const off = li*lw+lw/2;
+<<<<<<< HEAD
 
   // Right-hand traffic (drive on the right): flip from the current left-hand placement.
   // This mapping puts each approach on the right side of its roadway.
+=======
+>>>>>>> 33b81fe (temporary UI)
   switch(v.direction){
     case'N':return{x:cx-(off), y:cy-rw/2-10-qi*gap, a:-Math.PI/2};  // downbound uses west half
     case'S':return{x:cx+(off), y:cy+rw/2+10+qi*gap, a:Math.PI/2};   // upbound uses east half
@@ -573,7 +1178,6 @@ function getExitTarget(outDir, off, g){
   const margin = 140;
   const distX = (g.W/2) + rw + margin;
   const distY = (g.H/2) + rw + margin;
-
   switch(outDir){
     case'S':return{x:cx-off, y:cy+distY};
     case'N':return{x:cx+off, y:cy-distY};
@@ -599,11 +1203,7 @@ function getMovingPath(v,g){
   const off = li*lw+lw/2;
   const out = getOutboundDir(v);
   const exit = getExitTarget(out, off, g);
-
-  if(v.turn === 'straight'){
-    return [exit];
-  }
-
+  if(v.turn === 'straight') return [exit];
   const entry = {
     N:{x:cx-off, y:cy-rw*.18},
     S:{x:cx+off, y:cy+rw*.18},
@@ -616,7 +1216,6 @@ function getMovingPath(v,g){
     W:{x:cx-off, y:cy-off},
     E:{x:cx+off, y:cy+off},
   }[out];
-
   return [entry, turn, exit].filter(Boolean);
 }
 
@@ -625,6 +1224,7 @@ function drawVehicle(x,y,angle,color,state,alpha=1){
   ctx.globalAlpha=alpha;
   ctx.translate(x,y);
   ctx.rotate(angle);
+<<<<<<< HEAD
 
   // Shadow
   ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
@@ -640,11 +1240,20 @@ function drawVehicle(x,y,angle,color,state,alpha=1){
 
   // Windshields
   ctx.fillStyle='rgba(200,230,255,.35)';
+=======
+  ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=7; ctx.shadowOffsetY=3;
+  ctx.fillStyle=color;
+  roundRect(-9,-5.5,18,11,2.5); ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.fillStyle=color+'cc';
+  roundRect(-5,-4,9,8,2); ctx.fill();
+  ctx.fillStyle='rgba(153,215,234,.3)';
+>>>>>>> 33b81fe (temporary UI)
   roundRect(-5,-3.5,7,7,1.5); ctx.fill();
-  ctx.fillStyle='rgba(200,230,255,.2)';
+  ctx.fillStyle='rgba(153,215,234,.15)';
   roundRect(4,-3,3.5,6,1); ctx.fill();
-
   if(state==='moving'){
+<<<<<<< HEAD
     // Headlights
     ctx.fillStyle='#ffffc0dd';
     roundRect(-9.5,-4,3,2.5,1); ctx.fill();
@@ -655,10 +1264,18 @@ function drawVehicle(x,y,angle,color,state,alpha=1){
   } else {
     // Brake lights
     ctx.fillStyle='#ff3333cc';
+=======
+    ctx.fillStyle='rgba(252,246,180,.9)';
+    roundRect(-9.5,-4,3,2.5,1); ctx.fill();
+    roundRect(-9.5,1.5,3,2.5,1); ctx.fill();
+    ctx.fillStyle='rgba(252,246,180,.05)';
+    ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-45,-14);ctx.lineTo(-45,14);ctx.closePath();ctx.fill();
+  } else {
+    ctx.fillStyle='rgba(248,113,113,.9)';
+>>>>>>> 33b81fe (temporary UI)
     roundRect(7,-4,2.5,2.5,0.8); ctx.fill();
     roundRect(7,1.5,2.5,2.5,0.8); ctx.fill();
   }
-
   ctx.restore();
 }
 
@@ -667,12 +1284,10 @@ function drawQueuedCars(g){
   const queued = Object.values(STATE.vehicles)
     .filter(v=>v.state==='queued')
     .sort((a,b)=>(a.direction||'').localeCompare(b.direction||'') || (a.queue_pos||0)-(b.queue_pos||0));
-
   queued.forEach(v=>{
     const laneKey = `${v.direction}:${v.lane_idx}`;
     const visualQueuePos = laneCounts[laneKey] || 0;
     laneCounts[laneKey] = visualQueuePos + 1;
-
     const pos=getQueuePos({...v, visual_queue_pos:visualQueuePos},g);
     // Init or update visual
     if(!VIS[v.vid]){VIS[v.vid]={x:pos.x,y:pos.y,a:pos.a,alpha:0,prog:0}}
@@ -692,37 +1307,34 @@ function drawMovingCars(g){
       VIS[v.vid]={x:qp.x,y:qp.y,a:qp.a,alpha:1,path:getMovingPath(v,g),pathIdx:0};
     }
     const vis=VIS[v.vid];
-    if(!vis.path || vis.path.length === 0){
-      vis.path = getMovingPath(v,g);
-      vis.pathIdx = 0;
-    }
+    if(!vis.path || vis.path.length === 0){ vis.path = getMovingPath(v,g); vis.pathIdx = 0; }
     const tgt=vis.path[Math.min(vis.pathIdx||0, vis.path.length-1)];
-
     const uiSpeed = +document.getElementById('sl-speed').value || 1;
     const speed = (125 + uiSpeed * 18) * FRAME_DT;
-
     const dx = tgt.x - vis.x;
     const dy = tgt.y - vis.y;
     const d  = Math.hypot(dx,dy) || 1;
     const step = Math.min(speed, d);
     const nx = vis.x + (dx/d)*step;
     const ny = vis.y + (dy/d)*step;
+<<<<<<< HEAD
 
     // Compute heading from velocity.
+=======
+>>>>>>> 33b81fe (temporary UI)
     const vx=nx-vis.x, vy=ny-vis.y;
     if(Math.hypot(vx,vy) > 0.001){
       const desired = Math.atan2(vy,vx) + Math.PI;
       vis.a = vis.a + angleDelta(vis.a, desired) * 0.35;
     }
-
-    vis.x = nx;
-    vis.y = ny;
-    if(d <= speed + 0.1 && vis.pathIdx < vis.path.length - 1){
-      vis.pathIdx += 1;
-    }
+    vis.x = nx; vis.y = ny;
+    if(d <= speed + 0.1 && vis.pathIdx < vis.path.length - 1) vis.pathIdx += 1;
     drawVehicle(vis.x,vis.y,vis.a,v.color,'moving',1);
+<<<<<<< HEAD
 
     // Despawn visually once out of frame (server still controls sim lifecycle).
+=======
+>>>>>>> 33b81fe (temporary UI)
     const pad = 180;
     if(vis.x < -pad || vis.x > g.W+pad || vis.y < -pad || vis.y > g.H+pad){
       delete VIS[v.vid];
@@ -744,14 +1356,15 @@ function drawDirLabels(g){
     {t:'NORTH',x:cx,y:18,d:'N'},{t:'SOUTH',x:cx,y:H-10,d:'S'},
     {t:'EAST',x:W-28,y:cy-6,d:'E'},{t:'WEST',x:28,y:cy-6,d:'W'},
   ];
-  ctx.font='bold 10px monospace'; ctx.textAlign='center';
+  ctx.font='bold 10px "JetBrains Mono",monospace'; ctx.textAlign='center';
   lbls.forEach(({t,x,y,d})=>{
     const lc=lightColor(d);
-    const c=lc==='green'?'#22c55e':lc==='yellow'?'#eab308':'#ef4444';
+    const c = lc==='green' ? '#99d7ea' : lc==='yellow' ? '#fca6d1' : '#f87171';
     ctx.fillStyle=c+'cc'; ctx.fillText(t,x,y);
   });
 }
 
+<<<<<<< HEAD
 function getPedestrianPos(ped, g){
   const{cx,cy,rw}=g;
   const pw=18;  // pedestrian lane width
@@ -828,9 +1441,12 @@ function drawPedestrians(g){
 }
 
 // ─── Animation loop ────────────────────────────────────────────────
+=======
+>>>>>>> 33b81fe (temporary UI)
 let phaseProgress=0;
 let FRAME_DT=1/60;
 let LAST_FRAME=performance.now();
+
 function frame(now){
   FRAME_DT=Math.min((now-LAST_FRAME)/1000, 0.05);
   LAST_FRAME=now;
@@ -852,14 +1468,14 @@ function updatePhaseBar(){
   const dur=(p in cfg) ? cfg[p] : 20;
   const elapsed=Math.max(0, (STATE.stats.sim_time||0) - (STATE.phaseStart||0));
   phaseProgress=dur > 0 ? Math.min(elapsed/dur,1) : 1;
-  const c=p.includes('green')?'#22c55e':p.includes('yellow')?'#eab308':'#ef4444';
+  const c = p.includes('green') ? '#99d7ea' : p.includes('yellow') ? '#fca6d1' : '#f87171';
   document.getElementById('phase-bar').style.width=(phaseProgress*100)+'%';
   document.getElementById('phase-bar').style.background=c;
   document.getElementById('phase-label').textContent=p.toUpperCase().replace('_',' ');
 }
 requestAnimationFrame(frame);
 
-// ─── SocketIO ──────────────────────────────────────────────────────
+/* ── SocketIO ── */
 const socket = io({
   transports: ['websocket'],
   reconnection: true,
@@ -882,16 +1498,13 @@ socket.on('connect_error',()=>{
   document.getElementById('hdr-conn').textContent='Reconnecting';
 });
 
-socket.on('stats', data=>{
-  STATE.stats=data;
-  updateStatsUI(data);
-});
-
+socket.on('stats', data=>{ STATE.stats=data; updateStatsUI(data); });
 socket.on('vehicles_snapshot', list=>{
   STATE.vehicles={};
   Object.keys(VIS).forEach(k=>delete VIS[k]);
-  list.forEach(v=>{STATE.vehicles[v.vid]=v});
+  list.forEach(v=>{ STATE.vehicles[v.vid]=v; });
 });
+<<<<<<< HEAD
 
 socket.on('vehicle_arrive', v=>{
   STATE.vehicles[v.vid]=v;
@@ -908,16 +1521,20 @@ socket.on('queue_update', ({direction, ids})=>{
       STATE.vehicles[vid].queue_pos = pos;
     }
   });
+=======
+socket.on('vehicle_arrive', v=>{ STATE.vehicles[v.vid]=v; });
+socket.on('vehicle_queued', v=>{ STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'queued'}; });
+socket.on('vehicle_move',   v=>{ STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'moving'}; });
+socket.on('queue_update', ({direction, ids})=>{
+  ids.forEach((vid, pos)=>{ if(STATE.vehicles[vid]) STATE.vehicles[vid].queue_pos = pos; });
+>>>>>>> 33b81fe (temporary UI)
 });
 socket.on('vehicle_exit', ({vid})=>{
   const v = STATE.vehicles[vid];
-  if(v && v.state === 'moving' && VIS[vid]){
-    v.serverExited = true;
-  } else {
-    delete STATE.vehicles[vid];
-    delete VIS[vid];
-  }
+  if(v && v.state === 'moving' && VIS[vid]) v.serverExited = true;
+  else { delete STATE.vehicles[vid]; delete VIS[vid]; }
 });
+<<<<<<< HEAD
 
 socket.on('pedestrian_arrive', ped=>{
   if(!STATE.pedestrians) STATE.pedestrians = {};
@@ -935,6 +1552,8 @@ socket.on('pedestrian_exit', ({pid})=>{
   }
 });
 
+=======
+>>>>>>> 33b81fe (temporary UI)
 socket.on('light_change', data=>{
   STATE.stats.phase   = data.phase;
   STATE.stats.ns_light= data.ns;
@@ -943,9 +1562,7 @@ socket.on('light_change', data=>{
   phaseProgress=0;
   updatePhaseHeaders(data);
 });
-
 socket.on('log', entry=>{ addLog(entry); });
-
 socket.on('reset', ()=>{
   STATE.vehicles={}; 
   STATE.pedestrians={};
@@ -953,7 +1570,6 @@ socket.on('reset', ()=>{
   Object.keys(VIS).forEach(k=>delete VIS[k]);
   updateStatsUI(STATE.stats);
 });
-
 socket.on('ack', data=>{
   if(data.action==='start'){
     document.getElementById('btn-start').classList.add('active-green');
@@ -975,14 +1591,25 @@ socket.on('ack', data=>{
   }
 });
 
-// ─── UI Updates ────────────────────────────────────────────────────
+/* ── UI updates ── */
 function updateStatsUI(d){
+<<<<<<< HEAD
   document.getElementById('m-passed').textContent=d.total_passed;
   document.getElementById('m-wait').textContent=(d.avg_wait||0).toFixed(1)+'s';
   document.getElementById('m-cycles').textContent=d.cycles;
   document.getElementById('m-active').textContent=d.active_vehicles;
   document.getElementById('hdr-time').textContent='T = '+Math.round(d.sim_time)+'s';
   document.getElementById('hdr-cycles').textContent='Cycle '+d.cycles;
+=======
+  document.getElementById('m-passed').textContent = d.total_passed;
+  document.getElementById('m-wait').textContent   = (d.avg_wait||0).toFixed(1)+'s';
+  document.getElementById('m-cycles').textContent = d.cycles;
+  document.getElementById('m-active').textContent = d.active_vehicles;
+
+  /* update floating widgets */
+  document.getElementById('w-time').textContent    = 'T = '+Math.round(d.sim_time)+'s';
+  document.getElementById('w-cycles').textContent  = d.cycles;
+>>>>>>> 33b81fe (temporary UI)
 
   // queues
   const maxQ=parseInt(document.getElementById('sel-road').value)/2*8;
@@ -999,8 +1626,8 @@ function updateStatsUI(d){
 
   // status bar lights
   const nsL=d.ns_light||'red', ewL=d.ew_light||'red';
-  const nsc=nsL==='green'?'#22c55e':nsL==='yellow'?'#eab308':'#ef4444';
-  const ewc=ewL==='green'?'#22c55e':ewL==='yellow'?'#eab308':'#ef4444';
+  const nsc = nsL==='green' ? '#99d7ea' : nsL==='yellow' ? '#fca6d1' : '#f87171';
+  const ewc = ewL==='green' ? '#99d7ea' : ewL==='yellow' ? '#fca6d1' : '#f87171';
   document.getElementById('sb-ns').textContent=nsL.toUpperCase();
   document.getElementById('sb-ns').style.color=nsc;
   document.getElementById('sb-ew').textContent=ewL.toUpperCase();
@@ -1008,6 +1635,7 @@ function updateStatsUI(d){
 }
 
 function updatePhaseHeaders(data){
+<<<<<<< HEAD
   const{phase,ns,ew}=data;
   const pc=phase.includes('green')?'pill-green':phase.includes('yellow')?'pill-yellow':'pill-red';
   const ph=document.getElementById('hdr-phase');
@@ -1020,6 +1648,45 @@ function updatePhaseHeaders(data){
 // ─── Log ──────────────────────────────────────────────────────────
 const MAX_LOGS=80;
 const logScroll=document.getElementById('log-scroll');
+=======
+  const{phase}=data;
+  /* update floating phase widget */
+  const phaseText = phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
+  const phaseEl   = document.getElementById('w-phase');
+  const phaseDot  = document.getElementById('w-phase-dot');
+  const c = phase.includes('green') ? '#99d7ea' : phase.includes('yellow') ? '#fca6d1' : '#f87171';
+  phaseEl.textContent  = phaseText;
+  phaseEl.style.color  = c;
+  phaseDot.style.background = c;
+  /* update scenario widget */
+  document.getElementById('w-scenario').textContent =
+    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
+}
+
+function updateButtonStates(){
+  const start = document.getElementById('btn-start');
+  const pause = document.getElementById('btn-pause');
+  const stop  = document.getElementById('btn-stop');
+  if(!STATE.simRunning && !STATE.simPaused){
+    start.disabled=false; start.classList.remove('active-green');
+    pause.disabled=true;  pause.style.display='none';
+    stop.disabled=true;   stop.style.display='none';
+  } else if(STATE.simRunning && !STATE.simPaused){
+    start.disabled=true;  start.classList.remove('active-green');
+    pause.disabled=false; pause.style.display='inline-flex';
+    pause.textContent='⏸\u00A0Pause'; pause.classList.remove('active-yellow');
+    stop.disabled=false;  stop.style.display='inline-flex';
+  } else if(STATE.simRunning && STATE.simPaused){
+    start.disabled=true;  start.classList.remove('active-green');
+    pause.disabled=false; pause.style.display='inline-flex';
+    pause.textContent='▶\u00A0Resume'; pause.classList.add('active-yellow');
+    stop.disabled=false;  stop.style.display='inline-flex';
+  }
+}
+
+const MAX_LOGS = 80;
+const logScroll = document.getElementById('log-scroll');
+>>>>>>> 33b81fe (temporary UI)
 function addLog(entry){
   STATE.logs.unshift(entry);
   if(STATE.logs.length>MAX_LOGS) STATE.logs.pop();
@@ -1033,7 +1700,6 @@ function renderLog(){
     </div>`).join('');
 }
 
-// ─── Commands ─────────────────────────────────────────────────────
 function getConfig(){
   return{
     green:  +document.getElementById('sl-green').value,
@@ -1060,11 +1726,21 @@ function onCfgChange(){
     speed_factor: +document.getElementById('sl-speed').value,
     seed: +document.getElementById('sl-seed').value,
   });
+<<<<<<< HEAD
   const rt=document.getElementById('ck-rturn').checked;
   document.getElementById('rt-label').textContent=rt?'Allowed':'Signal only';
   document.getElementById('hdr-scenario').textContent=
     document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
 }
+=======
+  const rt = document.getElementById('ck-rturn').checked;
+  document.getElementById('rt-label').textContent = rt ? 'Allowed on Red' : 'Signal Only';
+  document.getElementById('w-scenario').textContent =
+    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
+}
+
+updateButtonStates();
+>>>>>>> 33b81fe (temporary UI)
 </script>
 </body>
 </html>
