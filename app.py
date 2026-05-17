@@ -261,12 +261,14 @@ def _apply_cfg(cfg: SimConfig, data: dict):
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5001))
     print("\n  Traffic Intersection Simulator")
     print("  ────────────────────────────────")
     print("  Cache rules:")
     for k, v in CACHE_RULES.items():
         print(f"    {k:<10} {v}s TTL")
     print("  ────────────────────────────────")
-    print("  Open  http://localhost:5001")
+    print(f"  Worker running on port {port}")
+    print("  Open  http://localhost")
     print("  Press Ctrl+C to stop\n")
-    socketio.run(app, host="0.0.0.0", port=5001, debug=False)
+    socketio.run(app, host="0.0.0.0", port=port, debug=False)
