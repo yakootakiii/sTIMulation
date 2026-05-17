@@ -1,18 +1,55 @@
 version: '3.8'
+
 services:
-  web:
-    build: .
-    restart: unless-stopped
+  nginx:
+    image: nginx:alpine
     ports:
-      - "5001:5001"
+      - "80:80"
     volumes:
-      - .:/app
+      - ./nginx/stimulation.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - haproxy
+    restart: unless-stopped
+
+  haproxy:
+    image: haproxy:2.8-alpine
+    ports:
+      - "8080:8080"
+      - "9000:9000"
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      - worker1
+      - worker2
+      - worker3
+    restart: unless-stopped
+
+  worker1:
+    build: .
     environment:
-      - FLASK_ENV=development
+      - PORT=5001
       - REDIS_URL=redis://redis:6379
-    command: python app.py
     depends_on:
       - redis
+    restart: unless-stopped
+
+  worker2:
+    build: .
+    environment:
+      - PORT=5002
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker3:
+    build: .
+    environment:
+      - PORT=5003
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -20,6 +57,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
 
 volumes:
   redis_data:
