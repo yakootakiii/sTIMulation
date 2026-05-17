@@ -60,6 +60,7 @@ class SimConfig:
     road_type:       int   = 4       # total lanes (2, 4, 6)
     right_turn_free: bool  = True
     speed_factor:    float = 1.0
+    seed:            int   = 42
 
 @dataclass
 class Vehicle:
@@ -133,6 +134,7 @@ class TrafficSimulation:
 
         # SimPy environment runs in its own thread
         self.env      = simpy.Environment()
+        self.random   = random.Random(config.seed)
         self.running  = False
         self.paused   = False
         self._thread  = None
@@ -162,7 +164,7 @@ class TrafficSimulation:
 
     def _arrival_rate(self) -> float:
         base = SCENARIOS[self.config.scenario]["arrival_base"]
-        return base * (0.5 + random.random() * 0.9)
+        return base * (0.5 + self.random.random() * 0.9)
 
     def _light_for(self, direction: str) -> str:
         ns = direction in ("N", "S")
@@ -303,8 +305,8 @@ class TrafficSimulation:
             with self._lock:
                 # All state updates must be atomic to ensure arrival order == queue order
                 vid  = self._next_vid; self._next_vid += 1
-                turn = random.choice(list(Turn))
-                color = random.choice(VEHICLE_COLORS)
+                turn = self.random.choice(list(Turn))
+                color = self.random.choice(VEHICLE_COLORS)
                 lanes = self._lanes_per_dir()
                 
                 lane_idx = self._lane_counters[direction] % lanes
@@ -376,11 +378,11 @@ class TrafficSimulation:
             self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
 
             # Travel through intersection
-            travel = 2.0 + random.uniform(0.5, 1.5)
+            travel = 2.0 + self.random.uniform(0.5, 1.5)
             yield self.env.timeout(travel)
 
             # Exit corridor: ensure vehicle is visually clear before removal
-            exit_travel = 1.0 + random.uniform(0.2, 0.4)
+            exit_travel = 1.0 + self.random.uniform(0.2, 0.4)
             yield self.env.timeout(exit_travel)
 
             with self._lock:
@@ -419,7 +421,7 @@ class TrafficSimulation:
         self.env.process(self._stats_reporter())
         self.env.process(self._drain_queues_process())
         for d in ["N", "S", "E", "W"]:
-            offset = random.uniform(0, 1.5)
+            offset = self.random.uniform(0, 1.5)
             self.env.process(self._direction_spawner(d, offset))
 
         # Step the simulation in small increments

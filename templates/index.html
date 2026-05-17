@@ -239,6 +239,11 @@ select:focus{border-color:var(--accent)}
         oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()">
       <span class="ctrl-val" id="v-speed">4×</span>
     </div>
+    <div class="ctrl">
+      <span class="ctrl-label">Random Seed</span>
+      <input type="number" id="sl-seed" value="42" style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg3);color:var(--text);outline:none;"
+        onchange="onCfgChange()">
+    </div>
     <div class="ctrl" style="margin-top:4px">
       <span class="ctrl-label">Right-on-red</span>
       <label class="toggle">
@@ -914,6 +919,7 @@ function getConfig(){
     road_type:+document.getElementById('sel-road').value,
     right_turn: document.getElementById('ck-rturn').checked,
     speed:  +document.getElementById('sl-speed').value,
+    seed:   +document.getElementById('sl-seed').value,
   };
 }
 function cmdStart(){ socket.emit('cmd_start', getConfig()); }
@@ -928,6 +934,7 @@ function onCfgChange(){
     road_type: +document.getElementById('sel-road').value,
     right_turn_free: document.getElementById('ck-rturn').checked,
     speed_factor: +document.getElementById('sl-speed').value,
+    seed: +document.getElementById('sl-seed').value,
   });
   const rt=document.getElementById('ck-rturn').checked;
   document.getElementById('rt-label').textContent=rt?'Allowed':'Signal only';

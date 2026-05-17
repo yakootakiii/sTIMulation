@@ -177,7 +177,7 @@ def on_update_config(data):
     if sim:
         updates = {}
         for k in ("green_duration","yellow_duration","red_duration",
-                "scenario","road_type","right_turn_free","speed_factor"):
+                "scenario","road_type","right_turn_free","speed_factor", "seed"):
             if k in data:
                 updates[k] = data[k]
         sim.update_config(**updates)
