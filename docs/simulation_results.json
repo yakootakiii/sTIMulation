@@ -1,0 +1,95 @@
+[
+  {
+    "scenario": "low",
+    "duration": 3600,
+    "stats": {
+      "total_passed": 1128,
+      "avg_wait": 123.74,
+      "cycles": 51,
+      "sim_time": 3600,
+      "queues": {
+        "N": 15,
+        "S": 16,
+        "E": 16,
+        "W": 16
+      },
+      "active_vehicles": 63,
+      "phase": "ns_green",
+      "ns_light": "green",
+      "ew_light": "red"
+    },
+    "metrics": {
+      "profile": {
+        "batch_move_time": 0.014411,
+        "move_vehicle_time": 0.005614,
+        "release_time": 0.000332,
+        "vehicle_spawn_time": 0.05122,
+        "env_ticks": 0
+      },
+      "wait_samples": 1128,
+      "avg_wait_sample": 123.7402
+    }
+  },
+  {
+    "scenario": "normal",
+    "duration": 3600,
+    "stats": {
+      "total_passed": 873,
+      "avg_wait": 247.86,
+      "cycles": 51,
+      "sim_time": 3600,
+      "queues": {
+        "N": 16,
+        "S": 16,
+        "E": 16,
+        "W": 16
+      },
+      "active_vehicles": 64,
+      "phase": "ns_green",
+      "ns_light": "green",
+      "ew_light": "red"
+    },
+    "metrics": {
+      "profile": {
+        "batch_move_time": 0.017294,
+        "move_vehicle_time": 0.001109,
+        "release_time": 0.000372,
+        "vehicle_spawn_time": 0.053726,
+        "env_ticks": 0
+      },
+      "wait_samples": 873,
+      "avg_wait_sample": 247.8602
+    }
+  },
+  {
+    "scenario": "rush",
+    "duration": 3600,
+    "stats": {
+      "total_passed": 899,
+      "avg_wait": 248.54,
+      "cycles": 51,
+      "sim_time": 3600,
+      "queues": {
+        "N": 16,
+        "S": 16,
+        "E": 16,
+        "W": 16
+      },
+      "active_vehicles": 64,
+      "phase": "ns_green",
+      "ns_light": "green",
+      "ew_light": "red"
+    },
+    "metrics": {
+      "profile": {
+        "batch_move_time": 0.022587,
+        "move_vehicle_time": 0.003179,
+        "release_time": 0.000366,
+        "vehicle_spawn_time": 0.071403,
+        "env_ticks": 0
+      },
+      "wait_samples": 899,
+      "avg_wait_sample": 248.5406
+    }
+  }
+]

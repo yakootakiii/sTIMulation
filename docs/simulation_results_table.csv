@@ -1,0 +1,4 @@
+scenario,duration_s,total_passed,avg_wait_s,cycles,throughput_per_hour,wait_samples,avg_wait_sample
+low,3600,1128,123.74,51,1128.0,1128,123.7402
+normal,3600,873,247.86,51,873.0,873,247.8602
+rush,3600,899,248.54,51,899.0,899,248.5406
