@@ -190,7 +190,7 @@ def on_start(data=None):
     s = new_sim(cfg)
     s.start()
     emit("ack", {"ok": True, "action": "start"})
-    socketio.emit("log", {"msg": "▶ Simulation started", "cls": "green",
+    socketio.emit("log", {"msg": "Simulation started", "cls": "green",
                           "sim_time": 0})
 
 
@@ -200,9 +200,20 @@ def on_pause():
         paused = sim.pause()
         invalidate_sim_cache()   # status changed — clear cache
         label = "paused" if paused else "resumed"
-        socketio.emit("log", {"msg": f"⏸ Simulation {label}", "cls": "yellow",
+        socketio.emit("log", {"msg": f"Simulation {label}", "cls": "yellow",
                               "sim_time": sim.env.now})
         emit("ack", {"ok": True, "paused": paused})
+
+
+@socketio.on("cmd_stop")
+def on_stop():
+    global sim
+    if sim:
+        sim.stop()
+        invalidate_sim_cache()   # clear cache on stop
+        socketio.emit("log", {"msg": "Simulation stopped", "cls": "red",
+                              "sim_time": sim.env.now})
+        emit("ack", {"ok": True, "action": "stop"})
 
 
 @socketio.on("cmd_reset")
@@ -214,7 +225,7 @@ def on_reset(data=None):
         _apply_cfg(cfg, data)
     new_sim(cfg)
     socketio.emit("reset", {})
-    socketio.emit("log", {"msg": "↺ Simulation reset", "cls": "red",
+    socketio.emit("log", {"msg": "Simulation reset", "cls": "red",
                           "sim_time": 0})
     emit("ack", {"ok": True, "action": "reset"})
 
