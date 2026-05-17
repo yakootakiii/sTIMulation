@@ -63,6 +63,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/analytics")
+def analytics():
+    return render_template("analytics.html")
+
+
 @app.route("/api/status")
 def status():
     cached = cache.get("status")
