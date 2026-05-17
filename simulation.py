@@ -7,6 +7,7 @@ import simpy
 import random
 import threading
 import time
+import collections
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Callable
 from enum import Enum
@@ -140,17 +141,30 @@ class TrafficSimulation:
         self._thread  = None
         self._lock    = threading.RLock()
 
+        # Profiling metrics
+        self._metrics = {
+            "release_calls": 0,
+            "can_go_checks": 0,
+        }
+
         # State
         self.stats    = SimStats()
         self.vehicles: Dict[int, Vehicle] = {}
-        self.queues:   Dict[str, List[int]] = {"N":[],"S":[],"E":[],"W":[]}
+        
+        # New: per-lane deques for O(1) access and O(Lanes) releasing logic
+        lanes = self._lanes_per_dir()
+        self.queues: Dict[str, List[collections.deque]] = {
+            d: [collections.deque() for _ in range(lanes)]
+            for d in ["N", "S", "E", "W"]
+        }
+
         self.phase    = Phase.NS_GREEN
         self._next_vid = 1
         self._lane_counters: Dict[str, int] = {"N":0,"S":0,"E":0,"W":0}
 
         # SimPy resources: per-lane resources for each direction
         self._lane_resources: Dict[str, List[simpy.Resource]] = {
-            d: [simpy.Resource(self.env, capacity=1) for _ in range(self._lanes_per_dir())]
+            d: [simpy.Resource(self.env, capacity=1) for _ in range(lanes)]
             for d in ["N", "S", "E", "W"]
         }
 
@@ -158,6 +172,14 @@ class TrafficSimulation:
 
     def _lanes_per_dir(self) -> int:
         return self.config.road_type // 2
+
+    def get_metrics(self) -> dict:
+        """Returns profiling metrics."""
+        with self._lock:
+            return {
+                "profile": self._metrics,
+                "total_vehicles": self.stats.total_passed + len(self.vehicles)
+            }
 
     def _max_queue(self) -> int:
         return self._lanes_per_dir() * 8
@@ -270,31 +292,30 @@ class TrafficSimulation:
 
     def _release_from_queue(self, direction: str):
         """Identifies vehicles that can start moving and starts their movement process."""
+        self._metrics["release_calls"] += 1
         with self._lock:
-            if not self.queues[direction]:
+            # Short-circuit: if the entire direction is red and RTOR is off, skip
+            # (Actually RTOR depends on individual vehicle turn, but if all lights are RED and RTOR is off, nothing can move)
+            if not self.config.right_turn_free and self._light_for(direction) == LightColor.RED:
                 return
 
-            lanes = self._lanes_per_dir()
-            lane_busy = [False] * lanes
+            lane_deques = self.queues[direction]
             
-            # A lane is busy if a vehicle is already moving or is in the process of starting
-            for vid in self.queues[direction]:
+            # Scan only the front of each lane deque
+            for lane_idx, q in enumerate(lane_deques):
+                if not q:
+                    continue
+                
+                vid = q[0]
                 v = self.vehicles.get(vid)
-                if v and v.releasing:
-                    lane_busy[v.lane_idx] = True
-            
-            # Scan the queue and start movement for the first available vehicle in each lane
-            for vid in self.queues[direction]:
-                v = self.vehicles.get(vid)
-                if v and not v.releasing and not lane_busy[v.lane_idx]:
-                    # Check if this specific vehicle can go (Green or RTOR)
-                    if self._can_go(v.direction, v.turn):
-                        v.releasing = True
-                        lane_busy[v.lane_idx] = True
-                        self.env.process(self._move_vehicle(v))
-                    else:
-                        # If the front vehicle in this lane cannot go, the lane is blocked
-                        lane_busy[v.lane_idx] = True
+                if not v or v.releasing:
+                    continue
+                
+                # Check if this specific vehicle can go (Green or RTOR)
+                self._metrics["can_go_checks"] += 1
+                if self._can_go(v.direction, v.turn):
+                    v.releasing = True
+                    self.env.process(self._move_vehicle(v))
 
     def _vehicle_process(self, direction: str):
         """Spawns vehicles for a given direction continuously."""
@@ -315,32 +336,34 @@ class TrafficSimulation:
                 # Calculate spawn offset (e.g., -250 for N/W, +250 for S/E)
                 offset = -250 if direction in ("N", "W") else 250
 
+                q = self.queues[direction][lane_idx]
+                
+                # Check lane capacity
+                if len(q) >= (self._max_queue() // lanes):
+                    self._log(f"🚫 Car #{vid} diverted — {direction} lane {lane_idx} full", "red")
+                    self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
+                    continue
+
                 v = Vehicle(
                     vid=vid, direction=direction, turn=turn.value,
                     color=color, arrive_time=self.env.now,
                     wait_start=self.env.now, lane_idx=lane_idx,
-                    queue_pos=0, # Will be set below
+                    queue_pos=len(q),
                     spawn_offset=offset
                 )
 
-                # Check queue capacity
-                if len(self.queues[direction]) >= self._max_queue():
-                    self._log(f"🚫 Car #{vid} diverted — {direction} queue full", "red")
-                    self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
-                    continue
-
                 self.vehicles[vid] = v
-                self.queues[direction].append(vid)
+                q.append(vid)
                 
-                # Recalculate all queue positions in this direction
-                for pos, qvid in enumerate(self.queues[direction]):
-                    if qvid in self.vehicles:
-                        self.vehicles[qvid].queue_pos = pos
-
                 self._log(f"🚗 Car #{vid} arrives {direction}→{turn.value}", "gray")
                 self._emit("vehicle_arrive", v.to_dict())
                 self._emit("vehicle_queued", v.to_dict())
-                self._emit("queue_update", {"direction": direction, "ids": list(self.queues[direction])})
+                
+                # Emit flattened list of IDs for the entire direction to keep frontend in sync
+                all_ids = []
+                for lane_q in self.queues[direction]:
+                    all_ids.extend(list(lane_q))
+                self._emit("queue_update", {"direction": direction, "ids": all_ids})
 
     def _move_vehicle(self, v: Vehicle):
         """Process: vehicle waits for resource and moves through intersection."""
@@ -357,14 +380,19 @@ class TrafficSimulation:
 
             # 3. Transition to moving state and remove from queue
             with self._lock:
-                if v.vid in self.queues[v.direction]:
-                    self.queues[v.direction].remove(v.vid)
-                    # Recalculate all queue positions in this direction
-                    for pos, qvid in enumerate(self.queues[v.direction]):
+                q = self.queues[v.direction][v.lane_idx]
+                if q and q[0] == v.vid:
+                    q.popleft()
+                    # Recalculate queue positions only for the affected lane
+                    for pos, qvid in enumerate(q):
                         if qvid in self.vehicles:
                             self.vehicles[qvid].queue_pos = pos
                     
-                    self._emit("queue_update", {"direction": v.direction, "ids": list(self.queues[v.direction])})
+                    # Emit flattened list of IDs for the entire direction to keep frontend in sync
+                    all_ids = []
+                    for lane_q in self.queues[v.direction]:
+                        all_ids.extend(list(lane_q))
+                    self._emit("queue_update", {"direction": v.direction, "ids": all_ids})
 
                 v.state    = "moving"
                 v.queue_pos = -1
@@ -397,7 +425,10 @@ class TrafficSimulation:
             yield self.env.timeout(0.5)
             with self._lock:
                 self.stats.sim_time       = self.env.now
-                self.stats.queues         = {d: len(q) for d, q in self.queues.items()}
+                self.stats.queues         = {
+                    d: sum(len(q) for q in self.queues[d]) 
+                    for d in self.queues
+                }
                 self.stats.active_vehicles = len(self.vehicles)
                 self._emit("stats", self.stats.to_dict())
 
@@ -467,6 +498,9 @@ class TrafficSimulation:
     def get_stats(self) -> dict:
         with self._lock:
             self.stats.sim_time       = round(self.env.now, 1)
-            self.stats.queues         = {d: len(q) for d, q in self.queues.items()}
+            self.stats.queues         = {
+                d: sum(len(q) for q in self.queues[d]) 
+                for d in self.queues
+            }
             self.stats.active_vehicles = len(self.vehicles)
             return self.stats.to_dict()
