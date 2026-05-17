@@ -96,6 +96,22 @@ class Vehicle:
         }
 
 @dataclass
+class Pedestrian:
+    pid:        int
+    direction:  str      # N, S, E, or W (direction of crosswalk)
+    cross_dir:  str      # direction crossing (perpendicular to direction)
+    arrive_time: float
+    state:      str   = "waiting"  # waiting | crossing | exited
+    cross_pos:  float = 0.0        # 0-100, position along crosswalk
+    
+    def to_dict(self):
+        return {
+            "pid": self.pid, "direction": self.direction,
+            "cross_dir": self.cross_dir, "arrive_time": round(self.arrive_time, 2),
+            "state": self.state, "cross_pos": round(self.cross_pos, 2),
+        }
+
+@dataclass
 class SimStats:
     total_passed:   int   = 0
     total_wait:     float = 0.0
@@ -150,6 +166,7 @@ class TrafficSimulation:
         # State
         self.stats    = SimStats()
         self.vehicles: Dict[int, Vehicle] = {}
+        self.pedestrians: Dict[int, Pedestrian] = {}
         
         # New: per-lane deques for O(1) access and O(Lanes) releasing logic
         lanes = self._lanes_per_dir()
@@ -160,6 +177,7 @@ class TrafficSimulation:
 
         self.phase    = Phase.NS_GREEN
         self._next_vid = 1
+        self._next_pid = 1  # Pedestrian ID counter
         self._lane_counters: Dict[str, int] = {"N":0,"S":0,"E":0,"W":0}
 
         # SimPy resources: per-lane resources for each direction
@@ -419,6 +437,80 @@ class TrafficSimulation:
                 if v.vid in self.vehicles:
                     del self.vehicles[v.vid]
 
+    def _pedestrian_process(self, direction: str):
+        """Spawns pedestrians for a given crosswalk direction."""
+        while True:
+            # Pedestrians arrive less frequently than vehicles
+            iat = self.random.uniform(3.0, 8.0)
+            yield self.env.timeout(iat)
+
+            with self._lock:
+                pid = self._next_pid
+                self._next_pid += 1
+                
+                # Pedestrians cross from either left or right (perpendicular to the road)
+                cross_dir = self.random.choice(["left", "right"])
+                
+                ped = Pedestrian(
+                    pid=pid,
+                    direction=direction,
+                    cross_dir=cross_dir,
+                    arrive_time=self.env.now,
+                    state="waiting"
+                )
+                
+                self.pedestrians[pid] = ped
+                self._log(f"👤 Pedestrian #{pid} arrives at {direction} crosswalk", "gray")
+                self._emit("pedestrian_arrive", ped.to_dict())
+                
+                # Start crossing process for this pedestrian
+                self.env.process(self._cross_pedestrian(ped))
+
+    def _cross_pedestrian(self, ped: Pedestrian):
+        """Pedestrian crossing logic: wait for safe crossing (perpendicular traffic light red)."""
+        # Determine which light the pedestrian needs to cross
+        # N/S crosswalks cross when E/W traffic is red, E/W crosswalks cross when N/S traffic is red
+        can_cross_directions = {
+            "N": ("E", "W"),  # N/S crosswalk: cross when E/W red
+            "S": ("E", "W"),
+            "E": ("N", "S"),  # E/W crosswalk: cross when N/S red
+            "W": ("N", "S"),
+        }
+        
+        required_dirs = can_cross_directions.get(ped.direction, ("N", "S"))
+        
+        # Wait until it's safe to cross
+        while True:
+            light_safe = all(self._light_for(d) == LightColor.RED for d in required_dirs)
+            if light_safe:
+                break
+            yield self.env.timeout(0.2)  # Check every 0.2 seconds
+        
+        # Start crossing
+        with self._lock:
+            ped.state = "crossing"
+            self._emit("pedestrian_move", ped.to_dict())
+        
+        self._log(f"👤 Pedestrian #{ped.pid} crossing {ped.direction} crosswalk", "blue")
+        
+        # Crossing takes 4-6 seconds
+        cross_time = self.random.uniform(4.0, 6.0)
+        num_steps = int(cross_time / 0.1)
+        
+        for i in range(num_steps):
+            yield self.env.timeout(0.1)
+            with self._lock:
+                ped.cross_pos = (i + 1) / num_steps * 100.0
+                if ped.pid in self.pedestrians:
+                    self._emit("pedestrian_move", ped.to_dict())
+        
+        # Pedestrian exits
+        with self._lock:
+            ped.state = "exited"
+            self._emit("pedestrian_exit", {"pid": ped.pid})
+            if ped.pid in self.pedestrians:
+                del self.pedestrians[ped.pid]
+
     def _stats_reporter(self):
         """Emits stats snapshot every 0.5 sim-seconds."""
         while True:
@@ -454,6 +546,8 @@ class TrafficSimulation:
         for d in ["N", "S", "E", "W"]:
             offset = self.random.uniform(0, 1.5)
             self.env.process(self._direction_spawner(d, offset))
+            # Pedestrian crossing process for each direction
+            self.env.process(self._pedestrian_process(d))
 
         # Step the simulation in small increments
         STEP = 0.1  # sim-seconds per tick

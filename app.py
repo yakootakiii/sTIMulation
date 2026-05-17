@@ -190,7 +190,7 @@ def on_start(data=None):
     s = new_sim(cfg)
     s.start()
     emit("ack", {"ok": True, "action": "start"})
-    socketio.emit("log", {"msg": "Simulation started", "cls": "green",
+    socketio.emit("log", {"msg": "▶ Simulation started", "cls": "green",
                           "sim_time": 0})
 
 
@@ -200,20 +200,9 @@ def on_pause():
         paused = sim.pause()
         invalidate_sim_cache()   # status changed — clear cache
         label = "paused" if paused else "resumed"
-        socketio.emit("log", {"msg": f"Simulation {label}", "cls": "yellow",
+        socketio.emit("log", {"msg": f"⏸ Simulation {label}", "cls": "yellow",
                               "sim_time": sim.env.now})
         emit("ack", {"ok": True, "paused": paused})
-
-
-@socketio.on("cmd_stop")
-def on_stop():
-    global sim
-    if sim:
-        sim.stop()
-        invalidate_sim_cache()   # clear cache on stop
-        socketio.emit("log", {"msg": "Simulation stopped", "cls": "red",
-                              "sim_time": sim.env.now})
-        emit("ack", {"ok": True, "action": "stop"})
 
 
 @socketio.on("cmd_reset")
@@ -225,7 +214,7 @@ def on_reset(data=None):
         _apply_cfg(cfg, data)
     new_sim(cfg)
     socketio.emit("reset", {})
-    socketio.emit("log", {"msg": "Simulation reset", "cls": "red",
+    socketio.emit("log", {"msg": "↺ Simulation reset", "cls": "red",
                           "sim_time": 0})
     emit("ack", {"ok": True, "action": "reset"})
 
@@ -261,14 +250,12 @@ def _apply_cfg(cfg: SimConfig, data: dict):
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5001))
     print("\n  Traffic Intersection Simulator")
     print("  ────────────────────────────────")
     print("  Cache rules:")
     for k, v in CACHE_RULES.items():
         print(f"    {k:<10} {v}s TTL")
     print("  ────────────────────────────────")
-    print(f"  Worker running on port {port}")
-    print("  Open  http://localhost")
+    print("  Open  http://localhost:5001")
     print("  Press Ctrl+C to stop\n")
-    socketio.run(app, host="0.0.0.0", port=port, debug=False)
+    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
