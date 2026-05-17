@@ -7,23 +7,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-<<<<<<< HEAD
-/* ── Reset & Modern Design ────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0;transition:color .15s,border-color .15s}
-:root{
-  --bg:#070a13;--bg2:#0f1422;--bg3:#1a202c;--bg4:#252d3f;
-  --border:#2a3d52;--border2:#3a5070;--border-light:#4a6090;
-  --text:#f0f4f9;--text2:#a0b0c8;--text3:#708090;
-  --green:#10b981;--green-light:#34d399;--green-bg:#011810;
-  --yellow:#f59e0b;--yellow-light:#fbbf24;--yellow-bg:#331800;
-  --red:#ef4444;--red-light:#f87171;--red-bg:#1c0a0a;
-  --blue:#3b82f6;--blue-light:#60a5fa;--blue-bg:#0c1a3d;
-  --purple:#a78bfa;--purple-light:#c4b5fd;--purple-bg:#2d1b69;
-  --accent:#3b82f6;--accent2:#8b5cf6;
-  --radius:12px; --radius-sm:8px;
-  --shadow:0 4px 20px rgba(0,0,0,.3);--shadow-sm:0 2px 8px rgba(0,0,0,.15);
-  font-family:'Inter','Segoe UI',system-ui,sans-serif;
-=======
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#1b1d36;
@@ -70,29 +53,11 @@
   --shadow-sm:0 2px 8px rgba(0,0,0,.2);
   --panel-w:380px;
   font-family:'JetBrains Mono',monospace;
->>>>>>> 33b81fe (temporary UI)
 }
-body{background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:grid;
-  grid-template-rows:48px 1fr;grid-template-columns:1fr 340px}
+body{background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
 
 /* ── Header ── */
 header{
-<<<<<<< HEAD
-  grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;background:var(--bg2);border-bottom:1px solid var(--border);
-  z-index:20;
-}
-.logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.3px}
-.logo-icon{width:28px;height:28px;position:relative}
-.logo-icon svg{width:100%;height:100%}
-.header-right{display:flex;align-items:center;gap:10px}
-.pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-.pill-green{background:var(--green-bg);color:var(--green);border:1px solid #166534}
-.pill-yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid #854d0e}
-.pill-red{background:var(--red-bg);color:var(--red);border:1px solid #991b1b}
-.pill-blue{background:var(--blue-bg);color:var(--blue);border:1px solid #1e3a8a}
-.pill-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
-=======
   position:fixed;top:0;left:0;right:0;height:48px;
   display:grid;
   grid-template-columns:1fr auto 1fr;
@@ -122,7 +87,6 @@ header{
 }
 .logo-icon{width:28px;height:28px;flex-shrink:0;}
 .logo-icon svg{width:100%;height:100%;}
->>>>>>> 33b81fe (temporary UI)
 
 .pill{
   padding:4px 12px;border-radius:20px;
@@ -140,15 +104,6 @@ header{
 
 /* ── Canvas area ── */
 #canvas-wrap{
-<<<<<<< HEAD
-  background:#0a0e14;position:relative;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
-}
-canvas{display:block}
-
-/* ── Side panel ──────────────────────────────────────────────── */
-#panel{
-=======
   width:100%;height:100%;
   background:#14162b;
   position:relative;overflow:hidden;
@@ -224,40 +179,11 @@ canvas{display:block;width:100%;height:100%}
 /* ── Side panel ── */
 .side-panel{
   position:fixed;right:0;top:48px;bottom:0;width:var(--panel-w);
->>>>>>> 33b81fe (temporary UI)
   background:var(--bg2);border-left:1px solid var(--border);
   display:flex;flex-direction:column;overflow:hidden;
+  transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+  z-index:20;
 }
-<<<<<<< HEAD
-.p-section{
-  border-bottom:1px solid var(--border);padding:14px 16px;
-}
-.p-section:last-child{border-bottom:none;flex:1;overflow:hidden;display:flex;flex-direction:column}
-.sec-title{
-  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
-  color:var(--text3);margin-bottom:10px;
-}
-
-/* ── Buttons ──────────────────────────────────────────────────── */
-.btn-row{display:flex;gap:6px}
-.btn{
-  flex:1;padding:8px 6px;font-size:12px;font-weight:600;letter-spacing:.3px;
-  border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--bg3);color:var(--text2);cursor:pointer;
-  transition:all .15s;text-transform:uppercase;
-}
-.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--text3)}
-.btn.active-green{background:var(--green-bg);color:var(--green);border-color:#166534}
-.btn.active-yellow{background:var(--yellow-bg);color:var,--yellow;border-color:#854d0e}
-.btn.active-red{background:var(--red-bg);color:var(--red);border-color:#991b1b}
-.btn.active-blue{background:var(--blue-bg);color:var(--blue);border-color:#1e3a8a}
-
-/* ── Form controls ──────────────────────────────────────────── */
-.ctrl{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.ctrl:last-child{margin-bottom:0}
-.ctrl-label{font-size:11px;color:var(--text2);min-width:72px;font-weight:500}
-.ctrl-val{font-size:11px;font-weight:700;color:var(--text);min-width:30px;text-align:right}
-=======
 .side-panel.active{transform:translateX(0)}
 .panel-inner{
   flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;
@@ -306,17 +232,10 @@ canvas{display:block;width:100%;height:100%}
   font-size:11px;font-weight:700;color:var(--cyan);
   min-width:34px;text-align:right;font-family:'JetBrains Mono',monospace;
 }
->>>>>>> 33b81fe (temporary UI)
 input[type=range]{
-  flex:1;-webkit-appearance:none;height:3px;
+  flex:1;-webkit-appearance:none;height:4px;
   background:var(--border2);border-radius:2px;outline:none;cursor:pointer;
 }
-<<<<<<< HEAD
-input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
-  background:var(--accent);cursor:pointer;border:2px solid var(--bg2);
-}
-=======
 input[type=range]:hover{background:var(--border-light)}
 input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
@@ -332,24 +251,10 @@ input[type=number]{
 }
 input[type=number]:hover{border-color:var(--cyan-dim)}
 input[type=number]:focus{border-color:var(--cyan);background:var(--bg4)}
->>>>>>> 33b81fe (temporary UI)
 select{
-  flex:1;font-size:11px;padding:5px 8px;
+  flex:1;font-size:11px;padding:7px 10px;
   border:1px solid var(--border2);border-radius:var(--radius-sm);
   background:var(--bg3);color:var(--text);cursor:pointer;outline:none;
-<<<<<<< HEAD
-}
-select:focus{border-color:var(--accent)}
-.toggle-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
-.toggle{position:relative;width:32px;height:17px;cursor:pointer}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{
-  position:absolute;inset:0;background:var(--border2);border-radius:9px;transition:.2s;
-}
-.toggle-slider:before{
-  content:'';position:absolute;width:11px;height:11px;
-  left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;
-=======
   font-family:'JetBrains Mono',monospace;
 }
 select:hover{border-color:var(--cyan-dim)}
@@ -364,43 +269,9 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
   content:'';position:absolute;width:11px;height:11px;
   left:3px;top:3px;background:#fff;border-radius:50%;
   transition:.2s cubic-bezier(.4,0,.2,1);
->>>>>>> 33b81fe (temporary UI)
 }
 .toggle input:checked + .toggle-slider{background:var(--cyan)}
 .toggle input:checked + .toggle-slider:before{transform:translateX(15px)}
-<<<<<<< HEAD
-
-/* ── Queue bars ──────────────────────────────────────────────── */
-.q-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.q-dir{font-size:11px;font-weight:700;color:var(--text2);width:22px}
-.q-track{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative}
-.q-fill{height:100%;border-radius:4px;transition:width .4s cubic-bezier(.4,0,.2,1);width:0%}
-.q-ns{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
-.q-ew{background:linear-gradient(90deg,#d85a30,#f97316)}
-.q-count{font-size:11px;font-weight:700;min-width:24px;text-align:right}
-
-/* ── Metric cards ──────────────────────────────────────────── */
-.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:2px}
-.metric{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;border:1px solid var(--border)}
-.metric-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.metric-val{font-size:22px;font-weight:700;line-height:1.1;margin-top:3px}
-.metric-sub{font-size:10px;color:var(--text3);margin-top:1px}
-.mv-green{color:var(--green)}
-.mv-blue{color:var(--blue)}
-.mv-yellow{color:var(--yellow)}
-.mv-purple{color:var(--purple)}
-
-/* ── Log ──────────────────────────────────────────────────────── */
-.log-scroll{flex:1;overflow-y:auto;padding-right:2px}
-.log-scroll::-webkit-scrollbar{width:3px}
-.log-scroll::-webkit-scrollbar-track{background:transparent}
-.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.log-entry{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:10.5px;font-family:'Cascadia Code','Consolas',monospace;line-height:1.5}
-.log-time{color:var(--text3);min-width:40px}
-.log-msg{flex:1;word-break:break-word}
-.c-green{color:var(--green)}.c-yellow{color:var(--yellow)}
-.c-red{color:var(--red)}.c-blue{color:var(--blue)}.c-gray{color:var(--text2)}
-=======
 .toggle:hover .toggle-slider{box-shadow:0 0 0 3px rgba(153,215,234,.2)}
 
 /* ── Queue bars ── */
@@ -449,23 +320,10 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
 .c-red{color:var(--red)}
 .c-blue{color:var(--cyan)}
 .c-gray{color:var(--text2)}
->>>>>>> 33b81fe (temporary UI)
 
 /* ── Status bar ── */
 #status-bar{
   position:absolute;bottom:0;left:0;right:0;
-<<<<<<< HEAD
-  background:rgba(10,14,20,.85);backdrop-filter:blur(4px);
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;padding:6px 14px;
-  font-size:11px;color:var(--text2);
-}
-.sb-item{display:flex;align-items:center;gap:5px}
-.sb-dot{width:7px;height:7px;border-radius:50%}
-
-/* ── Connection badge ─────────────────────────────────────── */
-#conn-badge{position:absolute;top:10px;left:14px;z-index:10}
-=======
   background:rgba(27,29,54,.90);backdrop-filter:blur(6px);
   border-top:1px solid var(--border);
   display:flex;align-items:center;gap:14px;padding:7px 16px;
@@ -479,7 +337,6 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
   width:20px;height:20px;stroke:currentColor;fill:none;
   stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
 }
->>>>>>> 33b81fe (temporary UI)
 </style>
 </head>
 <body>
@@ -512,14 +369,6 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
 
   <!-- Right: connection status only -->
   <div class="header-right">
-<<<<<<< HEAD
-    <a class="pill pill-blue" href="/analytics" style="text-decoration:none">📊 Analytics</a>
-    <span id="hdr-scenario" class="pill pill-blue">Normal</span>
-    <span id="hdr-phase" class="pill pill-green">N-S Green</span>
-    <span id="hdr-cycles" class="pill pill-gray">Cycle 0</span>
-    <span id="hdr-time" class="pill pill-gray">T = 0.0s</span>
-=======
->>>>>>> 33b81fe (temporary UI)
     <span id="hdr-conn" class="pill pill-red">Disconnected</span>
   </div>
 </header>
@@ -565,75 +414,6 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
 
   <!-- ── Status bar ── -->
   <div id="status-bar">
-<<<<<<< HEAD
-    <div class="sb-item"><div class="sb-dot" style="background:var(--green)"></div>N-S: <span id="sb-ns">GREEN</span></div>
-    <div class="sb-item"><div class="sb-dot" style="background:var(--red)"></div>E-W: <span id="sb-ew">RED</span></div>
-    <div class="sb-item">Active vehicles: <b id="sb-active">0</b></div>
-    <div class="sb-item">Queue N+S: <b id="sb-ns-q">0</b></div>
-    <div class="sb-item">Queue E+W: <b id="sb-ew-q">0</b></div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      Phase timer:
-      <div style="width:120px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden">
-        <div id="phase-bar" style="height:100%;width:0%;background:var(--green);transition:width .3s;border-radius:2px"></div>
-      </div>
-      <span id="phase-label" style="color:var(--text3);font-size:10px">NS GREEN</span>
-    </div>
-  </div>
-</div>
-
-<!-- ══ SIDE PANEL ═══════════════════════════════════════════════════ -->
-<div id="panel">
-
-  <!-- Controls -->
-  <div class="p-section">
-    <div class="sec-title">Simulation Controls</div>
-    <div class="btn-row">
-      <button class="btn" id="btn-start" onclick="cmdStart()">▶ Start</button>
-      <button class="btn" id="btn-pause" onclick="cmdPause()" disabled>⏸ Pause</button>
-      <button class="btn" id="btn-reset" onclick="cmdReset()">↺ Reset</button>
-    </div>
-  </div>
-
-  <!-- Scenario & Road -->
-  <div class="p-section">
-    <div class="sec-title">Scenario & Configuration</div>
-    <div class="ctrl">
-      <span class="ctrl-label">Scenario</span>
-      <select id="sel-scenario" onchange="onCfgChange()">
-        <option value="normal">Normal Traffic</option>
-        <option value="rush">Rush Hour</option>
-        <option value="low">Low Traffic</option>
-      </select>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">Road type</span>
-      <select id="sel-road" onchange="onCfgChange()">
-        <option value="2">2-lane (1 per direction)</option>
-        <option value="4" selected>4-lane (2 per direction)</option>
-        <option value="6">6-lane (3 per direction)</option>
-      </select>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">Speed</span>
-      <input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4"
-        oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()">
-      <span class="ctrl-val" id="v-speed">4×</span>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">Random Seed</span>
-      <input type="number" id="sl-seed" value="42" style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg3);color:var(--text);outline:none;"
-        onchange="onCfgChange()">
-    </div>
-    <div class="ctrl" style="margin-top:4px">
-      <span class="ctrl-label">Right-on-red</span>
-      <label class="toggle">
-        <input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()">
-        <span class="toggle-slider"></span>
-      </label>
-      <span style="font-size:11px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span>
-    </div>
-  </div>
-=======
     <div class="sb-item">
       <div class="sb-dot" style="background:var(--cyan)"></div>
       N-S: <span id="sb-ns" style="color:var(--cyan)">GREEN</span>
@@ -667,65 +447,11 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
              c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
   </svg>
 </a>
->>>>>>> 33b81fe (temporary UI)
 
-  <!-- Signal Timing -->
-  <div class="p-section">
-    <div class="sec-title">Signal Timing</div>
-    <div class="ctrl">
-      <span class="ctrl-label">🟢 Green (s)</span>
-      <input type="range" id="sl-green" min="5" max="60" value="20"
-        oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()">
-      <span class="ctrl-val" id="v-green">20</span>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">🟡 Yellow (s)</span>
-      <input type="range" id="sl-yellow" min="2" max="10" value="4"
-        oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()">
-      <span class="ctrl-val" id="v-yellow">4</span>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">🔴 All-red (s)</span>
-      <input type="range" id="sl-red" min="0" max="5" step="0.5" value="1"
-        oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()">
-      <span class="ctrl-val" id="v-red">1</span>
-    </div>
-  </div>
+<!-- ══ CONTROLS PANEL ══════════════════════════════════════════════ -->
+<div class="side-panel" id="controls-panel">
+  <div class="panel-inner">
 
-<<<<<<< HEAD
-  <!-- Queue bars -->
-  <div class="p-section">
-    <div class="sec-title">Queue Lengths</div>
-    <div class="q-row"><span class="q-dir">N↓</span><div class="q-track"><div class="q-fill q-ns" id="qb-n"></div></div><span class="q-count" id="qn-n">0</span></div>
-    <div class="q-row"><span class="q-dir">S↑</span><div class="q-track"><div class="q-fill q-ns" id="qb-s"></div></div><span class="q-count" id="qn-s">0</span></div>
-    <div class="q-row"><span class="q-dir">E→</span><div class="q-track"><div class="q-fill q-ew" id="qb-e"></div></div><span class="q-count" id="qn-e">0</span></div>
-    <div class="q-row"><span class="q-dir">W←</span><div class="q-track"><div class="q-fill q-ew" id="qb-w"></div></div><span class="q-count" id="qn-w">0</span></div>
-  </div>
-
-  <!-- Metrics -->
-  <div class="p-section">
-    <div class="sec-title">Statistics</div>
-    <div class="metrics-grid">
-      <div class="metric">
-        <div class="metric-label">Cars passed</div>
-        <div class="metric-val mv-green" id="m-passed">0</div>
-        <div class="metric-sub">total</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Avg wait</div>
-        <div class="metric-val mv-yellow" id="m-wait">0.0s</div>
-        <div class="metric-sub">per vehicle</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Cycles</div>
-        <div class="metric-val mv-blue" id="m-cycles">0</div>
-        <div class="metric-sub">completed</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Active</div>
-        <div class="metric-val mv-purple" id="m-active">0</div>
-        <div class="metric-sub">vehicles</div>
-=======
     <div class="p-section">
       <div class="sec-title">Simulation Controls</div>
       <div class="btn-row">
@@ -733,19 +459,9 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
         <button class="btn" id="btn-pause" onclick="cmdPause()" disabled>Pause</button>
         <button class="btn" id="btn-stop" onclick="cmdStop()" disabled style="display:none">Stop</button>
         <button class="btn" id="btn-reset" onclick="cmdReset()">Reset</button>
->>>>>>> 33b81fe (temporary UI)
       </div>
     </div>
-  </div>
 
-<<<<<<< HEAD
-  <!-- Log -->
-  <div class="p-section">
-    <div class="sec-title">Live Log</div>
-    <div class="log-scroll" id="log-scroll">
-      <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
-    </div>
-=======
     <div class="p-section">
       <div class="sec-title">Scenario &amp; Configuration</div>
       <div class="ctrl">
@@ -850,7 +566,6 @@ select:focus{border-color:var(--cyan);background:var(--bg4)}
       </div>
     </div>
 
->>>>>>> 33b81fe (temporary UI)
   </div>
 </div>
 
@@ -867,9 +582,6 @@ function resize(){
 resize();
 window.addEventListener('resize', resize);
 
-<<<<<<< HEAD
-// ─── State ─────────────────────────────────────────────────────────
-=======
 const controlsPanel = document.getElementById('controls-panel');
 function togglePanel(){
   const isOpen = controlsPanel.classList.contains('active');
@@ -882,12 +594,10 @@ function togglePanel(){
   }
 }
 
->>>>>>> 33b81fe (temporary UI)
 let STATE = {
   simRunning: false,
   simPaused:  false,
-  vehicles:   {},   // vid -> vehicle obj
-  pedestrians: {},  // pid -> pedestrian obj
+  vehicles:   {},
   stats: {
     total_passed:0, avg_wait:0, cycles:0, sim_time:0,
     queues:{N:0,S:0,E:0,W:0}, active_vehicles:0,
@@ -898,8 +608,7 @@ let STATE = {
   phaseDur:   20,
 };
 
-// vehicle visual state (separate from sim state for smooth animation)
-const VIS = {};  // vid -> {x,y,angle,targetX,targetY,targetAngle,progress,alpha}
+const VIS = {};
 
 function geo(){
   const W=canvas.width, H=canvas.height;
@@ -916,14 +625,8 @@ function drawScene(){
   const{W,H,cx,cy,rw,lw,lanes} = g;
   ctx.clearRect(0,0,W,H);
 
-<<<<<<< HEAD
-  // ── Background ──
-  ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
-=======
   ctx.fillStyle='#14162b'; ctx.fillRect(0,0,W,H);
->>>>>>> 33b81fe (temporary UI)
 
-  // ── Grass/zones ──
   const grassGrad = ctx.createLinearGradient(0,0,W,H);
   grassGrad.addColorStop(0,'#181a30');
   grassGrad.addColorStop(1,'#14162b');
@@ -931,24 +634,6 @@ function drawScene(){
   [[0,0,cx-rw/2,H],[cx+rw/2,0,W-cx-rw/2,H],
    [cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r=>ctx.fillRect(...r));
 
-<<<<<<< HEAD
-  // Grid lines on grass
-  ctx.strokeStyle='rgba(255,255,255,.02)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
-  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
-
-  // ── Road pavement ──
-  ctx.fillStyle='#1e2332';
-  ctx.fillRect(cx-rw/2, 0, rw, H);      // N-S
-  ctx.fillRect(0, cy-rw/2, W, rw);      // E-W
-
-  // ── Intersection box ──
-  ctx.fillStyle='#252d40';
-  ctx.fillRect(cx-rw/2, cy-rw/2, rw, rw);
-
-  // ── Intersection diagonal markings ──
-  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
-=======
   ctx.strokeStyle='rgba(153,215,234,.03)'; ctx.lineWidth=1;
   for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
   for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
@@ -961,7 +646,6 @@ function drawScene(){
   ctx.fillRect(cx-rw/2, cy-rw/2, rw, rw);
 
   ctx.strokeStyle='rgba(153,215,234,.03)'; ctx.lineWidth=1;
->>>>>>> 33b81fe (temporary UI)
   for(let i=-rw;i<rw*2;i+=16){
     ctx.beginPath();
     ctx.moveTo(cx-rw/2+i, cy-rw/2);
@@ -969,52 +653,22 @@ function drawScene(){
     ctx.stroke();
   }
 
-<<<<<<< HEAD
-  // ── Lane dashes (white) ──
-  ctx.setLineDash([26,18]); ctx.lineWidth=2;
-  ctx.strokeStyle='rgba(255,255,255,.22)';
-=======
   ctx.setLineDash([20,14]); ctx.lineWidth=1;
   ctx.strokeStyle='rgba(153,215,234,.14)';
->>>>>>> 33b81fe (temporary UI)
   for(let i=1;i<lanes*2;i++){
     const x=cx-rw/2+i*lw;
-    if(Math.abs(x-cx)>4){
+    if(Math.abs(x-cx)>3){
       ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-rw/2);ctx.stroke();
       ctx.beginPath();ctx.moveTo(x,cy+rw/2);ctx.lineTo(x,H);ctx.stroke();
     }
     const y=cy-rw/2+i*lw;
-    if(Math.abs(y-cy)>4){
+    if(Math.abs(y-cy)>3){
       ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-rw/2,y);ctx.stroke();
       ctx.beginPath();ctx.moveTo(cx+rw/2,y);ctx.lineTo(W,y);ctx.stroke();
     }
   }
   ctx.setLineDash([]);
 
-<<<<<<< HEAD
-  // ── Center median — stops at the stop line (50px from intersection edge) ──
-  [-2,2].forEach(d=>{
-    ctx.strokeStyle='#e8b800'; ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(cx+d,0);ctx.lineTo(cx+d,cy-rw/2-50);ctx.stroke();       // N
-    ctx.beginPath();ctx.moveTo(cx+d,cy+rw/2+50);ctx.lineTo(cx+d,H);ctx.stroke();       // S
-    ctx.beginPath();ctx.moveTo(0,cy+d);ctx.lineTo(cx-rw/2-50,cy+d);ctx.stroke();       // W
-    ctx.beginPath();ctx.moveTo(cx+rw/2+50,cy+d);ctx.lineTo(W,cy+d);ctx.stroke();       // E
-  });
-
-  // ── Sidewalk border stripe along road edge ──
-  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=10;
-
-  /// ── Stop lines — full width across all lanes ──
-  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2;
-  // N: spans full N-S road width (left half only — southbound lanes)
-  ctx.beginPath();ctx.moveTo(cx-rw/2, cy-rw/2-50);ctx.lineTo(cx, cy-rw/2-50);ctx.stroke();
-  // S: northbound lanes
-  ctx.beginPath();ctx.moveTo(cx, cy+rw/2+50);ctx.lineTo(cx+rw/2, cy+rw/2+50);ctx.stroke();
-  // E: westbound lanes
-  ctx.beginPath();ctx.moveTo(cx+rw/2+50, cy-rw/2);ctx.lineTo(cx+rw/2+50, cy);ctx.stroke();
-  // W: eastbound lanes
-  ctx.beginPath();ctx.moveTo(cx-rw/2-50, cy);ctx.lineTo(cx-rw/2-50, cy+rw/2);ctx.stroke();
-=======
   ctx.strokeStyle='rgba(252,166,209,.3)'; ctx.lineWidth=2;
   [[cx,0,cx,cy-rw/2],[cx,cy+rw/2,cx,H],[0,cy,cx-rw/2,cy],[cx+rw/2,cy,W,cy]]
     .forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()});
@@ -1033,46 +687,10 @@ function drawScene(){
     ctx.fillRect(cx+rw/2+6+(i*(sw+sg)),cy-rw/2,sw,rw/2);
     ctx.fillRect(cx-rw/2-14-(i*(sw+sg)),cy,sw,rw/2);
   }
->>>>>>> 33b81fe (temporary UI)
 
-  // ── Pedestrian crosswalks (white stripes) ──
-ctx.fillStyle = 'rgba(255,255,255,.90)';
-const pw=6;  // stripe width
-const pg=6;  // gap between stripes
-const stripeCount = Math.floor(rw / (pw + pg)) + 1;  // fill the full road width
-const cwOffset = 40; // how far from the intersection box edge
-
-// N crosswalk — horizontal stripes just above the intersection, spanning N-S road width
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx - rw/2 + i*(pw+pg), cy - rw/2 - cwOffset - pw, pw, cwOffset);
-}
-// S crosswalk — just below the intersection
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx - rw/2 + i*(pw+pg), cy + rw/2 + 4, pw, cwOffset);
-}
-// E crosswalk — vertical stripes just right of the intersection, spanning E-W road height
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx + rw/2 + 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
-}
-// W crosswalk — just left of the intersection
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx - rw/2 - cwOffset - 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
-}
-
-  // ── Traffic lights ──
   drawLights(g);
-
-
-  // ── Queued cars ──
   drawQueuedCars(g);
-
-  // ── Moving cars ──
   drawMovingCars(g);
-
-  // ── Pedestrians ──
-  drawPedestrians(g);
-
-  // ── Direction labels ──
   drawDirLabels(g);
 }
 
@@ -1091,35 +709,22 @@ function drawLights(g){
   ];
   lights.forEach(({dir,x,y})=>{
     const lc=lightColor(dir);
-    // Post
     const px=x+11, py1=dir==='N'||dir==='W'?y+60:y;
     const py2=dir==='N'||dir==='W'?cy-rw/2:cy+rw/2;
     ctx.strokeStyle='rgba(153,215,234,.2)'; ctx.lineWidth=3;
     ctx.beginPath();ctx.moveTo(px,py1);ctx.lineTo(px,py2);ctx.stroke();
 
-<<<<<<< HEAD
-    // Housing
-    ctx.fillStyle='#111827'; ctx.strokeStyle='#374151'; ctx.lineWidth=1;
-=======
     ctx.fillStyle='#1b1d36'; ctx.strokeStyle='rgba(153,215,234,.25)'; ctx.lineWidth=1;
->>>>>>> 33b81fe (temporary UI)
     roundRect(x,y,22,58,5); ctx.fill(); ctx.stroke();
 
-    // Bulbs
     ['red','yellow','green'].forEach((c,i)=>{
       const bx=x+11, by=y+10+i*16;
       const on=lc===c;
       if(on){
-<<<<<<< HEAD
-        const hx=c==='green'?'#22c55e':c==='yellow'?'#eab308':'#ef4444';
-        // outer glow
-=======
         const hx = c==='green' ? '#99d7ea' : c==='yellow' ? '#fca6d1' : '#f87171';
->>>>>>> 33b81fe (temporary UI)
         const grd=ctx.createRadialGradient(bx,by,0,bx,by,14);
         grd.addColorStop(0,hx+'55');grd.addColorStop(1,'transparent');
         ctx.fillStyle=grd;ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fill();
-        // bulb
         const bgrd=ctx.createRadialGradient(bx-1,by-1,1,bx,by,6);
         bgrd.addColorStop(0,'#fff');bgrd.addColorStop(.3,hx);bgrd.addColorStop(1,hx+'aa');
         ctx.fillStyle=bgrd;
@@ -1131,14 +736,9 @@ function drawLights(g){
       ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);ctx.fill();
       ctx.shadowBlur=0;
     });
-<<<<<<< HEAD
-    // Label
-    ctx.fillStyle='#6b7280'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
-=======
     ctx.fillStyle='rgba(153,215,234,.5)';
     ctx.font='bold 9px "JetBrains Mono",monospace';
     ctx.textAlign='center';
->>>>>>> 33b81fe (temporary UI)
     ctx.fillText(dir, x+11, y+64);
   });
 }
@@ -1158,17 +758,11 @@ function getQueuePos(v, g){
   const qi=v.visual_queue_pos ?? v.queue_pos;
   const gap=22;
   const off = li*lw+lw/2;
-<<<<<<< HEAD
-
-  // Right-hand traffic (drive on the right): flip from the current left-hand placement.
-  // This mapping puts each approach on the right side of its roadway.
-=======
->>>>>>> 33b81fe (temporary UI)
   switch(v.direction){
-    case'N':return{x:cx-(off), y:cy-rw/2-10-qi*gap, a:-Math.PI/2};  // downbound uses west half
-    case'S':return{x:cx+(off), y:cy+rw/2+10+qi*gap, a:Math.PI/2};   // upbound uses east half
-    case'E':return{x:cx+rw/2+10+qi*gap, y:cy-(off), a:0};           // leftbound uses north half
-    case'W':return{x:cx-rw/2-10-qi*gap, y:cy+(off), a:Math.PI};     // rightbound uses south half
+    case'N':return{x:cx-(off), y:cy-rw/2-10-qi*gap, a:-Math.PI/2};
+    case'S':return{x:cx+(off), y:cy+rw/2+10+qi*gap, a:Math.PI/2};
+    case'E':return{x:cx+rw/2+10+qi*gap, y:cy-(off), a:0};
+    case'W':return{x:cx-rw/2-10-qi*gap, y:cy+(off), a:Math.PI};
   }
   return{x:cx,y:cy,a:0};
 }
@@ -1224,23 +818,6 @@ function drawVehicle(x,y,angle,color,state,alpha=1){
   ctx.globalAlpha=alpha;
   ctx.translate(x,y);
   ctx.rotate(angle);
-<<<<<<< HEAD
-
-  // Shadow
-  ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
-
-  // Body
-  ctx.fillStyle=color;
-  roundRect(-9,-5.5,18,11,2.5); ctx.fill();
-  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-
-  // Roof
-  ctx.fillStyle=color+'cc';
-  roundRect(-5,-4,9,8,2); ctx.fill();
-
-  // Windshields
-  ctx.fillStyle='rgba(200,230,255,.35)';
-=======
   ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=7; ctx.shadowOffsetY=3;
   ctx.fillStyle=color;
   roundRect(-9,-5.5,18,11,2.5); ctx.fill();
@@ -1248,23 +825,10 @@ function drawVehicle(x,y,angle,color,state,alpha=1){
   ctx.fillStyle=color+'cc';
   roundRect(-5,-4,9,8,2); ctx.fill();
   ctx.fillStyle='rgba(153,215,234,.3)';
->>>>>>> 33b81fe (temporary UI)
   roundRect(-5,-3.5,7,7,1.5); ctx.fill();
   ctx.fillStyle='rgba(153,215,234,.15)';
   roundRect(4,-3,3.5,6,1); ctx.fill();
   if(state==='moving'){
-<<<<<<< HEAD
-    // Headlights
-    ctx.fillStyle='#ffffc0dd';
-    roundRect(-9.5,-4,3,2.5,1); ctx.fill();
-    roundRect(-9.5,1.5,3,2.5,1); ctx.fill();
-    // Headlight beam
-    ctx.fillStyle='rgba(255,255,180,.06)';
-    ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-45,-14);ctx.lineTo(-45,14);ctx.closePath();ctx.fill();
-  } else {
-    // Brake lights
-    ctx.fillStyle='#ff3333cc';
-=======
     ctx.fillStyle='rgba(252,246,180,.9)';
     roundRect(-9.5,-4,3,2.5,1); ctx.fill();
     roundRect(-9.5,1.5,3,2.5,1); ctx.fill();
@@ -1272,7 +836,6 @@ function drawVehicle(x,y,angle,color,state,alpha=1){
     ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-45,-14);ctx.lineTo(-45,14);ctx.closePath();ctx.fill();
   } else {
     ctx.fillStyle='rgba(248,113,113,.9)';
->>>>>>> 33b81fe (temporary UI)
     roundRect(7,-4,2.5,2.5,0.8); ctx.fill();
     roundRect(7,1.5,2.5,2.5,0.8); ctx.fill();
   }
@@ -1289,11 +852,9 @@ function drawQueuedCars(g){
     const visualQueuePos = laneCounts[laneKey] || 0;
     laneCounts[laneKey] = visualQueuePos + 1;
     const pos=getQueuePos({...v, visual_queue_pos:visualQueuePos},g);
-    // Init or update visual
     if(!VIS[v.vid]){VIS[v.vid]={x:pos.x,y:pos.y,a:pos.a,alpha:0,prog:0}}
     const vis=VIS[v.vid];
     vis.x+=(pos.x-vis.x)*.15; vis.y+=(pos.y-vis.y)*.15;
-    // queued cars should be fixed to lane heading
     vis.a += (pos.a - vis.a) * 0.25;
     vis.alpha=Math.min(vis.alpha+.08,1);
     drawVehicle(vis.x,vis.y,vis.a,v.color,'queued',vis.alpha);
@@ -1317,11 +878,6 @@ function drawMovingCars(g){
     const step = Math.min(speed, d);
     const nx = vis.x + (dx/d)*step;
     const ny = vis.y + (dy/d)*step;
-<<<<<<< HEAD
-
-    // Compute heading from velocity.
-=======
->>>>>>> 33b81fe (temporary UI)
     const vx=nx-vis.x, vy=ny-vis.y;
     if(Math.hypot(vx,vy) > 0.001){
       const desired = Math.atan2(vy,vx) + Math.PI;
@@ -1330,22 +886,14 @@ function drawMovingCars(g){
     vis.x = nx; vis.y = ny;
     if(d <= speed + 0.1 && vis.pathIdx < vis.path.length - 1) vis.pathIdx += 1;
     drawVehicle(vis.x,vis.y,vis.a,v.color,'moving',1);
-<<<<<<< HEAD
-
-    // Despawn visually once out of frame (server still controls sim lifecycle).
-=======
->>>>>>> 33b81fe (temporary UI)
     const pad = 180;
     if(vis.x < -pad || vis.x > g.W+pad || vis.y < -pad || vis.y > g.H+pad){
       delete VIS[v.vid];
-      // also remove from rendered state to prevent re-creating VIS immediately
       delete STATE.vehicles[v.vid];
     }
   });
 }
 
-function lerp(a,b,t){return a+(b-a)*t}
-function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
 function angleDelta(from,to){
   return Math.atan2(Math.sin(to-from), Math.cos(to-from));
 }
@@ -1364,85 +912,6 @@ function drawDirLabels(g){
   });
 }
 
-<<<<<<< HEAD
-function getPedestrianPos(ped, g){
-  const{cx,cy,rw}=g;
-  const pw=18;  // pedestrian lane width
-  const pg=3;
-  
-  // Position based on direction and crossing position
-  const pos_pct = (ped.cross_pos || 0) / 100;
-  
-  switch(ped.direction){
-    case 'N': // N crosswalk - vertical crossing from left
-      if(ped.cross_dir === 'left'){
-        return {x: cx - rw/2 - 20 - (pw+pg)*2, y: cy - rw/2 + (rw/2-4)*pos_pct};
-      } else {
-        return {x: cx - rw/2 - 20 - (pw+pg)*3, y: cy - rw/2 + (rw/2-4)*pos_pct};
-      }
-    case 'S': // S crosswalk - vertical crossing from right
-      if(ped.cross_dir === 'left'){
-        return {x: cx + (pw+pg), y: cy + rw/2 + 4 + (rw/2-4)*pos_pct};
-      } else {
-        return {x: cx + (pw+pg)*2, y: cy + rw/2 + 4 + (rw/2-4)*pos_pct};
-      }
-    case 'E': // E crosswalk - horizontal crossing from top
-      if(ped.cross_dir === 'left'){
-        return {x: cx + rw/2 + 4 + (rw/2-4)*pos_pct, y: cy - rw/2 - 20 - (pw+pg)*2};
-      } else {
-        return {x: cx + rw/2 + 4 + (rw/2-4)*pos_pct, y: cy - rw/2 - 20 - (pw+pg)*3};
-      }
-    case 'W': // W crosswalk - horizontal crossing from bottom
-      if(ped.cross_dir === 'left'){
-        return {x: cx - rw/2 - 4 - (rw/2-4)*pos_pct, y: cy + (pw+pg)};
-      } else {
-        return {x: cx - rw/2 - 4 - (rw/2-4)*pos_pct, y: cy + (pw+pg)*2};
-      }
-  }
-  return {x:cx,y:cy};
-}
-
-function drawPedestrian(x,y,state){
-  ctx.save();
-  ctx.translate(x,y);
-  
-  if(state === 'waiting'){
-    ctx.fillStyle='#60a5fa';  // blue for waiting
-  } else {
-    ctx.fillStyle='#fbbf24';  // amber for crossing
-  }
-  
-  // Head
-  ctx.beginPath();
-  ctx.arc(0,-5,4,0,Math.PI*2);
-  ctx.fill();
-  
-  // Body
-  ctx.fillRect(-3,0,6,7);
-  
-  // Arms
-  ctx.fillRect(-5,1,10,2);
-  
-  // Legs
-  ctx.fillRect(-2,7,2,5);
-  ctx.fillRect(0,7,2,5);
-  
-  ctx.restore();
-}
-
-function drawPedestrians(g){
-  const pedestrians = Object.values(STATE.pedestrians || {});
-  pedestrians.forEach(ped => {
-    if(ped.state === 'waiting' || ped.state === 'crossing'){
-      const pos = getPedestrianPos(ped, g);
-      drawPedestrian(pos.x, pos.y, ped.state);
-    }
-  });
-}
-
-// ─── Animation loop ────────────────────────────────────────────────
-=======
->>>>>>> 33b81fe (temporary UI)
 let phaseProgress=0;
 let FRAME_DT=1/60;
 let LAST_FRAME=performance.now();
@@ -1457,12 +926,12 @@ function frame(now){
 
 function updatePhaseBar(){
   const cfg={
-    ns_green:+document.getElementById('sl-green').value,
-    ns_yellow:+document.getElementById('sl-yellow').value,
-    ns_red:+document.getElementById('sl-red').value,
-    ew_green:+document.getElementById('sl-green').value,
-    ew_yellow:+document.getElementById('sl-yellow').value,
-    ew_red:+document.getElementById('sl-red').value,
+    ns_green:  +document.getElementById('sl-green').value,
+    ns_yellow: +document.getElementById('sl-yellow').value,
+    ns_red:    +document.getElementById('sl-red').value,
+    ew_green:  +document.getElementById('sl-green').value,
+    ew_yellow: +document.getElementById('sl-yellow').value,
+    ew_red:    +document.getElementById('sl-red').value,
   };
   const p=STATE.stats.phase||'ns_green';
   const dur=(p in cfg) ? cfg[p] : 20;
@@ -1487,7 +956,7 @@ const socket = io({
 socket.on('connect',()=>{
   document.getElementById('hdr-conn').className='pill pill-green';
   document.getElementById('hdr-conn').textContent='Connected';
-  addLog({msg:'🔌 Connected to simulation server', cls:'green', sim_time:0});
+  addLog({msg:'Connected to simulation server', cls:'green', sim_time:0});
 });
 socket.on('disconnect',()=>{
   document.getElementById('hdr-conn').className='pill pill-red';
@@ -1504,56 +973,17 @@ socket.on('vehicles_snapshot', list=>{
   Object.keys(VIS).forEach(k=>delete VIS[k]);
   list.forEach(v=>{ STATE.vehicles[v.vid]=v; });
 });
-<<<<<<< HEAD
-
-socket.on('vehicle_arrive', v=>{
-  STATE.vehicles[v.vid]=v;
-});
-socket.on('vehicle_queued', v=>{
-  STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'queued'};
-});
-socket.on('vehicle_move', v=>{
-  STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'moving'};
-});
-socket.on('queue_update', ({direction, ids})=>{
-  ids.forEach((vid, pos)=>{
-    if(STATE.vehicles[vid]){
-      STATE.vehicles[vid].queue_pos = pos;
-    }
-  });
-=======
 socket.on('vehicle_arrive', v=>{ STATE.vehicles[v.vid]=v; });
 socket.on('vehicle_queued', v=>{ STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'queued'}; });
 socket.on('vehicle_move',   v=>{ STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'moving'}; });
 socket.on('queue_update', ({direction, ids})=>{
   ids.forEach((vid, pos)=>{ if(STATE.vehicles[vid]) STATE.vehicles[vid].queue_pos = pos; });
->>>>>>> 33b81fe (temporary UI)
 });
 socket.on('vehicle_exit', ({vid})=>{
   const v = STATE.vehicles[vid];
   if(v && v.state === 'moving' && VIS[vid]) v.serverExited = true;
   else { delete STATE.vehicles[vid]; delete VIS[vid]; }
 });
-<<<<<<< HEAD
-
-socket.on('pedestrian_arrive', ped=>{
-  if(!STATE.pedestrians) STATE.pedestrians = {};
-  STATE.pedestrians[ped.pid] = ped;
-});
-
-socket.on('pedestrian_move', ped=>{
-  if(!STATE.pedestrians) STATE.pedestrians = {};
-  STATE.pedestrians[ped.pid] = {...(STATE.pedestrians[ped.pid]||{}), ...ped};
-});
-
-socket.on('pedestrian_exit', ({pid})=>{
-  if(STATE.pedestrians && STATE.pedestrians[pid]){
-    delete STATE.pedestrians[pid];
-  }
-});
-
-=======
->>>>>>> 33b81fe (temporary UI)
 socket.on('light_change', data=>{
   STATE.stats.phase   = data.phase;
   STATE.stats.ns_light= data.ns;
@@ -1564,43 +994,21 @@ socket.on('light_change', data=>{
 });
 socket.on('log', entry=>{ addLog(entry); });
 socket.on('reset', ()=>{
-  STATE.vehicles={}; 
-  STATE.pedestrians={};
+  STATE.vehicles={};
   STATE.stats={...STATE.stats, total_passed:0, avg_wait:0, cycles:0, sim_time:0};
   Object.keys(VIS).forEach(k=>delete VIS[k]);
   updateStatsUI(STATE.stats);
+  updateButtonStates();
 });
 socket.on('ack', data=>{
-  if(data.action==='start'){
-    document.getElementById('btn-start').classList.add('active-green');
-    document.getElementById('btn-pause').disabled=false;
-    STATE.simRunning=true;
-  }
-  if(data.action==='reset'){
-    document.getElementById('btn-start').classList.remove('active-green');
-    document.getElementById('btn-pause').classList.remove('active-yellow');
-    document.getElementById('btn-pause').textContent='⏸ Pause';
-    document.getElementById('btn-pause').disabled=true;
-    STATE.simRunning=false; STATE.simPaused=false;
-  }
-  if('paused' in data){
-    STATE.simPaused=data.paused;
-    const btn=document.getElementById('btn-pause');
-    btn.textContent=data.paused?'▶ Resume':'⏸ Pause';
-    btn.className='btn '+(data.paused?'active-yellow':'');
-  }
+  if(data.action==='start'){STATE.simRunning=true; STATE.simPaused=false; updateButtonStates();}
+  if(data.action==='stop'){ STATE.simRunning=false;STATE.simPaused=false; updateButtonStates();}
+  if(data.action==='reset'){STATE.simRunning=false;STATE.simPaused=false; updateButtonStates();}
+  if('paused' in data){STATE.simPaused=data.paused; updateButtonStates();}
 });
 
 /* ── UI updates ── */
 function updateStatsUI(d){
-<<<<<<< HEAD
-  document.getElementById('m-passed').textContent=d.total_passed;
-  document.getElementById('m-wait').textContent=(d.avg_wait||0).toFixed(1)+'s';
-  document.getElementById('m-cycles').textContent=d.cycles;
-  document.getElementById('m-active').textContent=d.active_vehicles;
-  document.getElementById('hdr-time').textContent='T = '+Math.round(d.sim_time)+'s';
-  document.getElementById('hdr-cycles').textContent='Cycle '+d.cycles;
-=======
   document.getElementById('m-passed').textContent = d.total_passed;
   document.getElementById('m-wait').textContent   = (d.avg_wait||0).toFixed(1)+'s';
   document.getElementById('m-cycles').textContent = d.cycles;
@@ -1609,10 +1017,8 @@ function updateStatsUI(d){
   /* update floating widgets */
   document.getElementById('w-time').textContent    = 'T = '+Math.round(d.sim_time)+'s';
   document.getElementById('w-cycles').textContent  = d.cycles;
->>>>>>> 33b81fe (temporary UI)
 
-  // queues
-  const maxQ=parseInt(document.getElementById('sel-road').value)/2*8;
+  const maxQ = parseInt(document.getElementById('sel-road').value)/2*8;
   ['N','S','E','W'].forEach(dir=>{
     const n=d.queues[dir]||0;
     document.getElementById('qb-'+dir.toLowerCase()).style.width=Math.min(n/maxQ*100,100)+'%';
@@ -1624,7 +1030,6 @@ function updateStatsUI(d){
   document.getElementById('sb-ew-q').textContent=ewQ;
   document.getElementById('sb-active').textContent=d.active_vehicles;
 
-  // status bar lights
   const nsL=d.ns_light||'red', ewL=d.ew_light||'red';
   const nsc = nsL==='green' ? '#99d7ea' : nsL==='yellow' ? '#fca6d1' : '#f87171';
   const ewc = ewL==='green' ? '#99d7ea' : ewL==='yellow' ? '#fca6d1' : '#f87171';
@@ -1635,20 +1040,6 @@ function updateStatsUI(d){
 }
 
 function updatePhaseHeaders(data){
-<<<<<<< HEAD
-  const{phase,ns,ew}=data;
-  const pc=phase.includes('green')?'pill-green':phase.includes('yellow')?'pill-yellow':'pill-red';
-  const ph=document.getElementById('hdr-phase');
-  ph.className='pill '+pc;
-  ph.textContent=phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
-  document.getElementById('hdr-scenario').textContent=
-    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
-}
-
-// ─── Log ──────────────────────────────────────────────────────────
-const MAX_LOGS=80;
-const logScroll=document.getElementById('log-scroll');
-=======
   const{phase}=data;
   /* update floating phase widget */
   const phaseText = phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
@@ -1686,14 +1077,13 @@ function updateButtonStates(){
 
 const MAX_LOGS = 80;
 const logScroll = document.getElementById('log-scroll');
->>>>>>> 33b81fe (temporary UI)
 function addLog(entry){
   STATE.logs.unshift(entry);
-  if(STATE.logs.length>MAX_LOGS) STATE.logs.pop();
+  if(STATE.logs.length > MAX_LOGS) STATE.logs.pop();
   renderLog();
 }
 function renderLog(){
-  logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>`
+  logScroll.innerHTML = STATE.logs.slice(0,50).map(l=>`
     <div class="log-entry">
       <span class="log-time">${(l.sim_time||0).toFixed(1)}s</span>
       <span class="log-msg c-${l.cls||'gray'}">${l.msg}</span>
@@ -1702,37 +1092,32 @@ function renderLog(){
 
 function getConfig(){
   return{
-    green:  +document.getElementById('sl-green').value,
-    yellow: +document.getElementById('sl-yellow').value,
-    red:    +document.getElementById('sl-red').value,
-    scenario: document.getElementById('sel-scenario').value,
-    road_type:+document.getElementById('sel-road').value,
-    right_turn: document.getElementById('ck-rturn').checked,
-    speed:  +document.getElementById('sl-speed').value,
-    seed:   +document.getElementById('sl-seed').value,
+    green:     +document.getElementById('sl-green').value,
+    yellow:    +document.getElementById('sl-yellow').value,
+    red:       +document.getElementById('sl-red').value,
+    scenario:  document.getElementById('sel-scenario').value,
+    road_type: +document.getElementById('sel-road').value,
+    right_turn:document.getElementById('ck-rturn').checked,
+    speed:     +document.getElementById('sl-speed').value,
+    seed:      +document.getElementById('sl-seed').value,
   };
 }
 function cmdStart(){ socket.emit('cmd_start', getConfig()); }
 function cmdPause(){ socket.emit('cmd_pause'); }
+function cmdStop(){  socket.emit('cmd_stop'); }
 function cmdReset(){ socket.emit('cmd_reset', getConfig()); }
+
 function onCfgChange(){
   socket.emit('cmd_update_config',{
     green_duration:  +document.getElementById('sl-green').value,
     yellow_duration: +document.getElementById('sl-yellow').value,
     red_duration:    +document.getElementById('sl-red').value,
-    scenario:  document.getElementById('sel-scenario').value,
-    road_type: +document.getElementById('sel-road').value,
+    scenario:        document.getElementById('sel-scenario').value,
+    road_type:       +document.getElementById('sel-road').value,
     right_turn_free: document.getElementById('ck-rturn').checked,
-    speed_factor: +document.getElementById('sl-speed').value,
-    seed: +document.getElementById('sl-seed').value,
+    speed_factor:    +document.getElementById('sl-speed').value,
+    seed:            +document.getElementById('sl-seed').value,
   });
-<<<<<<< HEAD
-  const rt=document.getElementById('ck-rturn').checked;
-  document.getElementById('rt-label').textContent=rt?'Allowed':'Signal only';
-  document.getElementById('hdr-scenario').textContent=
-    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
-}
-=======
   const rt = document.getElementById('ck-rturn').checked;
   document.getElementById('rt-label').textContent = rt ? 'Allowed on Red' : 'Signal Only';
   document.getElementById('w-scenario').textContent =
@@ -1740,7 +1125,6 @@ function onCfgChange(){
 }
 
 updateButtonStates();
->>>>>>> 33b81fe (temporary UI)
 </script>
 </body>
 </html>
