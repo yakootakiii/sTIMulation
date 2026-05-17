@@ -2,10 +2,24 @@ version: '3.8'
 services:
   web:
     build: .
+    restart: unless-stopped
     ports:
       - "5001:5001"
     volumes:
       - .:/app
     environment:
       - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379
     command: python app.py
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
