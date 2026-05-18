@@ -185,6 +185,9 @@ class TrafficSimulation:
             d: [simpy.Resource(self.env, capacity=1) for _ in range(lanes)]
             for d in ["N", "S", "E", "W"]
         }
+        
+        # Intersection occupancy tracking: track which axis is in use (None, 'NS', or 'EW')
+        self._intersection_axis = None  # None='free', 'NS'='N/S crossing', 'EW'='E/W crossing'
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -391,12 +394,21 @@ class TrafficSimulation:
         with res.request() as req:
             yield req
 
-            # 2. Check signal compliance (Double-check after potential wait)
+            # 2. Strict signal compliance: verify light is still legal
             if not self._can_go(v.direction, v.turn):
                 v.releasing = False
                 return
+            
+            # 3. Wait until intersection is clear of cross-traffic
+            my_axis = 'NS' if v.direction in ('N', 'S') else 'EW'
+            while self._intersection_axis is not None and self._intersection_axis != my_axis:
+                yield self.env.timeout(0.05)  # Check every 0.05 sim-seconds
+                # Re-check light in case it changed while waiting
+                if not self._can_go(v.direction, v.turn):
+                    v.releasing = False
+                    return
 
-            # 3. Transition to moving state and remove from queue
+            # 4. Transition to moving state and remove from queue
             with self._lock:
                 q = self.queues[v.direction][v.lane_idx]
                 if q and q[0] == v.vid:
@@ -419,6 +431,7 @@ class TrafficSimulation:
                 wait       = v.wait_time()
                 self.stats.total_wait  += wait
                 self.stats.total_passed += 1
+                self._intersection_axis = my_axis  # Mark intersection as occupied by this axis
                 self._emit("vehicle_move", v.to_dict())
 
             self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
@@ -433,10 +446,19 @@ class TrafficSimulation:
 
             with self._lock:
                 v.state = "exited"
+                # Only clear intersection if no other vehicles are crossing
+                self._check_intersection_clear()
                 self._emit("vehicle_exit", {"vid": v.vid})
                 if v.vid in self.vehicles:
                     del self.vehicles[v.vid]
 
+    def _check_intersection_clear(self):
+        """Check if any vehicles are still crossing; clear intersection if not."""
+        # Count moving vehicles
+        moving_count = sum(1 for v in self.vehicles.values() if v.state == 'moving')
+        if moving_count == 0:
+            self._intersection_axis = None
+    
     def _pedestrian_process(self, direction: str):
         """Spawns pedestrians for a given crosswalk direction."""
         while True:
