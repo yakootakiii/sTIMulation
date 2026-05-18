@@ -8,7 +8,7 @@ eventlet.monkey_patch()
 
 import threading
 import os
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_caching import Cache
 from simulation import TrafficSimulation, SimConfig
@@ -17,6 +17,10 @@ from cache_config import CACHE_CONFIG, FALLBACK_CONFIG, CACHE_RULES
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "traffic-sim-2024"
 socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
+
+@app.route("/assets/<path:filename>")
+def asset_file(filename):
+    return send_from_directory(os.path.join(app.root_path, "assets"), filename)
 
 # ─── Cache setup ──────────────────────────────────────────────────────────────
 try:
