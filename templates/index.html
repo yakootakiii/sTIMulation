@@ -5,688 +5,152 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sTIMulation - Modern Traffic Simulator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ══════════════════════════════════════════════════════
-   RESET & CSS VARIABLES
-══════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
-  /* Core palette */
-  --bg:           #1b1d36;
-  --bg2:          #20223a;
-  --bg3:          #252844;
-  --bg4:          #2c2f52;
-  --surface:      #e1e7ed;
-  --surface2:     #c8d2dc;
+  --bg:#1b1d36; --bg2:#20223a; --bg3:#252844; --bg4:#2c2f52;
+  --pink:#fca6d1; --pink-dim:#c4718f; --pink-bg:rgba(252,166,209,.10); --pink-border:rgba(252,166,209,.30);
+  --cyan:#99d7ea; --cyan-dim:#5fa8c0; --cyan-bg:rgba(153,215,234,.10); --cyan-border:rgba(153,215,234,.28);
+  --red:#f87171; --red-bg:rgba(248,113,113,.12); --red-border:rgba(248,113,113,.30);
+  --border:rgba(153,215,234,.15); --border2:rgba(153,215,234,.25);
+  --text:#e1e7ed; --text2:#a8b8cc; --text3:#6a7f96;
+  --radius:14px; --radius-sm:9px; --radius-xs:6px;
+  --glass-bg:rgba(22,24,46,.90); --glass-blur:blur(20px); --glass-border:rgba(153,215,234,.18);
+  --shadow:0 8px 32px rgba(0,0,0,.55);
+  --panel-w:340px; --fab-size:44px; --status-h:32px; --header-h:52px;
+  font-family:'JetBrains Mono',monospace;
+}
+body { background:var(--bg); color:var(--text); height:100vh; overflow:hidden; display:grid; grid-template-rows:var(--header-h) 1fr; }
 
-  --pink:         #fca6d1;
-  --pink-dim:     #c4718f;
-  --pink-bg:      rgba(252,166,209,.10);
-  --pink-border:  rgba(252,166,209,.30);
-  --pink-glow:    rgba(252,166,209,.20);
+/* HEADER */
+header { display:flex; align-items:center; justify-content:space-between; padding:0 20px; background:rgba(27,29,54,.98); backdrop-filter:blur(14px); border-bottom:1px solid var(--border); z-index:100; position:relative; }
+.header-logo { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; letter-spacing:.4px; color:var(--text); user-select:none; z-index:2; }
+.header-logo svg { width:26px; height:26px; flex-shrink:0; }
+.header-center { position:absolute; left:50%; transform:translateX(-50%); font-size:13px; font-weight:700; letter-spacing:.6px; color:var(--cyan); pointer-events:none; white-space:nowrap; z-index:1; }
+.header-right { display:flex; align-items:center; gap:8px; z-index:2; }
 
-  --cyan:         #99d7ea;
-  --cyan-dim:     #5fa8c0;
-  --cyan-bg:      rgba(153,215,234,.10);
-  --cyan-border:  rgba(153,215,234,.28);
-  --cyan-glow:    rgba(153,215,234,.18);
+/* PILLS */
+.pill { padding:3px 10px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; border:1px solid transparent; transition:all .2s; white-space:nowrap; }
+.pill-green  { color:var(--cyan);  border-color:var(--cyan-border);  background:var(--cyan-bg); }
+.pill-yellow { color:var(--pink);  border-color:var(--pink-border);  background:var(--pink-bg); }
+.pill-red    { color:var(--red);   border-color:var(--red-border);   background:var(--red-bg); }
+.pill-blue   { color:var(--cyan);  border-color:var(--cyan-border);  background:var(--cyan-bg); }
+.pill-gray   { color:var(--text2); border-color:var(--border2);      background:rgba(153,215,234,.06); }
 
-  --red:          #f87171;
-  --red-bg:       rgba(248,113,113,.12);
-  --red-border:   rgba(248,113,113,.30);
+/* CANVAS */
+#canvas-wrap { position:relative; background:#0c0e1a; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+canvas#c { display:block; }
 
-  --border:       rgba(153,215,234,.15);
-  --border2:      rgba(153,215,234,.25);
-  --border-pink:  rgba(252,166,209,.25);
+/* STATUS BAR */
+#status-bar { position:absolute; bottom:0; left:0; right:0; height:var(--status-h); background:rgba(11,13,28,.92); backdrop-filter:blur(10px); border-top:1px solid var(--border); display:flex; align-items:center; gap:14px; padding:0 16px; font-size:11px; color:var(--text2); z-index:10; }
+.sb-item { display:flex; align-items:center; gap:5px; }
+.sb-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 
-  --text:         #e1e7ed;
-  --text2:        #a8b8cc;
-  --text3:        #6a7f96;
+/* ZOOM */
+#zoom-group { position:absolute; top:16px; left:16px; z-index:50; display:flex; flex-direction:row; align-items:center; gap:6px; }
 
-  --radius:       14px;
-  --radius-sm:    9px;
-  --radius-xs:    6px;
+/* FAB GROUP */
+#fab-group { position:fixed; bottom:calc(var(--status-h) + 12px); right:16px; z-index:60; display:flex; flex-direction:column; align-items:center; gap:8px; transition:right .28s cubic-bezier(.4,0,.2,1); will-change:right; }
 
-  --glass-bg:     rgba(27,29,54,.75);
-  --glass-blur:   blur(18px);
-  --glass-border: rgba(153,215,234,.18);
+/* FABs */
+.fab { width:var(--fab-size); height:var(--fab-size); border-radius:50%; border:1px solid var(--glass-border); background:var(--glass-bg); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); transition:transform .22s cubic-bezier(.34,1.56,.64,1),border-color .18s,background .18s; flex-shrink:0; padding:0; }
+.fab:hover { transform:scale(1.10); border-color:var(--cyan-border); }
+.fab:active { transform:scale(.94); }
+.fab svg { width:18px; height:18px; pointer-events:none; }
+.fab-controls { background:linear-gradient(135deg,rgba(153,215,234,.12),rgba(252,166,209,.08)); border-color:var(--cyan-border); color:var(--cyan); }
+.fab-controls:hover { background:linear-gradient(135deg,rgba(153,215,234,.24),rgba(252,166,209,.14)); }
+.fab-controls.is-open { background:linear-gradient(135deg,rgba(153,215,234,.22),rgba(252,166,209,.16)); border-color:var(--cyan); box-shadow:var(--shadow),0 0 0 2px rgba(153,215,234,.16); }
+.fab-analytics { color:var(--pink); border-color:var(--pink-border); background:linear-gradient(135deg,rgba(252,166,209,.10),rgba(153,215,234,.06)); }
+.fab-analytics:hover { background:linear-gradient(135deg,rgba(252,166,209,.22),rgba(153,215,234,.10)); border-color:var(--pink); }
+.fab-analytics.is-open { background:linear-gradient(135deg,rgba(252,166,209,.20),rgba(153,215,234,.12)); border-color:var(--pink); box-shadow:var(--shadow),0 0 0 2px rgba(252,166,209,.14); }
+.fab-zoom { width:36px; height:36px; color:var(--text2); border-color:var(--border); background:var(--glass-bg); }
+.fab-zoom svg { width:16px; height:16px; }
+.fab-zoom:hover { color:var(--cyan); border-color:var(--cyan-border); transform:scale(1.08); }
 
-  --shadow:       0 8px 32px rgba(0,0,0,.45);
-  --shadow-sm:    0 4px 16px rgba(0,0,0,.30);
-  --shadow-pink:  0 4px 24px rgba(252,166,209,.18);
-  --shadow-cyan:  0 4px 24px rgba(153,215,234,.15);
-
-  font-family: 'JetBrains Mono', monospace;
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: 52px 1fr;
-}
-
-/* ══════════════════════════════════════════════════════
-   HEADER — centered title
-══════════════════════════════════════════════════════ */
-header {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  background: rgba(27,29,54,.96);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  z-index: 100;
-  position: relative;
-}
-
-.header-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .4px;
-  color: var(--text);
-  user-select: none;
-  z-index: 2;
-}
-.header-logo svg { width: 26px; height: 26px; flex-shrink: 0; }
-
-/* Centered title absolutely positioned */
-.header-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .6px;
-  color: var(--cyan);
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 1;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 2;
-}
-
-/* ══════════════════════════════════════════════════════
-   PILL / BADGE
-══════════════════════════════════════════════════════ */
-.pill {
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .6px;
-  text-transform: uppercase;
-  border: 1px solid transparent;
-  transition: all .2s ease;
-  white-space: nowrap;
-}
-.pill-green  { color: var(--cyan);  border-color: var(--cyan-border);  background: var(--cyan-bg);  }
-.pill-yellow { color: var(--pink);  border-color: var(--pink-border);  background: var(--pink-bg);  }
-.pill-red    { color: var(--red);   border-color: var(--red-border);   background: var(--red-bg);   }
-.pill-blue   { color: var(--cyan);  border-color: var(--cyan-border);  background: var(--cyan-bg);  }
-.pill-gray   { color: var(--text2); border-color: var(--border2);      background: rgba(153,215,234,.06); }
-
-/* ══════════════════════════════════════════════════════
-   CANVAS AREA — full screen
-══════════════════════════════════════════════════════ */
-#canvas-wrap {
-  position: relative;
-  background: #0c0e1a;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-canvas { display: block; }
-
-/* ══════════════════════════════════════════════════════
-   STATUS BAR — bottom of canvas
-══════════════════════════════════════════════════════ */
-#status-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(11,13,28,.88);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 5px 16px;
-  font-size: 11px;
-  color: var(--text2);
-  z-index: 10;
-}
-.sb-item { display: flex; align-items: center; gap: 5px; }
-.sb-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
-/* ══════════════════════════════════════════════════════
-   FLOATING METRICS WIDGETS — bottom-left
-══════════════════════════════════════════════════════ */
-#metrics-widgets {
-  position: absolute;
-  bottom: 44px;
-  left: 16px;
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-}
-
-.widget {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  box-shadow: var(--shadow);
-  min-width: 140px;
-  pointer-events: auto;
-  transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, border-color .25s ease;
-  animation: widgetIn .4s cubic-bezier(.34,1.56,.64,1) both;
-}
-.widget:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: var(--shadow), var(--shadow-cyan);
-  border-color: rgba(153,215,234,.35);
-}
-@keyframes widgetIn {
-  from { opacity: 0; transform: translateX(-12px) scale(.95); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
-}
-.widget:nth-child(1) { animation-delay: .05s; }
-.widget:nth-child(2) { animation-delay: .10s; }
-.widget:nth-child(3) { animation-delay: .15s; }
-.widget:nth-child(4) { animation-delay: .20s; }
-
-.widget-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: nowrap;
-}
-.widget-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-.widget-label {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .7px;
-  text-transform: uppercase;
-  color: var(--text3);
-}
-.widget-val {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
-}
-.widget-sub {
-  font-size: 9px;
-  color: var(--text3);
-  margin-top: 1px;
-}
-.w-pink  { color: var(--pink); }
-.w-cyan  { color: var(--cyan); }
-.w-red   { color: var(--red);  }
-
-.widget-queue {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.wq-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.wq-dir {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--text2);
-  width: 16px;
-}
-.wq-track {
-  flex: 1;
-  height: 5px;
-  background: rgba(153,215,234,.12);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.wq-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width .4s cubic-bezier(.4,0,.2,1);
-  width: 0%;
-}
-.wq-ns { background: linear-gradient(90deg, var(--cyan), #b8e5f2); }
-.wq-ew { background: linear-gradient(90deg, var(--pink), #fdc4e2); }
-.wq-count {
-  font-size: 9px;
-  font-weight: 700;
-  min-width: 18px;
-  text-align: right;
-  color: var(--text2);
-}
-
-/* ══════════════════════════════════════════════════════
-   ZOOM CONTROLS — top-left
-══════════════════════════════════════════════════════ */
-#zoom-group {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 50;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ══════════════════════════════════════════════════════
-   FLOATING ACTION BUTTONS — bottom-right
-   Panel bottom edge aligns with FAB bottom edge.
-   Gap between panel right edge and FAB group = 10px.
-══════════════════════════════════════════════════════ */
-:root {
-  --panel-width:  340px;
-  --fab-size:     44px;   /* single source of truth for both primary FABs */
-  --fab-bottom:   52px;   /* height of status bar + 8px breathing room */
-  --panel-gap:    10px;   /* gap between panel and FAB group */
-}
-
-#fab-group {
-  position: absolute;
-  bottom: var(--fab-bottom);
-  right: 16px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: center;   /* center-align so both 44px FABs line up */
-  gap: 8px;
-  transition: right .35s cubic-bezier(.4,0,.2,1);
-}
-
-/* When panel is open, slide FABs left of the panel with consistent gap */
-#fab-group.panel-open {
-  right: calc(var(--panel-width) + 16px + var(--panel-gap));
-}
-
-/* Base FAB — all share this */
-.fab {
-  width: var(--fab-size);
-  height: var(--fab-size);
-  border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow);
-  transition: transform .25s cubic-bezier(.34,1.56,.64,1),
-              box-shadow .2s ease,
-              background .2s ease,
-              border-color .2s ease;
-  flex-shrink: 0;
-  padding: 0;
-}
-.fab:hover {
-  transform: scale(1.10);
-  box-shadow: var(--shadow), var(--shadow-cyan);
-  border-color: var(--cyan-border);
-  background: rgba(27,29,54,.92);
-}
-.fab:active { transform: scale(.95); }
-/* All FABs get the same icon size */
-.fab svg { width: 18px; height: 18px; pointer-events: none; }
-
-/* Controls FAB — same size as analytics, distinct color treatment */
-.fab-controls {
-  background: linear-gradient(135deg, rgba(153,215,234,.15), rgba(252,166,209,.10));
-  border-color: var(--cyan-border);
-  color: var(--cyan);
-}
-.fab-controls:hover {
-  background: linear-gradient(135deg, rgba(153,215,234,.28), rgba(252,166,209,.16));
-  box-shadow: var(--shadow), var(--shadow-cyan), 0 0 0 2px rgba(153,215,234,.14);
-  border-color: var(--cyan);
-}
-.fab-controls.is-open {
-  background: linear-gradient(135deg, rgba(153,215,234,.22), rgba(252,166,209,.18));
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: var(--shadow), 0 0 0 2px rgba(153,215,234,.18);
-}
-
-/* Analytics FAB — same size, pink accent */
-.fab-analytics {
-  color: var(--pink);
-  border-color: var(--pink-border);
-  background: linear-gradient(135deg, rgba(252,166,209,.10), rgba(153,215,234,.06));
-}
-.fab-analytics:hover {
-  background: linear-gradient(135deg, rgba(252,166,209,.22), rgba(153,215,234,.10));
-  border-color: var(--pink);
-  box-shadow: var(--shadow), var(--shadow-pink);
-}
-
-/* Zoom FABs — smaller, top-left group */
-.fab-zoom {
-  width: 36px;
-  height: 36px;
-  color: var(--text2);
-  border-color: var(--border);
-  background: var(--glass-bg);
-}
-.fab-zoom svg { width: 16px; height: 16px; }
-.fab-zoom:hover {
-  color: var(--cyan);
-  border-color: var(--cyan-border);
-  box-shadow: var(--shadow-sm), var(--shadow-cyan);
-  transform: scale(1.08);
-}
-
-/* ══════════════════════════════════════════════════════
-   FLOATING CONTROLS PANEL
-══════════════════════════════════════════════════════ */
-#panel, #analytics-panel {
-  position: absolute;
-  width: var(--panel-width);
-  max-height: 65vh;
-  height: auto;
-  overflow-y: auto;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  z-index: 40;
-
-  /* Animation */
-  transform-origin: bottom right;
-  transition: opacity .3s cubic-bezier(.4,0,.2,1),
-              transform .3s cubic-bezier(.4,0,.2,1);
-  opacity: 0;
-  transform: scale(.92) translateY(12px);
-  pointer-events: none;
-  cursor: grab;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-#panel.visible, #analytics-panel.visible {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-  pointer-events: auto;
-}
-
-#panel.dragging, #analytics-panel.dragging {
-  cursor: grabbing;
-  z-index: 45;
-  opacity: 0.95;
-  transition: none;
-}
-
-#panel::-webkit-scrollbar, #analytics-panel::-webkit-scrollbar { width: 4px; }
-#panel::-webkit-scrollbar-track, #analytics-panel::-webkit-scrollbar-track { background: transparent; }
-#panel::-webkit-scrollbar-thumb, #analytics-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+/* PANELS */
+.float-panel { position:fixed; width:var(--panel-w); max-height:calc(100vh - var(--header-h) - var(--status-h) - 80px); overflow-y:auto; overflow-x:hidden; background:var(--glass-bg); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); border:1px solid var(--glass-border); border-radius:var(--radius); box-shadow:var(--shadow); z-index:50; opacity:0; transform:scale(.92) translateY(14px); pointer-events:none; transition:opacity .28s cubic-bezier(.4,0,.2,1),transform .28s cubic-bezier(.4,0,.2,1); will-change:transform,opacity; scrollbar-width:thin; scrollbar-color:var(--border2) transparent; }
+.float-panel::-webkit-scrollbar { width:4px; }
+.float-panel::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.float-panel.visible { opacity:1; transform:scale(1) translateY(0); pointer-events:auto; }
+.float-panel.is-dragging { transition:none !important; opacity:.96; z-index:55; cursor:grabbing; }
 
 /* Panel sections */
-.p-section {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-}
-.p-section:last-child { border-bottom: none; }
+.p-section { padding:12px 14px; border-bottom:1px solid var(--border); }
+.p-section:last-child { border-bottom:none; }
+.sec-title { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--pink); margin-bottom:9px; display:flex; align-items:center; justify-content:space-between; cursor:grab; user-select:none; }
+.sec-title:active { cursor:grabbing; }
+.sec-drag-hint { font-size:8px; color:var(--text3); letter-spacing:.3px; opacity:.55; text-transform:none; font-weight:400; }
 
-.sec-title {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--pink);
-  margin-bottom: 10px;
-}
+/* BUTTONS */
+.btn-row { display:flex; gap:6px; }
+.btn { flex:1; padding:8px 6px; font-size:11px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; border:1px solid var(--border2); border-radius:var(--radius-sm); background:rgba(153,215,234,.06); color:var(--text2); cursor:pointer; transition:all .18s cubic-bezier(.4,0,.2,1); font-family:'JetBrains Mono',monospace; white-space:nowrap; }
+.btn:hover { background:rgba(153,215,234,.12); color:var(--cyan); border-color:var(--cyan-border); transform:translateY(-1px); }
+.btn:active { transform:translateY(0); }
+.btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+.btn.active-green  { background:var(--cyan-bg);  color:var(--cyan);  border-color:var(--cyan-border); }
+.btn.active-yellow { background:var(--pink-bg);  color:var(--pink);  border-color:var(--pink-border); }
+.btn.active-red    { background:var(--red-bg);   color:var(--red);   border-color:var(--red-border); }
+.btn.active-blue   { background:var(--cyan-bg);  color:var(--cyan);  border-color:var(--cyan-border); }
 
-/* ══════════════════════════════════════════════════════
-   BUTTONS
-══════════════════════════════════════════════════════ */
-.btn-row { display: flex; gap: 6px; }
-.btn {
-  flex: 1;
-  padding: 8px 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .3px;
-  text-transform: uppercase;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
-  background: rgba(153,215,234,.06);
-  color: var(--text2);
-  cursor: pointer;
-  transition: all .2s cubic-bezier(.4,0,.2,1);
-  font-family: 'JetBrains Mono', monospace;
-  white-space: nowrap;
-}
-.btn:hover {
-  background: rgba(153,215,234,.12);
-  color: var(--cyan);
-  border-color: var(--cyan-border);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 10px rgba(153,215,234,.12);
-}
-.btn:active { transform: translateY(0); box-shadow: none; }
-.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+/* FORM CONTROLS */
+.ctrl { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+.ctrl:last-child { margin-bottom:0; }
+.ctrl-label { font-size:10px; color:var(--text2); min-width:76px; font-weight:600; }
+.ctrl-val { font-size:10px; font-weight:700; color:var(--cyan); min-width:30px; text-align:right; }
+input[type=range] { flex:1; -webkit-appearance:none; height:3px; background:var(--border2); border-radius:2px; outline:none; cursor:pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--cyan); cursor:pointer; border:2px solid var(--bg); box-shadow:0 0 6px rgba(153,215,234,.4); transition:transform .12s; }
+input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); }
+input[type=number] { flex:1; font-size:10px; font-weight:600; padding:5px 8px; border:1px solid var(--border2); border-radius:var(--radius-xs); background:rgba(153,215,234,.06); color:var(--text); outline:none; transition:border-color .18s; font-family:'JetBrains Mono',monospace; }
+input[type=number]:focus { border-color:var(--cyan-border); }
+select { flex:1; font-size:10px; font-weight:600; padding:5px 8px; border:1px solid var(--border2); border-radius:var(--radius-xs); background:rgba(27,29,54,.92); color:var(--text); cursor:pointer; outline:none; transition:border-color .18s; font-family:'JetBrains Mono',monospace; }
+select:focus { border-color:var(--cyan-border); }
+select option { background:var(--bg3); }
+.toggle-wrap { display:flex; align-items:center; gap:8px; font-size:10px; color:var(--text2); }
+.toggle { position:relative; width:32px; height:17px; cursor:pointer; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; inset:0; background:rgba(153,215,234,.15); border-radius:9px; transition:.22s; border:1px solid var(--border2); }
+.toggle-slider:before { content:''; position:absolute; width:11px; height:11px; left:2px; top:2px; background:var(--text3); border-radius:50%; transition:.22s; }
+.toggle input:checked + .toggle-slider { background:var(--cyan-bg); border-color:var(--cyan-border); }
+.toggle input:checked + .toggle-slider:before { transform:translateX(15px); background:var(--cyan); }
 
-.btn.active-green {
-  background: var(--cyan-bg);
-  color: var(--cyan);
-  border-color: var(--cyan-border);
-}
-.btn.active-yellow {
-  background: var(--pink-bg);
-  color: var(--pink);
-  border-color: var(--pink-border);
-}
-.btn.active-red {
-  background: var(--red-bg);
-  color: var(--red);
-  border-color: var(--red-border);
-}
-.btn.active-blue {
-  background: var(--cyan-bg);
-  color: var(--cyan);
-  border-color: var(--cyan-border);
-}
+/* LOG */
+.log-scroll { max-height:130px; overflow-y:auto; padding-right:2px; scrollbar-width:thin; scrollbar-color:var(--border2) transparent; }
+.log-scroll::-webkit-scrollbar { width:3px; }
+.log-scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.log-entry { display:flex; gap:6px; padding:3px 0; border-bottom:1px solid rgba(153,215,234,.05); font-size:10px; line-height:1.5; }
+.log-time { color:var(--text3); min-width:36px; }
+.log-msg  { flex:1; word-break:break-word; }
+.c-green{color:var(--cyan)} .c-yellow{color:var(--pink)} .c-red{color:var(--red)} .c-blue{color:var(--cyan)} .c-gray{color:var(--text2)}
 
-/* ══════════════════════════════════════════════════════
-   FORM CONTROLS
-══════════════════════════════════════════════════════ */
-.ctrl { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.ctrl:last-child { margin-bottom: 0; }
-.ctrl-label {
-  font-size: 10px;
-  color: var(--text2);
-  min-width: 78px;
-  font-weight: 600;
-  letter-spacing: .2px;
-}
-.ctrl-val {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--cyan);
-  min-width: 30px;
-  text-align: right;
-}
+/* ANALYTICS SUMMARY GRID */
+.an-summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:4px; }
+.an-summary-item { background:rgba(153,215,234,.05); border:1px solid var(--border); border-radius:var(--radius-xs); padding:7px 8px; transition:all .15s ease; }
+.an-summary-item:hover { background:rgba(153,215,234,.09); border-color:var(--border2); }
+.an-summary-label { font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+.an-summary-val { font-size:15px; font-weight:700; color:var(--cyan); margin-top:3px; }
+.an-summary-val.pink { color:var(--pink); }
+.an-summary-val.red  { color:var(--red); }
 
-input[type=range] {
-  flex: 1;
-  -webkit-appearance: none;
-  height: 3px;
-  background: var(--border2);
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 13px; height: 13px;
-  border-radius: 50%;
-  background: var(--cyan);
-  cursor: pointer;
-  border: 2px solid var(--bg);
-  box-shadow: 0 0 6px rgba(153,215,234,.4);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-input[type=range]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 10px rgba(153,215,234,.6);
-}
+/* SESSION GRID */
+.sess-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+.sess-item { background:rgba(153,215,234,.05); border:1px solid var(--border); border-radius:var(--radius-xs); padding:7px 8px; transition:all .15s ease; }
+.sess-item:hover { background:rgba(153,215,234,.08); border-color:var(--border2); }
+.sess-label { font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+.sess-val { font-size:12px; font-weight:700; color:var(--cyan); margin-top:3px; word-break:break-all; }
 
-input[type=number] {
-  flex: 1;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 5px 8px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-xs);
-  background: rgba(153,215,234,.06);
-  color: var(--text);
-  outline: none;
-  transition: border-color .2s, box-shadow .2s;
-  font-family: 'JetBrains Mono', monospace;
-}
-input[type=number]:focus {
-  border-color: var(--cyan-border);
-  box-shadow: 0 0 0 2px rgba(153,215,234,.10);
-}
-
-select {
-  flex: 1;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 5px 8px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-xs);
-  background: rgba(27,29,54,.9);
-  color: var(--text);
-  cursor: pointer;
-  outline: none;
-  transition: border-color .2s, box-shadow .2s;
-  font-family: 'JetBrains Mono', monospace;
-}
-select:focus {
-  border-color: var(--cyan-border);
-  box-shadow: 0 0 0 2px rgba(153,215,234,.10);
-}
-select option { background: var(--bg3); }
-
-/* Toggle */
-.toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text2); }
-.toggle { position: relative; width: 32px; height: 17px; cursor: pointer; flex-shrink: 0; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider {
-  position: absolute; inset: 0;
-  background: rgba(153,215,234,.15);
-  border-radius: 9px;
-  transition: .25s;
-  border: 1px solid var(--border2);
-}
-.toggle-slider:before {
-  content: '';
-  position: absolute;
-  width: 11px; height: 11px;
-  left: 2px; top: 2px;
-  background: var(--text3);
-  border-radius: 50%;
-  transition: .25s;
-}
-.toggle input:checked + .toggle-slider { background: var(--cyan-bg); border-color: var(--cyan-border); }
-.toggle input:checked + .toggle-slider:before { transform: translateX(15px); background: var(--cyan); }
-
-/* ══════════════════════════════════════════════════════
-   LOG
-══════════════════════════════════════════════════════ */
-.log-scroll {
-  max-height: 140px;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-.log-scroll::-webkit-scrollbar { width: 3px; }
-.log-scroll::-webkit-scrollbar-track { background: transparent; }
-.log-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-.log-entry {
-  display: flex; gap: 6px;
-  padding: 3px 0;
-  border-bottom: 1px solid rgba(153,215,234,.06);
-  font-size: 10px;
-  line-height: 1.5;
-  transition: background .1s;
-}
-.log-entry:hover { background: rgba(153,215,234,.04); }
-.log-time { color: var(--text3); min-width: 36px; }
-.log-msg  { flex: 1; word-break: break-word; }
-.c-green  { color: var(--cyan); }
-.c-yellow { color: var(--pink); }
-.c-red    { color: var(--red); }
-.c-blue   { color: var(--cyan); }
-.c-gray   { color: var(--text2); }
-
-/* ══════════════════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════════════════ */
-@media (max-width: 700px) {
-  :root {
-    --panel-width: calc(100vw - 32px);
-    --panel-gap: 8px;
-  }
-  #panel { right: 16px; width: var(--panel-width); }
-  /* On mobile with panel open, FABs slide above the panel */
-  #fab-group.panel-open {
-    right: 16px;
-    bottom: calc(var(--fab-bottom) + var(--panel-mobile-height, 360px) + 12px);
-  }
-  .header-center { display: none; }
-  #metrics-widgets { gap: 6px; }
-  #zoom-group { top: 12px; left: 12px; gap: 5px; }
-}
+@media(max-width:700px) { :root{--panel-w:calc(100vw - 32px)} .header-center{display:none} }
 </style>
 </head>
 <body>
 
-<!-- ══ HEADER ═══════════════════════════════════════════════════════ -->
 <header>
   <div class="header-logo">
-    <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 26 26" fill="none">
       <rect x="10" y="0" width="6" height="26" rx="2" fill="rgba(153,215,234,.18)"/>
       <rect x="0" y="10" width="26" height="6" rx="2" fill="rgba(153,215,234,.18)"/>
-      <rect x="10" y="0"  width="6" height="10" rx="2" fill="#99d7ea" opacity=".9"/>
+      <rect x="10" y="0" width="6" height="10" rx="2" fill="#99d7ea" opacity=".9"/>
       <rect x="16" y="10" width="10" height="6" rx="2" fill="#fca6d1" opacity=".9"/>
       <rect x="10" y="16" width="6" height="10" rx="2" fill="#fca6d1" opacity=".9"/>
       <rect x="0"  y="10" width="10" height="6" rx="2" fill="#99d7ea" opacity=".9"/>
@@ -694,36 +158,25 @@ select option { background: var(--bg3); }
     </svg>
     sTIMulation
   </div>
-
   <div class="header-center">4-Way Intersection Traffic Simulator</div>
-
   <div class="header-right">
     <span id="hdr-scenario" class="pill pill-blue">Normal</span>
-    <span id="hdr-phase" class="pill pill-green">N-S Green</span>
-    <span id="hdr-cycles" class="pill pill-gray">Cycle 0</span>
-    <span id="hdr-time" class="pill pill-gray">T = 0.0s</span>
-    <span id="hdr-conn" class="pill pill-red">Disconnected</span>
+    <span id="hdr-phase"    class="pill pill-green">N-S Green</span>
+    <span id="hdr-cycles"   class="pill pill-gray">Cycle 0</span>
+    <span id="hdr-time"     class="pill pill-gray">T = 0.0s</span>
+    <span id="hdr-conn"     class="pill pill-red">Disconnected</span>
   </div>
 </header>
 
-<!-- ══ CANVAS AREA ═══════════════════════════════════════════════════ -->
 <div id="canvas-wrap">
   <canvas id="c"></canvas>
 
-  <!-- Status bar -->
   <div id="status-bar">
-    <div class="sb-item">
-      <div class="sb-dot" id="sb-ns-dot" style="background:#99d7ea"></div>
-      N-S: <span id="sb-ns" style="color:#99d7ea;font-weight:700">GREEN</span>
-    </div>
-    <div class="sb-item">
-      <div class="sb-dot" id="sb-ew-dot" style="background:#f87171"></div>
-      E-W: <span id="sb-ew" style="color:#f87171;font-weight:700">RED</span>
-    </div>
+    <div class="sb-item"><div class="sb-dot" style="background:#99d7ea"></div>N-S: <span id="sb-ns" style="color:#99d7ea;font-weight:700">GREEN</span></div>
+    <div class="sb-item"><div class="sb-dot" style="background:#f87171"></div>E-W: <span id="sb-ew" style="color:#f87171;font-weight:700">RED</span></div>
     <div class="sb-item">Active: <b id="sb-active" style="color:var(--text)">0</b></div>
     <div class="sb-item">N+S: <b id="sb-ns-q" style="color:var(--cyan)">0</b></div>
     <div class="sb-item">E+W: <b id="sb-ew-q" style="color:var(--pink)">0</b></div>
-
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
       Phase:
       <div style="width:110px;height:3px;background:rgba(153,215,234,.15);border-radius:2px;overflow:hidden">
@@ -731,110 +184,38 @@ select option { background: var(--bg3); }
       </div>
       <span id="phase-label" style="color:var(--text3);font-size:10px">NS GREEN</span>
     </div>
-
-    <button onclick="CAM={x:0,y:0,scale:1}"
-      style="padding:2px 10px;font-size:10px;background:rgba(153,215,234,.08);
-             color:var(--text2);border:1px solid var(--border2);border-radius:6px;
-             cursor:pointer;font-family:'JetBrains Mono',monospace;
-             transition:all .2s;margin-left:8px;"
-      onmouseover="this.style.borderColor='var(--cyan-border)';this.style.color='var(--cyan)'"
-      onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
-      Reset View
-    </button>
+    <button onclick="resetView()"
+      style="padding:2px 10px;font-size:10px;background:rgba(153,215,234,.08);color:var(--text2);border:1px solid var(--border2);border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .18s;margin-left:8px"
+      onmouseover="this.style.color='var(--cyan)';this.style.borderColor='var(--cyan-border)'"
+      onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">Reset View</button>
   </div>
 
-  <!-- ── Floating Metrics Widgets (bottom-left) ── -->
-  <div id="metrics-widgets">
-
-    <!-- Stats widget -->
-    <div class="widget">
-      <div class="widget-row">
-        <div class="widget-item">
-          <div class="widget-label">Cars Passed</div>
-          <div class="widget-val w-cyan" id="w-passed">0</div>
-          <div class="widget-sub">total</div>
-        </div>
-        <div class="widget-item">
-          <div class="widget-label">Avg Wait</div>
-          <div class="widget-val w-pink" id="w-wait">0.0s</div>
-          <div class="widget-sub">per vehicle</div>
-        </div>
-        <div class="widget-item">
-          <div class="widget-label">Cycles</div>
-          <div class="widget-val w-cyan" id="w-cycles">0</div>
-          <div class="widget-sub">done</div>
-        </div>
-        <div class="widget-item">
-          <div class="widget-label">Active</div>
-          <div class="widget-val w-pink" id="w-active">0</div>
-          <div class="widget-sub">on road</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Queue widget -->
-    <div class="widget">
-      <div class="widget-label" style="margin-bottom:7px">Queue Lengths</div>
-      <div class="widget-queue">
-        <div class="wq-row"><span class="wq-dir">N</span><div class="wq-track"><div class="wq-fill wq-ns" id="wqb-n"></div></div><span class="wq-count" id="wqn-n">0</span></div>
-        <div class="wq-row"><span class="wq-dir">S</span><div class="wq-track"><div class="wq-fill wq-ns" id="wqb-s"></div></div><span class="wq-count" id="wqn-s">0</span></div>
-        <div class="wq-row"><span class="wq-dir">E</span><div class="wq-track"><div class="wq-fill wq-ew" id="wqb-e"></div></div><span class="wq-count" id="wqn-e">0</span></div>
-        <div class="wq-row"><span class="wq-dir">W</span><div class="wq-track"><div class="wq-fill wq-ew" id="wqb-w"></div></div><span class="wq-count" id="wqn-w">0</span></div>
-      </div>
-    </div>
-
-  </div><!-- /metrics-widgets -->
-
-  <!-- ── Zoom Controls (top-left) ── -->
+  <!-- Zoom Controls -->
   <div id="zoom-group">
-    <button class="fab fab-zoom" id="fab-zoom-out" title="Zoom Out" onclick="zoomAt(0.85)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        <line x1="8" y1="11" x2="14" y2="11"/>
-      </svg>
+    <button class="fab fab-zoom" title="Zoom Out" id="btn-zoom-out">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
     </button>
-    <button class="fab fab-zoom" id="fab-zoom-in" title="Zoom In" onclick="zoomAt(1.15)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-      </svg>
+    <button class="fab fab-zoom" title="Zoom In" id="btn-zoom-in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
     </button>
   </div>
 
-  <!-- ── Floating Action Buttons (bottom-right) ── -->
+  <!-- FAB Group -->
   <div id="fab-group">
-
-    <!-- Analytics button -->
-    <button class="fab fab-analytics" id="fab-analytics-btn" title="Analytics Panel" onclick="toggleAnalyticsPanel()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
+    <button class="fab fab-analytics" id="fab-analytics-btn" title="Analytics Panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     </button>
-
-    <!-- Controls toggle button -->
-    <button class="fab fab-controls" id="fab-controls-btn" title="Simulation Controls" onclick="togglePanel()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <line x1="3" y1="12" x2="21" y2="12"/>
-        <line x1="3" y1="18" x2="21" y2="18"/>
-        <circle cx="7" cy="6" r="2" fill="currentColor" stroke="none"/>
-        <circle cx="14" cy="12" r="2" fill="currentColor" stroke="none"/>
-        <circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/>
-      </svg>
+    <button class="fab fab-controls" id="fab-controls-btn" title="Simulation Controls">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><circle cx="7" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
     </button>
+  </div>
 
-  </div><!-- /fab-group -->
-
-  <!-- ── Floating Controls Panel ── -->
-  <div id="panel">
-
-    <!-- Controls -->
+  <!-- ══ SIMULATION CONTROLS PANEL ══ -->
+  <div id="panel-controls" class="float-panel">
     <div class="p-section">
-      <div class="sec-title">Simulation Controls</div>
+      <div class="sec-title" data-drag-handle="panel-controls">Simulation Controls <span class="sec-drag-hint">drag to move</span></div>
       <div class="btn-row">
-        <button class="btn" id="btn-start" onclick="cmdStart()" style="display:block">
+        <button class="btn" id="btn-start" onclick="cmdStart()">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><polygon points="2,1 9,5 2,9"/></svg>Start
         </button>
         <button class="btn" id="btn-pause" onclick="cmdPause()" style="display:none">
@@ -845,1357 +226,550 @@ select option { background: var(--bg3); }
         </button>
       </div>
     </div>
-
-    <!-- Scenario & Road -->
     <div class="p-section">
-      <div class="sec-title">Scenario & Configuration</div>
-      <div class="ctrl">
-        <span class="ctrl-label">Scenario</span>
-        <select id="sel-scenario" onchange="onCfgChange()">
-          <option value="normal">Normal Traffic</option>
-          <option value="rush">Rush Hour</option>
-          <option value="low">Low Traffic</option>
-        </select>
-      </div>
-      <div class="ctrl">
-        <span class="ctrl-label">Road Type</span>
-        <select id="sel-road" onchange="onCfgChange()">
-          <option value="2">2-lane (1 per dir)</option>
-          <option value="4" selected>4-lane (2 per dir)</option>
-          <option value="6">6-lane (3 per dir)</option>
-        </select>
-      </div>
-      <div class="ctrl">
-        <span class="ctrl-label">Speed</span>
-        <input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4"
-          oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()">
-        <span class="ctrl-val" id="v-speed">4×</span>
-      </div>
-      <div class="ctrl">
-        <span class="ctrl-label">Random Seed</span>
-        <input type="number" id="sl-seed" value="42" onchange="onCfgChange()">
-      </div>
-      <div class="ctrl" style="margin-top:4px">
-        <span class="ctrl-label">Right-on-Red</span>
-        <label class="toggle">
-          <input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()">
-          <span class="toggle-slider"></span>
-        </label>
-        <span style="font-size:10px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span>
-      </div>
+      <div class="sec-title" data-drag-handle="panel-controls">Scenario &amp; Configuration</div>
+      <div class="ctrl"><span class="ctrl-label">Scenario</span><select id="sel-scenario" onchange="onCfgChange()"><option value="normal">Normal Traffic</option><option value="rush">Rush Hour</option><option value="low">Low Traffic</option></select></div>
+      <div class="ctrl"><span class="ctrl-label">Road Type</span><select id="sel-road" onchange="onCfgChange()"><option value="2">2-lane (1 per dir)</option><option value="4" selected>4-lane (2 per dir)</option><option value="6">6-lane (3 per dir)</option></select></div>
+      <div class="ctrl"><span class="ctrl-label">Speed</span><input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4" oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()"><span class="ctrl-val" id="v-speed">4×</span></div>
+      <div class="ctrl"><span class="ctrl-label">Random Seed</span><input type="number" id="sl-seed" value="42" onchange="onCfgChange()"></div>
+      <div class="ctrl" style="margin-top:4px"><span class="ctrl-label">Right-on-Red</span><label class="toggle"><input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()"><span class="toggle-slider"></span></label><span style="font-size:10px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span></div>
     </div>
-
-    <!-- Signal Timing -->
     <div class="p-section">
-      <div class="sec-title">Signal Timing</div>
-      <div class="ctrl">
-        <span class="ctrl-label">Green (s)</span>
-        <input type="range" id="sl-green" min="5" max="60" value="20"
-          oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()">
-        <span class="ctrl-val" id="v-green">20</span>
-      </div>
-      <div class="ctrl">
-        <span class="ctrl-label">Yellow (s)</span>
-        <input type="range" id="sl-yellow" min="2" max="10" value="4"
-          oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()">
-        <span class="ctrl-val" id="v-yellow">4</span>
-      </div>
-      <div class="ctrl">
-        <span class="ctrl-label">All-Red (s)</span>
-        <input type="range" id="sl-red" min="0" max="5" step="0.5" value="1"
-          oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()">
-        <span class="ctrl-val" id="v-red">1</span>
-      </div>
+      <div class="sec-title" data-drag-handle="panel-controls">Signal Timing</div>
+      <div class="ctrl"><span class="ctrl-label">Green (s)</span><input type="range" id="sl-green" min="5" max="60" value="20" oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-green">20</span></div>
+      <div class="ctrl"><span class="ctrl-label">Yellow (s)</span><input type="range" id="sl-yellow" min="2" max="10" value="4" oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-yellow">4</span></div>
+      <div class="ctrl"><span class="ctrl-label">All-Red (s)</span><input type="range" id="sl-red" min="0" max="5" step="0.5" value="1" oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-red">1</span></div>
     </div>
-
-    <!-- Log -->
     <div class="p-section">
-      <div class="sec-title">Live Log</div>
+      <div class="sec-title" data-drag-handle="panel-controls">Live Log</div>
       <div class="log-scroll" id="log-scroll">
-        <div class="log-entry">
-          <span class="log-time">-</span>
-          <span class="log-msg c-gray">Waiting for simulation to start…</span>
+        <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ANALYTICS PANEL (summary only — no charts) ══ -->
+  <div id="panel-analytics" class="float-panel">
+
+    <div class="p-section">
+      <div class="sec-title" data-drag-handle="panel-analytics">Analytics Summary <span class="sec-drag-hint">drag to move</span></div>
+      <div class="an-summary-grid">
+        <div class="an-summary-item">
+          <div class="an-summary-label">Cars Passed</div>
+          <div class="an-summary-val" id="an-passed">0</div>
+        </div>
+        <div class="an-summary-item">
+          <div class="an-summary-label">Avg Wait</div>
+          <div class="an-summary-val pink" id="an-wait">0.0s</div>
+        </div>
+        <div class="an-summary-item">
+          <div class="an-summary-label">Signal Cycles</div>
+          <div class="an-summary-val" id="an-cycles">0</div>
+        </div>
+        <div class="an-summary-item">
+          <div class="an-summary-label">Active Vehicles</div>
+          <div class="an-summary-val pink" id="an-active">0</div>
+        </div>
+        <div class="an-summary-item">
+          <div class="an-summary-label">N+S Queue</div>
+          <div class="an-summary-val" id="an-ns-q">0</div>
+        </div>
+        <div class="an-summary-item">
+          <div class="an-summary-label">E+W Queue</div>
+          <div class="an-summary-val red" id="an-ew-q">0</div>
         </div>
       </div>
     </div>
 
-  </div><!-- /panel -->
-
-  <!-- ── Floating Analytics Panel ── -->
-  <div id="analytics-panel">
-
-    <!-- Charts Section -->
     <div class="p-section">
-      <div class="sec-title">Queue Lengths Over Time</div>
-      <div style="height:140px;position:relative;background:rgba(153,215,234,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
-        <canvas id="analytics-queue-chart"></canvas>
+      <div class="sec-title" data-drag-handle="panel-analytics">Session Recording</div>
+      <div class="sess-grid">
+        <div class="sess-item"><div class="sess-label">Session ID</div><div class="sess-val" id="an-session-id">--------</div></div>
+        <div class="sess-item"><div class="sess-label">Duration</div><div class="sess-val" id="an-session-duration">0.0s</div></div>
+        <div class="sess-item"><div class="sess-label">Data Points</div><div class="sess-val" id="an-session-points">0</div></div>
+        <div class="sess-item"><div class="sess-label">Vehicles Tracked</div><div class="sess-val" id="an-session-vehicles">0</div></div>
       </div>
+      <div id="an-session-hint" style="font-size:11px;color:var(--text3);margin-bottom:8px">Start the simulation to see data.</div>
+      <div class="btn-row"><button class="btn active-red" onclick="anClearSession()">Clear Session</button></div>
     </div>
 
     <div class="p-section">
-      <div class="sec-title">Wait Time Distribution</div>
-      <div style="height:140px;position:relative;background:rgba(252,166,209,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
-        <canvas id="analytics-wait-chart"></canvas>
+      <div class="sec-title" data-drag-handle="panel-analytics">Export</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button class="btn active-blue" onclick="anExportJson()" style="width:100%">Export JSON</button>
+        <button class="btn active-blue" onclick="anExportCsv()"  style="width:100%">Export CSV</button>
+        <button class="btn active-blue" onclick="anExportPdf()"  style="width:100%">Export PDF Report</button>
+        <button onclick="window.location.href='/analytics'"
+           style="display:block;width:100%;text-align:center;padding:8px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;text-decoration:none;border:1px solid var(--border2);border-radius:var(--radius-sm);background:rgba(153,215,234,.04);color:var(--text2);transition:all .18s;margin-top:2px;cursor:pointer;font-family:'JetBrains Mono',monospace"
+           onmouseover="this.style.color='var(--cyan)';this.style.borderColor='var(--cyan-border)'"
+           onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">Open Full Analytics Dashboard →</button>
       </div>
     </div>
 
-    <div class="p-section">
-      <div class="sec-title">Vehicles Passed Per Cycle</div>
-      <div style="height:140px;position:relative;background:rgba(153,215,234,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
-        <canvas id="analytics-throughput-chart"></canvas>
-      </div>
-    </div>
+  </div><!-- /panel-analytics -->
 
-    <div class="p-section">
-      <div class="sec-title">Signal Phase Timing</div>
-      <div style="height:140px;position:relative;background:rgba(248,113,113,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
-        <canvas id="analytics-phase-chart"></canvas>
-      </div>
-    </div>
+</div><!-- /canvas-wrap -->
 
-    <!-- Session Info -->
-    <div class="p-section">
-      <div class="sec-title">Session Recording</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
-          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Session ID</div>
-          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px;word-break:break-all" id="analytics-session-id">--------</div>
-        </div>
-        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
-          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Duration</div>
-          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px" id="analytics-session-duration">0.0s</div>
-        </div>
-        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
-          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Data Points</div>
-          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px" id="analytics-data-points">0</div>
-        </div>
-        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
-          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Records</div>
-          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px" id="analytics-records">0</div>
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn active-red" id="btn-analytics-clear" onclick="cmdAnalyticsClear()" style="flex:1">
-          Clear Session
-        </button>
-      </div>
-    </div>
-
-    <!-- Export -->
-    <div class="p-section">
-      <div class="sec-title">Export Data</div>
-      <div class="btn-row" style="flex-direction:column;gap:6px">
-        <button class="btn active-blue" id="btn-export-json" onclick="cmdExportJSON()" style="width:100%">Export JSON</button>
-        <button class="btn active-blue" id="btn-export-csv" onclick="cmdExportCSV()" style="width:100%">Export CSV</button>
-        <button class="btn active-blue" id="btn-export-pdf" onclick="cmdExportPDF()" style="width:100%">Export PDF</button>
-      </div>
-    </div>
-
-  </div><!-- /analytics-panel -->
-
-<!-- ══ SCRIPTS ═══════════════════════════════════════════════════════ -->
 <script>
-// ─── Panel toggle ──────────────────────────────────────────────────
-let panelOpen = false;
-let analyticsOpen = false;
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION 1 — PANEL & FAB MANAGEMENT
+   ═══════════════════════════════════════════════════════════════════ */
 
-function togglePanel() {
-  panelOpen = !panelOpen;
-  const panel = document.getElementById('panel');
-  const btn   = document.getElementById('fab-controls-btn');
-  const fab   = document.getElementById('fab-group');
+const PANEL_W     = 340;
+const FAB_GAP     = 14;
+const EDGE_MARGIN = 16;
+const HEADER_H    = 52;
+const STATUS_H    = 32;
 
-  panel.classList.toggle('visible', panelOpen);
-  btn.classList.toggle('is-open', panelOpen);
-  fab.classList.toggle('panel-open', panelOpen);
-}
+const pState = {
+  controls:  { open:false, wasDragged:false },
+  analytics: { open:false, wasDragged:false },
+};
 
-function toggleAnalyticsPanel() {
-  analyticsOpen = !analyticsOpen;
-  const panel = document.getElementById('analytics-panel');
-  const btn = document.getElementById('fab-analytics-btn');
-  
-  panel.classList.toggle('visible', analyticsOpen);
-  btn.classList.toggle('is-open', analyticsOpen);
-}
+function getPanelEl(id) { return document.getElementById('panel-'+id); }
 
-// ─── Dragging for Panels ───────────────────────────────────────────
-let dragState = null;
-
-function startDragPanel(e, panelId) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || 
-      e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' ||
-      e.target.closest('.btn') || e.target.closest('button')) return;
-  
-  const panel = document.getElementById(panelId);
-  const rect = panel.getBoundingClientRect();
-  
-  dragState = {
-    panelId,
-    startX: e.clientX,
-    startY: e.clientY,
-    initialX: rect.left,
-    initialY: rect.top,
-  };
-  
-  panel.classList.add('dragging');
-  e.preventDefault();
-}
-
-function dragPanel(e) {
-  if (!dragState) return;
-  
-  const panel = document.getElementById(dragState.panelId);
-  const deltaX = e.clientX - dragState.startX;
-  const deltaY = e.clientY - dragState.startY;
-  
-  const newX = dragState.initialX + deltaX;
-  const newY = dragState.initialY + deltaY;
-  
-  const maxX = window.innerWidth - panel.offsetWidth;
-  const maxY = window.innerHeight - panel.offsetHeight;
-  
-  panel.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
-  panel.style.top = Math.max(52, Math.min(newY, maxY)) + 'px';
-  panel.style.right = 'auto';
-  panel.style.bottom = 'auto';
-}
-
-function stopDragPanel() {
-  if (!dragState) return;
-  
-  const panel = document.getElementById(dragState.panelId);
-  panel.classList.remove('dragging');
-  dragState = null;
-}
-
-document.addEventListener('mousemove', dragPanel);
-document.addEventListener('mouseup', stopDragPanel);
-
-// ─── Initial Panel Positioning ─────────────────────────────────────
-function initializePanelPositions() {
-  const panel = document.getElementById('panel');
-  const analyticsPanel = document.getElementById('analytics-panel');
-  const panelWidth = 340;
-  const panelGap = 12;
-  const margin = 16;
-  const fabBottomHeight = 52;
-  
-  // Function to calculate positions
-  function updatePanelPositions() {
-    const isControlsOpen = panelOpen;
-    const isAnalyticsOpen = analyticsOpen;
-    
-    if (isAnalyticsOpen && isControlsOpen) {
-      // Both open: side by side
-      const totalWidth = panelWidth * 2 + panelGap;
-      const rightEdge = window.innerWidth - margin;
-      const startRight = rightEdge - totalWidth;
-      
-      analyticsPanel.style.right = (rightEdge - startRight) + 'px';
-      analyticsPanel.style.bottom = fabBottomHeight + 'px';
-      analyticsPanel.style.left = 'auto';
-      analyticsPanel.style.top = 'auto';
-      
-      panel.style.right = margin + 'px';
-      panel.style.bottom = fabBottomHeight + 'px';
-      panel.style.left = 'auto';
-      panel.style.top = 'auto';
-    } else if (isAnalyticsOpen) {
-      // Only analytics: spawn from far right
-      analyticsPanel.style.right = margin + 'px';
-      analyticsPanel.style.bottom = fabBottomHeight + 'px';
-      analyticsPanel.style.left = 'auto';
-      analyticsPanel.style.top = 'auto';
-    } else if (isControlsOpen) {
-      // Only controls: bottom right
-      panel.style.right = margin + 'px';
-      panel.style.bottom = fabBottomHeight + 'px';
-      panel.style.left = 'auto';
-      panel.style.top = 'auto';
-    }
+function spawnPanel(id) {
+  const el = getPanelEl(id);
+  if (!pState[id].wasDragged) {
+    const sw=window.innerWidth, sh=window.innerHeight;
+    el.style.left   = (sw - PANEL_W - EDGE_MARGIN) + 'px';
+    el.style.top    = Math.max(HEADER_H+8, sh - Math.min(el.scrollHeight||600, sh-HEADER_H-STATUS_H-40) - STATUS_H - 8) + 'px';
+    el.style.right  = 'auto';
+    el.style.bottom = 'auto';
   }
-  
-  // Update positions when panels toggle
-  const originalTogglePanel = togglePanel;
-  const originalToggleAnalytics = toggleAnalyticsPanel;
-  
-  window.togglePanel = function() {
-    originalTogglePanel();
-    updatePanelPositions();
-  };
-  
-  window.toggleAnalyticsPanel = function() {
-    originalToggleAnalytics();
-    updatePanelPositions();
-  };
-  
-  // Make panels draggable - add drag listener to all section titles
-  document.addEventListener('mousedown', (e) => {
-    const titleEl = e.target.closest('.sec-title');
-    if (titleEl) {
-      const pnl = titleEl.closest('#panel, #analytics-panel');
-      if (pnl && (pnl.classList.contains('visible'))) {
-        convertToAbsolutePos(pnl);
-        startDragPanel(e, pnl.id);
-      }
-    }
+  el.classList.add('visible');
+}
+
+function togglePanel(id) {
+  const p=pState[id], el=getPanelEl(id);
+  p.open = !p.open;
+  if (p.open) {
+    spawnPanel(id);
+  } else {
+    el.classList.remove('visible');
+  }
+  const btnId = id==='controls' ? 'fab-controls-btn' : 'fab-analytics-btn';
+  document.getElementById(btnId).classList.toggle('is-open', p.open);
+  repositionFABs();
+}
+
+function repositionFABs() {
+  const fg=document.getElementById('fab-group');
+  if (pState.controls.wasDragged||pState.analytics.wasDragged) { fg.style.right=EDGE_MARGIN+'px'; return; }
+  let leftmost=Infinity;
+  ['controls','analytics'].forEach(id => {
+    if (pState[id].open) { const r=getPanelEl(id).getBoundingClientRect(); if(r.left<leftmost)leftmost=r.left; }
   });
-  
-  // Convert to absolute positioning when first dragged
-  function convertToAbsolutePos(element) {
-    if (element.style.left || element.style.top) return;
-    
-    const rect = element.getBoundingClientRect();
-    element.style.left = rect.left + 'px';
-    element.style.top = rect.top + 'px';
-    element.style.right = 'auto';
-    element.style.bottom = 'auto';
-  }
+  fg.style.right = leftmost===Infinity ? EDGE_MARGIN+'px' : Math.max(EDGE_MARGIN, window.innerWidth-leftmost+FAB_GAP)+'px';
 }
 
-// Call initialization when DOM is ready
-setTimeout(initializePanelPositions, 0);
+window.addEventListener('resize', repositionFABs);
+document.getElementById('fab-controls-btn').addEventListener('click', () => togglePanel('controls'));
+document.getElementById('fab-analytics-btn').addEventListener('click', () => togglePanel('analytics'));
 
-// ─── Canvas setup ──────────────────────────────────────────────────
+/* ── Drag system ── */
+(function initDrag() {
+  ['controls','analytics'].forEach(id => {
+    const el=getPanelEl(id);
+    let dragging=false, startX, startY, origLeft, origTop;
+    el.addEventListener('pointerdown', e => {
+      const handle=e.target.closest('[data-drag-handle="panel-'+id+'"]');
+      if (!handle) return;
+      if (e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='BUTTON'||e.target.closest('button')) return;
+      e.preventDefault();
+      const rect=el.getBoundingClientRect();
+      el.style.left=rect.left+'px'; el.style.top=rect.top+'px'; el.style.right='auto'; el.style.bottom='auto';
+      startX=e.clientX; startY=e.clientY; origLeft=rect.left; origTop=rect.top; dragging=true;
+      el.classList.add('is-dragging'); el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging) return; e.preventDefault();
+      el.style.left = Math.max(0,Math.min(window.innerWidth-el.offsetWidth, origLeft+e.clientX-startX))+'px';
+      el.style.top  = Math.max(HEADER_H,Math.min(window.innerHeight-60, origTop+e.clientY-startY))+'px';
+    });
+    const stopDrag=e=>{ if(!dragging)return; dragging=false; el.classList.remove('is-dragging'); el.releasePointerCapture(e.pointerId); pState[id].wasDragged=true; repositionFABs(); };
+    el.addEventListener('pointerup',stopDrag); el.addEventListener('pointercancel',stopDrag);
+  });
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION 2 — CANVAS + ZOOM
+   MIN_SCALE = 1.0  → default / max zoom-out (cannot go further out)
+   MAX_SCALE = 2.0  → 100% zoom-in
+   Only zoom buttons allowed; all other inputs blocked.
+   ═══════════════════════════════════════════════════════════════════ */
+
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const wrap   = document.getElementById('canvas-wrap');
 
+const MIN_SCALE = 1.0;
+const MAX_SCALE = 2.0;   /* Updated: 100% max zoom-in */
+
+let CAM = { x:0, y:0, scale:1 };
+
+function resetView() { CAM = { x:0, y:0, scale:1 }; }
+
 function resize() {
   canvas.width  = wrap.clientWidth;
   canvas.height = wrap.clientHeight;
+  CAM.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, CAM.scale));
 }
 resize();
 window.addEventListener('resize', resize);
 
-// ─── Zoom & Pan ────────────────────────────────────────────────────
-let CAM = { x: 0, y: 0, scale: 1 };
-let _drag = null;
-const MIN_SCALE = 0.3, MAX_SCALE = 5;
-
-// Zoom toward center (for FAB buttons)
+/* Button zoom — center-anchored, strictly bounded */
 function zoomAt(factor) {
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
   const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, CAM.scale * factor));
-  const ratio = newScale / CAM.scale;
-  CAM.x = cx - ratio * (cx - CAM.x);
-  CAM.y = cy - ratio * (cy - CAM.y);
+  if (newScale === CAM.scale) return;
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const r  = newScale / CAM.scale;
+  CAM.x     = cx - r * (cx - CAM.x);
+  CAM.y     = cy - r * (cy - CAM.y);
   CAM.scale = newScale;
 }
 
-canvas.addEventListener('wheel', e => {
-  if (panelOpen && e.target !== canvas) return;
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  
-  // Handle horizontal panning (trackpad swipe) vs vertical zoom
-  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-    // Dominant horizontal movement = pan
-    CAM.x -= e.deltaX;
-    CAM.y -= e.deltaY;
-  } else {
-    // Dominant vertical movement = zoom
-    const zf = e.deltaY < 0 ? 1.1 : 0.9;
-    const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, CAM.scale * zf));
-    const ratio = ns / CAM.scale;
-    CAM.x = mx - ratio * (mx - CAM.x);
-    CAM.y = my - ratio * (my - CAM.y);
-    CAM.scale = ns;
-  }
-}, { passive: false });
+document.getElementById('btn-zoom-in').addEventListener('click',  () => zoomAt(1.10));
+document.getElementById('btn-zoom-out').addEventListener('click', () => zoomAt(0.91));
 
-canvas.addEventListener('mousedown', e => {
-  if (e.button === 1 || e.button === 2) {
-    e.preventDefault();
-    _drag = { startX: e.clientX, startY: e.clientY, camX: CAM.x, camY: CAM.y };
-  }
-});
-canvas.addEventListener('mousemove', e => {
-  if (_drag) {
-    CAM.x = _drag.camX + (e.clientX - _drag.startX);
-    CAM.y = _drag.camY + (e.clientY - _drag.startY);
-  }
-});
-canvas.addEventListener('mouseup', () => _drag = null);
-canvas.addEventListener('mouseleave', () => _drag = null);
+/* Block ALL other zoom/gesture/pan input */
+['wheel','touchstart','touchmove','touchend','gesturestart','gesturechange','gestureend'].forEach(evt =>
+  canvas.addEventListener(evt, e => e.preventDefault(), { passive:false })
+);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-let _touches = null;
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  if (e.touches.length === 1) {
-    _touches = { type: 'pan', startX: e.touches[0].clientX, startY: e.touches[0].clientY, camX: CAM.x, camY: CAM.y };
-  } else if (e.touches.length === 2) {
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    _touches = { type: 'pinch', startDist: Math.hypot(dx, dy), startScale: CAM.scale,
-      midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-      midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-      camX: CAM.x, camY: CAM.y };
-  }
-}, { passive: false });
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  if (!_touches) return;
-  if (_touches.type === 'pan' && e.touches.length === 1) {
-    CAM.x = _touches.camX + (e.touches[0].clientX - _touches.startX);
-    CAM.y = _touches.camY + (e.touches[0].clientY - _touches.startY);
-  } else if (_touches.type === 'pinch' && e.touches.length === 2) {
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    const dist = Math.hypot(dx, dy);
-    const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, _touches.startScale * (dist / _touches.startDist)));
-    const ratio = ns / CAM.scale;
-    CAM.x = _touches.midX - ratio * (_touches.midX - CAM.x);
-    CAM.y = _touches.midY - ratio * (_touches.midY - CAM.y);
-    CAM.scale = ns;
-  }
-}, { passive: false });
-canvas.addEventListener('touchend', () => _touches = null);
 
-// ─── State ─────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION 3 — SIMULATION STATE & RENDER
+   ═══════════════════════════════════════════════════════════════════ */
 let STATE = {
-  simRunning: false,
-  simPaused:  false,
-  vehicles:   {},
-  pedestrians: {},
-  stats: {
-    total_passed: 0, avg_wait: 0, cycles: 0, sim_time: 0,
-    queues: {N:0,S:0,E:0,W:0}, active_vehicles: 0,
-    phase: 'ns_green', ns_light: 'green', ew_light: 'red',
-  },
-  logs: [],
-  phaseStart: 0,
-  phaseDur: 20,
+  simRunning:false, simPaused:false,
+  vehicles:{}, pedestrians:{},
+  stats:{ total_passed:0, avg_wait:0, cycles:0, sim_time:0, queues:{N:0,S:0,E:0,W:0}, active_vehicles:0, phase:'ns_green', ns_light:'green', ew_light:'red' },
+  logs:[], phaseStart:0,
 };
 const VIS = {};
 
-// ─── Geometry ──────────────────────────────────────────────────────
 function geo() {
-  const W = canvas.width, H = canvas.height;
-  const cx = W / 2, cy = H / 2;
-  const road  = parseInt(document.getElementById('sel-road').value);
-  const lanes = road / 2;
-  const lw    = Math.min(26, Math.max(18, (Math.min(W,H) * 0.06) / lanes));
-  const rw    = lanes * lw * 2 + 8;
-  return { W, H, cx, cy, rw, lw, lanes };
+  const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2;
+  const road=parseInt(document.getElementById('sel-road').value), lanes=road/2;
+  const lw=Math.min(26,Math.max(18,(Math.min(W,H)*.06)/lanes));
+  const rw=lanes*lw*2+8;
+  return {W,H,cx,cy,rw,lw,lanes};
 }
 
-// ─── Drawing ───────────────────────────────────────────────────────
 function drawScene() {
-  const g = geo();
-  const { W, H, cx, cy, rw, lw, lanes } = g;
-  ctx.clearRect(0, 0, W, H);
-
-  // Background
-  ctx.fillStyle = '#0c0e1a';
-  ctx.fillRect(0, 0, W, H);
-
-  // Grass zones
-  const grassGrad = ctx.createLinearGradient(0, 0, W, H);
-  grassGrad.addColorStop(0, '#0e1320');
-  grassGrad.addColorStop(1, '#0a0f18');
-  ctx.fillStyle = grassGrad;
-  [[0,0,cx-rw/2,H],[cx+rw/2,0,W-cx-rw/2,H],
-   [cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r => ctx.fillRect(...r));
-
-  // Subtle grid
-  ctx.strokeStyle = 'rgba(153,215,234,.025)'; ctx.lineWidth = 1;
-  for (let x=0; x<W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for (let y=0; y<H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-
-  // Road pavement
-  ctx.fillStyle = '#1a1e38';
-  ctx.fillRect(cx - rw/2, 0, rw, H);
-  ctx.fillRect(0, cy - rw/2, W, rw);
-
-  // Intersection box
-  ctx.fillStyle = '#1e2240';
-  ctx.fillRect(cx - rw/2, cy - rw/2, rw, rw);
-
-  // Intersection diagonal hatching
-  ctx.strokeStyle = 'rgba(153,215,234,.03)'; ctx.lineWidth = 1;
-  for (let i = -rw; i < rw*2; i += 16) {
-    ctx.beginPath();
-    ctx.moveTo(cx - rw/2 + i, cy - rw/2);
-    ctx.lineTo(cx - rw/2 + i + rw, cy + rw/2);
-    ctx.stroke();
-  }
-
-  // Lane dashes
-  ctx.setLineDash([26, 18]); ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(255,255,255,.18)';
-  for (let i = 1; i < lanes * 2; i++) {
-    const x = cx - rw/2 + i * lw;
-    if (Math.abs(x - cx) > 4) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cy - rw/2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x, cy + rw/2); ctx.lineTo(x, H); ctx.stroke();
-    }
-    const y = cy - rw/2 + i * lw;
-    if (Math.abs(y - cy) > 4) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cx - rw/2, y); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx + rw/2, y); ctx.lineTo(W, y); ctx.stroke();
-    }
+  const g=geo(); const {W,H,cx,cy,rw,lw,lanes}=g;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0c0e1a'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#0e1320';
+  [[0,0,cx-rw/2,H],[cx+rw/2,0,W-cx-rw/2,H],[cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r=>ctx.fillRect(...r));
+  ctx.strokeStyle='rgba(153,215,234,.022)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.fillStyle='#1a1e38'; ctx.fillRect(cx-rw/2,0,rw,H); ctx.fillRect(0,cy-rw/2,W,rw);
+  ctx.fillStyle='#1e2240'; ctx.fillRect(cx-rw/2,cy-rw/2,rw,rw);
+  ctx.strokeStyle='rgba(153,215,234,.03)'; ctx.lineWidth=1;
+  for(let i=-rw;i<rw*2;i+=16){ctx.beginPath();ctx.moveTo(cx-rw/2+i,cy-rw/2);ctx.lineTo(cx-rw/2+i+rw,cy+rw/2);ctx.stroke();}
+  ctx.setLineDash([26,18]); ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,.17)';
+  for(let i=1;i<lanes*2;i++){
+    const x=cx-rw/2+i*lw; if(Math.abs(x-cx)>4){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-rw/2);ctx.stroke();ctx.beginPath();ctx.moveTo(x,cy+rw/2);ctx.lineTo(x,H);ctx.stroke();}
+    const y=cy-rw/2+i*lw; if(Math.abs(y-cy)>4){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-rw/2,y);ctx.stroke();ctx.beginPath();ctx.moveTo(cx+rw/2,y);ctx.lineTo(W,y);ctx.stroke();}
   }
   ctx.setLineDash([]);
-
-  // Center medians
-  [-2, 2].forEach(d => {
-    ctx.strokeStyle = '#d4a017'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(cx+d, 0); ctx.lineTo(cx+d, cy-rw/2-50); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx+d, cy+rw/2+50); ctx.lineTo(cx+d, H); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, cy+d); ctx.lineTo(cx-rw/2-50, cy+d); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx+rw/2+50, cy+d); ctx.lineTo(W, cy+d); ctx.stroke();
+  [-2,2].forEach(d=>{
+    ctx.strokeStyle='#d4a017'; ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(cx+d,0);ctx.lineTo(cx+d,cy-rw/2-50);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+d,cy+rw/2+50);ctx.lineTo(cx+d,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,cy+d);ctx.lineTo(cx-rw/2-50,cy+d);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+rw/2+50,cy+d);ctx.lineTo(W,cy+d);ctx.stroke();
   });
-
-  // Stop lines
-  ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(cx-rw/2, cy-rw/2-50); ctx.lineTo(cx, cy-rw/2-50); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx, cy+rw/2+50); ctx.lineTo(cx+rw/2, cy+rw/2+50); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx+rw/2+50, cy-rw/2); ctx.lineTo(cx+rw/2+50, cy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx-rw/2-50, cy); ctx.lineTo(cx-rw/2-50, cy+rw/2); ctx.stroke();
-
-  // Crosswalks
-  ctx.fillStyle = 'rgba(255,255,255,.88)';
-  const pw = 6, pg = 6;
-  const stripeCount = Math.floor(rw / (pw + pg)) + 1;
-  const cwOffset = 40;
-  for (let i = 0; i < stripeCount; i++) {
-    ctx.fillRect(cx - rw/2 + i*(pw+pg), cy - rw/2 - cwOffset - pw, pw, cwOffset);
-  }
-  for (let i = 0; i < stripeCount; i++) {
-    ctx.fillRect(cx - rw/2 + i*(pw+pg), cy + rw/2 + 4, pw, cwOffset);
-  }
-  for (let i = 0; i < stripeCount; i++) {
-    ctx.fillRect(cx + rw/2 + 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
-  }
-  for (let i = 0; i < stripeCount; i++) {
-    ctx.fillRect(cx - rw/2 - cwOffset - 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
-  }
-
-  drawLights(g);
-  drawQueuedCars(g);
-  drawMovingCars(g);
-  drawPedestrians(g);
-  drawDirLabels(g);
+  ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-rw/2,cy-rw/2-50);ctx.lineTo(cx,cy-rw/2-50);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy+rw/2+50);ctx.lineTo(cx+rw/2,cy+rw/2+50);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+rw/2+50,cy-rw/2);ctx.lineTo(cx+rw/2+50,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-rw/2-50,cy);ctx.lineTo(cx-rw/2-50,cy+rw/2);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.86)';
+  const pw=6,pg=6,cwo=40,sc=Math.floor(rw/(pw+pg))+1;
+  for(let i=0;i<sc;i++){ctx.fillRect(cx-rw/2+i*(pw+pg),cy-rw/2-cwo-pw,pw,cwo);ctx.fillRect(cx-rw/2+i*(pw+pg),cy+rw/2+4,pw,cwo);}
+  for(let i=0;i<sc;i++){ctx.fillRect(cx+rw/2+4,cy-rw/2+i*(pw+pg),cwo,pw);ctx.fillRect(cx-rw/2-cwo-4,cy-rw/2+i*(pw+pg),cwo,pw);}
+  drawLights(g); drawQueuedCars(g); drawMovingCars(g); drawPedestrians(g); drawDirLabels(g);
 }
 
-function lightColor(dir) {
-  const s = STATE.stats;
-  return ['N','S'].includes(dir) ? s.ns_light : s.ew_light;
-}
+function lightColor(dir){const s=STATE.stats;return['N','S'].includes(dir)?s.ns_light:s.ew_light;}
 
-function drawLights(g) {
-  const { cx, cy, rw } = g;
-  const lights = [
-    { dir: 'N', x: cx+rw/2+6,  y: cy-rw/2-56 },
-    { dir: 'S', x: cx-rw/2-30, y: cy+rw/2+6  },
-    { dir: 'E', x: cx+rw/2+6,  y: cy+rw/2+6  },
-    { dir: 'W', x: cx-rw/2-30, y: cy-rw/2-56 },
-  ];
-  lights.forEach(({ dir, x, y }) => {
-    const lc = lightColor(dir);
-    const px = x+11, py1 = (dir==='N'||dir==='W') ? y+60 : y;
-    const py2 = (dir==='N'||dir==='W') ? cy-rw/2 : cy+rw/2;
-    ctx.strokeStyle = '#374151'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(px, py1); ctx.lineTo(px, py2); ctx.stroke();
-
-    ctx.fillStyle = '#111827'; ctx.strokeStyle = '#374151'; ctx.lineWidth = 1;
-    roundRect(x, y, 22, 58, 5); ctx.fill(); ctx.stroke();
-
-    ['red','yellow','green'].forEach((c, i) => {
-      const bx = x+11, by = y+10+i*16;
-      const on = lc === c;
-      if (on) {
-        const hx = c==='green' ? '#22c55e' : c==='yellow' ? '#eab308' : '#ef4444';
-        const grd = ctx.createRadialGradient(bx, by, 0, bx, by, 14);
-        grd.addColorStop(0, hx+'55'); grd.addColorStop(1, 'transparent');
-        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(bx, by, 14, 0, Math.PI*2); ctx.fill();
-        const bgrd = ctx.createRadialGradient(bx-1, by-1, 1, bx, by, 6);
-        bgrd.addColorStop(0, '#fff'); bgrd.addColorStop(.3, hx); bgrd.addColorStop(1, hx+'aa');
-        ctx.fillStyle = bgrd;
-        ctx.shadowColor = hx; ctx.shadowBlur = 16;
-      } else {
-        ctx.fillStyle = c==='green' ? '#052e16' : c==='yellow' ? '#1c1500' : '#1c0000';
-        ctx.shadowBlur = 0;
-      }
-      ctx.beginPath(); ctx.arc(bx, by, 6, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
+function drawLights(g){
+  const{cx,cy,rw}=g;
+  [{dir:'N',x:cx+rw/2+6,y:cy-rw/2-56},{dir:'S',x:cx-rw/2-30,y:cy+rw/2+6},{dir:'E',x:cx+rw/2+6,y:cy+rw/2+6},{dir:'W',x:cx-rw/2-30,y:cy-rw/2-56}].forEach(({dir,x,y})=>{
+    const lc=lightColor(dir),px=x+11,py1=(dir==='N'||dir==='W')?y+60:y,py2=(dir==='N'||dir==='W')?cy-rw/2:cy+rw/2;
+    ctx.strokeStyle='#374151';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px,py1);ctx.lineTo(px,py2);ctx.stroke();
+    ctx.fillStyle='#111827';ctx.strokeStyle='#374151';ctx.lineWidth=1;roundRect(x,y,22,58,5);ctx.fill();ctx.stroke();
+    ['red','yellow','green'].forEach((c,i)=>{
+      const bx=x+11,by=y+10+i*16,on=lc===c;
+      if(on){const hx=c==='green'?'#22c55e':c==='yellow'?'#eab308':'#ef4444';const grd=ctx.createRadialGradient(bx,by,0,bx,by,14);grd.addColorStop(0,hx+'55');grd.addColorStop(1,'transparent');ctx.fillStyle=grd;ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fill();const bgrd=ctx.createRadialGradient(bx-1,by-1,1,bx,by,6);bgrd.addColorStop(0,'#fff');bgrd.addColorStop(.3,hx);bgrd.addColorStop(1,hx+'aa');ctx.fillStyle=bgrd;ctx.shadowColor=hx;ctx.shadowBlur=16;}
+      else{ctx.fillStyle=c==='green'?'#052e16':c==='yellow'?'#1c1500':'#1c0000';ctx.shadowBlur=0;}
+      ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     });
-    ctx.fillStyle = '#6b7280'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-    ctx.fillText(dir, x+11, y+64);
+    ctx.fillStyle='#6b7280';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText(dir,x+11,y+64);
   });
 }
 
-function roundRect(x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-  ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-  ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
-  ctx.closePath();
-}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 
-function getQueuePos(v, g) {
-  const { cx, cy, rw, lw, lanes } = g;
-  const li = v.lane_idx % lanes;
-  const qi = v.visual_queue_pos ?? v.queue_pos;
-  const gap = 22;
-  const off = li * lw + lw / 2;
-  const stopLine = 55;
-  switch (v.direction) {
-    case 'N': return { x: cx-(off), y: cy-rw/2-stopLine-qi*gap, a: Math.PI/2 };
-    case 'S': return { x: cx+(off), y: cy+rw/2+stopLine+qi*gap, a: -Math.PI/2 };
-    case 'E': return { x: cx+rw/2+stopLine+qi*gap, y: cy-(off), a: Math.PI };
-    case 'W': return { x: cx-rw/2-stopLine-qi*gap, y: cy+(off), a: 0 };
-  }
-  return { x: cx, y: cy, a: 0 };
-}
+function getQueuePos(v,g){const{cx,cy,rw,lw,lanes}=g,li=v.lane_idx%lanes,qi=v.visual_queue_pos??v.queue_pos,gap=22,off=li*lw+lw/2,sl=55;switch(v.direction){case'N':return{x:cx-off,y:cy-rw/2-sl-qi*gap,a:Math.PI/2};case'S':return{x:cx+off,y:cy+rw/2+sl+qi*gap,a:-Math.PI/2};case'E':return{x:cx+rw/2+sl+qi*gap,y:cy-off,a:Math.PI};case'W':return{x:cx-rw/2-sl-qi*gap,y:cy+off,a:0};}return{x:cx,y:cy,a:0};}
+function getOutboundDir(v){const t={N:{straight:'S',right:'W',left:'E'},S:{straight:'N',right:'E',left:'W'},E:{straight:'W',right:'N',left:'S'},W:{straight:'E',right:'S',left:'N'}};return(t[v.direction]&&t[v.direction][v.turn])||v.direction;}
+function getExitTarget(d,off,g){const{cx,cy,rw,W,H}=g,m=140,dx=W/2+rw+m,dy=H/2+rw+m;switch(d){case'S':return{x:cx-off,y:cy+dy};case'N':return{x:cx+off,y:cy-dy};case'W':return{x:cx-dx,y:cy-off};case'E':return{x:cx+dx,y:cy+off};}return{x:cx,y:cy};}
+function getMovingPath(v,g){const{cx,cy,rw,lw,lanes}=g,li=v.lane_idx%lanes,off=li*lw+lw/2,out=getOutboundDir(v),exit=getExitTarget(out,off,g);if(v.turn==='straight')return[exit];const entry={N:{x:cx-off,y:cy-rw*.18},S:{x:cx+off,y:cy+rw*.18},E:{x:cx+rw*.18,y:cy-off},W:{x:cx-rw*.18,y:cy+off}}[v.direction];const turn={S:{x:cx-off,y:cy+off},N:{x:cx+off,y:cy-off},W:{x:cx-off,y:cy-off},E:{x:cx+off,y:cy+off}}[out];return[entry,turn,exit].filter(Boolean);}
 
-function getExitTarget(outDir, off, g) {
-  const { cx, cy, rw } = g;
-  const margin = 140;
-  const distX = (g.W / 2) + rw + margin;
-  const distY = (g.H / 2) + rw + margin;
-  switch (outDir) {
-    case 'S': return { x: cx-off, y: cy+distY };
-    case 'N': return { x: cx+off, y: cy-distY };
-    case 'W': return { x: cx-distX, y: cy-off };
-    case 'E': return { x: cx+distX, y: cy+off };
-  }
-  return { x: cx, y: cy };
-}
+function drawVehicle(x,y,angle,color,state,alpha=1){ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,y);ctx.rotate(angle);ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=6;ctx.shadowOffsetY=3;ctx.fillStyle=color;roundRect(-9,-5.5,18,11,2.5);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;ctx.fillStyle=color+'cc';roundRect(-5,-4,9,8,2);ctx.fill();ctx.fillStyle='rgba(200,230,255,.35)';roundRect(-5,-3.5,7,7,1.5);ctx.fill();ctx.fillStyle='rgba(200,230,255,.2)';roundRect(4,-3,3.5,6,1);ctx.fill();if(state==='moving'){ctx.fillStyle='#ffffc0dd';roundRect(-9.5,-4,3,2.5,1);ctx.fill();roundRect(-9.5,1.5,3,2.5,1);ctx.fill();ctx.fillStyle='rgba(255,255,180,.06)';ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-45,-14);ctx.lineTo(-45,14);ctx.closePath();ctx.fill();}else{ctx.fillStyle='#ff3333cc';roundRect(7,-4,2.5,2.5,.8);ctx.fill();roundRect(7,1.5,2.5,2.5,.8);ctx.fill();}ctx.restore();}
 
-function getOutboundDir(v) {
-  const turns = {
-    N: { straight:'S', right:'W', left:'E' },
-    S: { straight:'N', right:'E', left:'W' },
-    E: { straight:'W', right:'N', left:'S' },
-    W: { straight:'E', right:'S', left:'N' },
-  };
-  return (turns[v.direction] && turns[v.direction][v.turn]) || v.direction;
-}
+function drawQueuedCars(g){const lc={};Object.values(STATE.vehicles).filter(v=>v.state==='queued').sort((a,b)=>(a.direction||'').localeCompare(b.direction||'')||(a.queue_pos||0)-(b.queue_pos||0)).forEach(v=>{const k=`${v.direction}:${v.lane_idx}`,vqp=lc[k]||0;lc[k]=vqp+1;const pos=getQueuePos({...v,visual_queue_pos:vqp},g);if(!VIS[v.vid])VIS[v.vid]={x:pos.x,y:pos.y,a:pos.a,alpha:0};const vis=VIS[v.vid];vis.x+=(pos.x-vis.x)*.15;vis.y+=(pos.y-vis.y)*.15;vis.a+=(pos.a-vis.a)*.25;vis.alpha=Math.min(vis.alpha+.08,1);drawVehicle(vis.x,vis.y,vis.a,v.color,'queued',vis.alpha);});}
 
-function getMovingPath(v, g) {
-  const { cx, cy, rw, lw, lanes } = g;
-  const li = v.lane_idx % lanes;
-  const off = li * lw + lw / 2;
-  const out = getOutboundDir(v);
-  const exit = getExitTarget(out, off, g);
-  if (v.turn === 'straight') return [exit];
-  const entry = {
-    N: { x: cx-off, y: cy-rw*.18 },
-    S: { x: cx+off, y: cy+rw*.18 },
-    E: { x: cx+rw*.18, y: cy-off },
-    W: { x: cx-rw*.18, y: cy+off },
-  }[v.direction];
-  const turn = {
-    S: { x: cx-off, y: cy+off },
-    N: { x: cx+off, y: cy-off },
-    W: { x: cx-off, y: cy-off },
-    E: { x: cx+off, y: cy+off },
-  }[out];
-  return [entry, turn, exit].filter(Boolean);
-}
+function drawMovingCars(g){Object.values(STATE.vehicles).filter(v=>v.state==='moving').forEach(v=>{if(!VIS[v.vid]){const qp=getQueuePos({...v,queue_pos:0},g);VIS[v.vid]={x:qp.x,y:qp.y,a:qp.a,alpha:1,path:getMovingPath(v,g),pathIdx:0};}const vis=VIS[v.vid];if(!vis.path||!vis.path.length){vis.path=getMovingPath(v,g);vis.pathIdx=0;}const tgt=vis.path[Math.min(vis.pathIdx||0,vis.path.length-1)];const spd=(125+(+document.getElementById('sl-speed').value||1)*18)*FRAME_DT;const dx=tgt.x-vis.x,dy=tgt.y-vis.y,d=Math.hypot(dx,dy)||1,step=Math.min(spd,d);const nx=vis.x+(dx/d)*step,ny=vis.y+(dy/d)*step;const vx=nx-vis.x,vy=ny-vis.y;if(Math.hypot(vx,vy)>.001){const desired=Math.atan2(vy,vx)+Math.PI;vis.a+=angleDelta(vis.a,desired)*.35;}vis.x=nx;vis.y=ny;if(d<=spd+.1&&vis.pathIdx<vis.path.length-1)vis.pathIdx++;drawVehicle(vis.x,vis.y,vis.a,v.color,'moving');const pad=180;if(vis.x<-pad||vis.x>g.W+pad||vis.y<-pad||vis.y>g.H+pad){delete VIS[v.vid];delete STATE.vehicles[v.vid];}});}
+function angleDelta(f,t){return Math.atan2(Math.sin(t-f),Math.cos(t-f));}
 
-function drawVehicle(x, y, angle, color, state, alpha=1) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(x, y);
-  ctx.rotate(angle);
-  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
-  ctx.fillStyle = color;
-  roundRect(-9, -5.5, 18, 11, 2.5); ctx.fill();
-  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-  ctx.fillStyle = color + 'cc';
-  roundRect(-5, -4, 9, 8, 2); ctx.fill();
-  ctx.fillStyle = 'rgba(200,230,255,.35)';
-  roundRect(-5, -3.5, 7, 7, 1.5); ctx.fill();
-  ctx.fillStyle = 'rgba(200,230,255,.2)';
-  roundRect(4, -3, 3.5, 6, 1); ctx.fill();
-  if (state === 'moving') {
-    ctx.fillStyle = '#ffffc0dd';
-    roundRect(-9.5, -4, 3, 2.5, 1); ctx.fill();
-    roundRect(-9.5, 1.5, 3, 2.5, 1); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,180,.06)';
-    ctx.beginPath(); ctx.moveTo(-9,0); ctx.lineTo(-45,-14); ctx.lineTo(-45,14); ctx.closePath(); ctx.fill();
-  } else {
-    ctx.fillStyle = '#ff3333cc';
-    roundRect(7, -4, 2.5, 2.5, .8); ctx.fill();
-    roundRect(7, 1.5, 2.5, 2.5, .8); ctx.fill();
-  }
-  ctx.restore();
-}
+function drawDirLabels(g){const{W,H,cx,cy}=g;[{t:'NORTH',x:cx,y:18,d:'N'},{t:'SOUTH',x:cx,y:H-10,d:'S'},{t:'EAST',x:W-28,y:cy-6,d:'E'},{t:'WEST',x:28,y:cy-6,d:'W'}].forEach(({t,x,y,d})=>{const lc=lightColor(d),c=lc==='green'?'#22c55e':lc==='yellow'?'#eab308':'#ef4444';ctx.fillStyle=c+'cc';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillText(t,x,y);});}
 
-function drawQueuedCars(g) {
-  const laneCounts = {};
-  const queued = Object.values(STATE.vehicles)
-    .filter(v => v.state === 'queued')
-    .sort((a,b) => (a.direction||'').localeCompare(b.direction||'') || (a.queue_pos||0) - (b.queue_pos||0));
-  queued.forEach(v => {
-    const laneKey = `${v.direction}:${v.lane_idx}`;
-    const vqp = laneCounts[laneKey] || 0;
-    laneCounts[laneKey] = vqp + 1;
-    const pos = getQueuePos({ ...v, visual_queue_pos: vqp }, g);
-    if (!VIS[v.vid]) { VIS[v.vid] = { x: pos.x, y: pos.y, a: pos.a, alpha: 0 }; }
-    const vis = VIS[v.vid];
-    vis.x += (pos.x - vis.x) * .15;
-    vis.y += (pos.y - vis.y) * .15;
-    vis.a += (pos.a - vis.a) * .25;
-    vis.alpha = Math.min(vis.alpha + .08, 1);
-    drawVehicle(vis.x, vis.y, vis.a, v.color, 'queued', vis.alpha);
-  });
-}
+function getPedPos(ped,g){const{cx,cy,rw}=g,cwo=40,pp=(ped.cross_pos||0)/100,row=ped.cross_dir==='left'?.25:.72;switch(ped.direction){case'N':return{x:(cx-rw/2)+rw*pp,y:cy-rw/2-cwo+row*cwo};case'S':return{x:(cx-rw/2)+rw*pp,y:cy+rw/2+4+row*cwo};case'E':return{x:cx+rw/2+4+row*cwo,y:(cy-rw/2)+rw*pp};case'W':return{x:cx-rw/2-cwo-4+row*cwo,y:(cy-rw/2)+rw*pp};}return{x:cx,y:cy};}
+function drawPedestrian(x,y,state){ctx.save();ctx.translate(x,y);ctx.fillStyle=state==='waiting'?'#60a5fa':'#fbbf24';ctx.beginPath();ctx.arc(0,-5,4,0,Math.PI*2);ctx.fill();ctx.fillRect(-3,0,6,7);ctx.fillRect(-5,1,10,2);ctx.fillRect(-2,7,2,5);ctx.fillRect(0,7,2,5);ctx.restore();}
+function drawPedestrians(g){Object.values(STATE.pedestrians||{}).forEach(ped=>{if(ped.state==='waiting'||ped.state==='crossing'){const p=getPedPos(ped,g);drawPedestrian(p.x,p.y,ped.state);}});}
 
-function drawMovingCars(g) {
-  Object.values(STATE.vehicles).filter(v => v.state === 'moving').forEach(v => {
-    if (!VIS[v.vid]) {
-      const qp = getQueuePos({ ...v, queue_pos: 0 }, g);
-      VIS[v.vid] = { x: qp.x, y: qp.y, a: qp.a, alpha: 1, path: getMovingPath(v, g), pathIdx: 0 };
-    }
-    const vis = VIS[v.vid];
-    if (!vis.path || vis.path.length === 0) {
-      vis.path = getMovingPath(v, g); vis.pathIdx = 0;
-    }
-    const tgt = vis.path[Math.min(vis.pathIdx || 0, vis.path.length - 1)];
-    const uiSpeed = +document.getElementById('sl-speed').value || 1;
-    const speed = (125 + uiSpeed * 18) * FRAME_DT;
-    const dx = tgt.x - vis.x, dy = tgt.y - vis.y;
-    const d  = Math.hypot(dx, dy) || 1;
-    const step = Math.min(speed, d);
-    const nx = vis.x + (dx/d)*step, ny = vis.y + (dy/d)*step;
-    const vx = nx - vis.x, vy = ny - vis.y;
-    if (Math.hypot(vx, vy) > .001) {
-      const desired = Math.atan2(vy, vx) + Math.PI;
-      vis.a = vis.a + angleDelta(vis.a, desired) * .35;
-    }
-    vis.x = nx; vis.y = ny;
-    if (d <= speed + .1 && vis.pathIdx < vis.path.length - 1) vis.pathIdx += 1;
-    drawVehicle(vis.x, vis.y, vis.a, v.color, 'moving', 1);
-    const pad = 180;
-    if (vis.x < -pad || vis.x > g.W+pad || vis.y < -pad || vis.y > g.H+pad) {
-      delete VIS[v.vid];
-      delete STATE.vehicles[v.vid];
-    }
-  });
-}
-
-function angleDelta(from, to) { return Math.atan2(Math.sin(to-from), Math.cos(to-from)); }
-
-function drawDirLabels(g) {
-  const { W, H, cx, cy } = g;
-  const lbls = [
-    { t:'NORTH', x:cx, y:18, d:'N' }, { t:'SOUTH', x:cx, y:H-10, d:'S' },
-    { t:'EAST',  x:W-28, y:cy-6, d:'E' }, { t:'WEST', x:28, y:cy-6, d:'W' },
-  ];
-  ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
-  lbls.forEach(({ t, x, y, d }) => {
-    const lc = lightColor(d);
-    const c = lc==='green' ? '#22c55e' : lc==='yellow' ? '#eab308' : '#ef4444';
-    ctx.fillStyle = c + 'cc'; ctx.fillText(t, x, y);
-  });
-}
-
-function getPedestrianPos(ped, g) {
-  const { cx, cy, rw } = g;
-  const cwOffset = 40;
-  const pos_pct = (ped.cross_pos || 0) / 100;
-  const row = ped.cross_dir === 'left' ? 0.25 : 0.72;
-  switch (ped.direction) {
-    case 'N': return { x: (cx - rw/2) + rw * pos_pct, y: cy - rw/2 - cwOffset + row * cwOffset };
-    case 'S': return { x: (cx - rw/2) + rw * pos_pct, y: cy + rw/2 + 4 + row * cwOffset };
-    case 'E': return { x: cx + rw/2 + 4 + row * cwOffset, y: (cy - rw/2) + rw * pos_pct };
-    case 'W': return { x: cx - rw/2 - cwOffset - 4 + row * cwOffset, y: (cy - rw/2) + rw * pos_pct };
-  }
-  return { x: cx, y: cy };
-}
-
-function drawPedestrian(x, y, state) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = state === 'waiting' ? '#60a5fa' : '#fbbf24';
-  ctx.beginPath(); ctx.arc(0, -5, 4, 0, Math.PI*2); ctx.fill();
-  ctx.fillRect(-3, 0, 6, 7);
-  ctx.fillRect(-5, 1, 10, 2);
-  ctx.fillRect(-2, 7, 2, 5);
-  ctx.fillRect(0, 7, 2, 5);
-  ctx.restore();
-}
-
-function drawPedestrians(g) {
-  Object.values(STATE.pedestrians || {}).forEach(ped => {
-    if (ped.state === 'waiting' || ped.state === 'crossing') {
-      const pos = getPedestrianPos(ped, g);
-      drawPedestrian(pos.x, pos.y, ped.state);
-    }
-  });
-}
-
-// ─── Animation loop ────────────────────────────────────────────────
-let phaseProgress = 0;
-let FRAME_DT = 1/60;
-let LAST_FRAME = performance.now();
-
-function frame(now) {
-  FRAME_DT = Math.min((now - LAST_FRAME) / 1000, 0.05);
-  LAST_FRAME = now;
-  ctx.save();
-  ctx.translate(CAM.x, CAM.y);
-  ctx.scale(CAM.scale, CAM.scale);
-  drawScene();
-  ctx.restore();
-  updatePhaseBar();
+let FRAME_DT=1/60, LAST_FRAME=performance.now();
+function frame(now){
+  FRAME_DT=Math.min((now-LAST_FRAME)/1000,.05); LAST_FRAME=now;
+  ctx.save(); ctx.translate(CAM.x,CAM.y); ctx.scale(CAM.scale,CAM.scale);
+  drawScene(); ctx.restore(); updatePhaseBar();
   requestAnimationFrame(frame);
 }
-
-function updatePhaseBar() {
-  const cfg = {
-    ns_green:  +document.getElementById('sl-green').value,
-    ns_yellow: +document.getElementById('sl-yellow').value,
-    ns_red:    +document.getElementById('sl-red').value,
-    ew_green:  +document.getElementById('sl-green').value,
-    ew_yellow: +document.getElementById('sl-yellow').value,
-    ew_red:    +document.getElementById('sl-red').value,
-  };
-  const p = STATE.stats.phase || 'ns_green';
-  const dur = (p in cfg) ? cfg[p] : 20;
-  const elapsed = Math.max(0, (STATE.stats.sim_time || 0) - (STATE.phaseStart || 0));
-  phaseProgress = dur > 0 ? Math.min(elapsed / dur, 1) : 1;
-  const c = p.includes('green') ? '#22c55e' : p.includes('yellow') ? '#eab308' : '#ef4444';
-  document.getElementById('phase-bar').style.width = (phaseProgress * 100) + '%';
-  document.getElementById('phase-bar').style.background = c;
-  document.getElementById('phase-label').textContent = p.toUpperCase().replace('_', ' ');
+function updatePhaseBar(){
+  const cfg={ns_green:+document.getElementById('sl-green').value,ns_yellow:+document.getElementById('sl-yellow').value,ns_red:+document.getElementById('sl-red').value,ew_green:+document.getElementById('sl-green').value,ew_yellow:+document.getElementById('sl-yellow').value,ew_red:+document.getElementById('sl-red').value};
+  const p=STATE.stats.phase||'ns_green',dur=cfg[p]||20,elapsed=Math.max(0,(STATE.stats.sim_time||0)-(STATE.phaseStart||0));
+  const phaseProgress=dur>0?Math.min(elapsed/dur,1):1;
+  const c=p.includes('green')?'#22c55e':p.includes('yellow')?'#eab308':'#ef4444';
+  document.getElementById('phase-bar').style.width=(phaseProgress*100)+'%';
+  document.getElementById('phase-bar').style.background=c;
+  document.getElementById('phase-label').textContent=p.toUpperCase().replace('_',' ');
 }
-
 requestAnimationFrame(frame);
 
-// ─── Analytics Data Tracking ──────────────────────────────────────
-let analyticsData = {
-  queueHistory: { labels: [], N: [], S: [], E: [], W: [] },
-  waitBuckets: [0, 0, 0, 0, 0],
-  throughput: { labels: [], data: [] },
-  phaseSegments: [],
-  sessionId: null,
-  startTime: null,
-  chartsInitialized: false,
-  dataPointCount: 0,
-};
 
-let queueChart = null, waitChart = null, throughputChart = null, phaseChart = null;
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION 4 — ANALYTICS SESSION (no charts — summary + export only)
+   ═══════════════════════════════════════════════════════════════════ */
 
-function initAnalyticsCharts() {
-  if (analyticsData.chartsInitialized) return;
-  
-  // Queue Chart
-  const queueCanvas = document.getElementById('analytics-queue-chart');
-  if (queueCanvas) {
-    const ctx = queueCanvas.getContext('2d');
-    queueChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          { label: 'North', data: [], borderColor: '#99d7ea', backgroundColor: 'rgba(153,215,234,.08)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
-          { label: 'South', data: [], borderColor: '#99d7ea', backgroundColor: 'rgba(153,215,234,.04)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
-          { label: 'East', data: [], borderColor: '#fca6d1', backgroundColor: 'rgba(252,166,209,.08)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
-          { label: 'West', data: [], borderColor: '#fca6d1', backgroundColor: 'rgba(252,166,209,.04)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: true, labels: { color: 'var(--text2)', font: { size: 8 }, padding: 8 } } },
-        scales: {
-          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } },
-          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true }
-        }
-      }
-    });
-  }
-  
-  // Wait Time Chart
-  const waitCanvas = document.getElementById('analytics-wait-chart');
-  if (waitCanvas) {
-    const ctx = waitCanvas.getContext('2d');
-    waitChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['0-5s', '5-10s', '10-20s', '20-40s', '40s+'],
-        datasets: [{ label: 'Vehicles', data: [0, 0, 0, 0, 0], backgroundColor: '#fca6d1' }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } },
-          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true }
-        }
-      }
-    });
-  }
-  
-  // Throughput Chart
-  const throughputCanvas = document.getElementById('analytics-throughput-chart');
-  if (throughputCanvas) {
-    const ctx = throughputCanvas.getContext('2d');
-    throughputChart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: [], datasets: [{ label: 'Vehicles', data: [], backgroundColor: '#99d7ea' }] },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } },
-          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true }
-        }
-      }
-    });
-  }
-  
-  // Phase Chart
-  const phaseCanvas = document.getElementById('analytics-phase-chart');
-  if (phaseCanvas) {
-    const ctx = phaseCanvas.getContext('2d');
-    phaseChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: [],
-        datasets: [
-          { label: 'NS Green', data: [], backgroundColor: '#99d7ea', stack: 'phase' },
-          { label: 'NS Yellow', data: [], backgroundColor: '#fca6d1', stack: 'phase' },
-          { label: 'NS Red', data: [], backgroundColor: '#f87171', stack: 'phase' },
-        ]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: true, labels: { color: 'var(--text2)', font: { size: 8 } } } },
-        scales: {
-          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true },
-          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } }
-        }
-      }
-    });
-  }
-  
-  analyticsData.chartsInitialized = true;
-}
+const AN_MAX_QUEUE_SNAPSHOTS  = 500;
+const AN_MAX_PERSIST_VEHICLES = 2000;
 
-function updateAnalyticsUI(stats) {
-  if (!stats) return;
-  
-  if (!queueChart && document.getElementById('analytics-queue-chart')) {
-    initAnalyticsCharts();
-  }
-  
-  analyticsData.dataPointCount++;
-  document.getElementById('analytics-data-points').textContent = analyticsData.dataPointCount;
-  
-  if (analyticsData.startTime) {
-    const duration = ((Date.now() - analyticsData.startTime) / 1000).toFixed(1);
-    document.getElementById('analytics-session-duration').textContent = duration + 's';
-  }
-  
-  if (queueChart) {
-    const t = (stats.sim_time || 0).toFixed(1);
-    analyticsData.queueHistory.labels.push(t);
-    analyticsData.queueHistory.N.push(stats.queues?.N || 0);
-    analyticsData.queueHistory.S.push(stats.queues?.S || 0);
-    analyticsData.queueHistory.E.push(stats.queues?.E || 0);
-    analyticsData.queueHistory.W.push(stats.queues?.W || 0);
-    
-    queueChart.data.labels = [...analyticsData.queueHistory.labels];
-    queueChart.data.datasets[0].data = [...analyticsData.queueHistory.N];
-    queueChart.data.datasets[1].data = [...analyticsData.queueHistory.S];
-    queueChart.data.datasets[2].data = [...analyticsData.queueHistory.E];
-    queueChart.data.datasets[3].data = [...analyticsData.queueHistory.W];
-    
-    if (queueChart.data.labels.length > 50) {
-      queueChart.data.labels.shift();
-      queueChart.data.datasets.forEach(ds => ds.data.shift());
-      analyticsData.queueHistory.labels.shift();
-      analyticsData.queueHistory.N.shift();
-      analyticsData.queueHistory.S.shift();
-      analyticsData.queueHistory.E.shift();
-      analyticsData.queueHistory.W.shift();
-    }
-    
-    queueChart.update('none');
-  }
-  
-  if (waitChart) {
-    waitChart.data.datasets[0].data = [...analyticsData.waitBuckets];
-    waitChart.update('none');
-  }
-  
-  if (throughputChart) {
-    throughputChart.data.labels = [...analyticsData.throughput.labels];
-    throughputChart.data.datasets[0].data = [...analyticsData.throughput.data];
-    throughputChart.update('none');
-  }
-  
-  if (phaseChart) {
-    phaseChart.data.labels = analyticsData.phaseSegments.map((_, i) => `Cycle ${i}`);
-    phaseChart.update('none');
-  }
-}
-
-function cmdAnalyticsClear() {
-  analyticsData.queueHistory = { labels: [], N: [], S: [], E: [], W: [] };
-  analyticsData.waitBuckets = [0, 0, 0, 0, 0];
-  analyticsData.throughput = { labels: [], data: [] };
-  analyticsData.phaseSegments = [];
-  analyticsData.dataPointCount = 0;
-  document.getElementById('analytics-data-points').textContent = '0';
-  document.getElementById('analytics-records').textContent = '0';
-  if (queueChart) {
-    queueChart.data.labels = [];
-    queueChart.data.datasets.forEach(ds => ds.data = []);
-    queueChart.update();
-  }
-  if (waitChart) {
-    waitChart.data.datasets[0].data = [0, 0, 0, 0, 0];
-    waitChart.update();
-  }
-  if (throughputChart) {
-    throughputChart.data.labels = [];
-    throughputChart.data.datasets[0].data = [];
-    throughputChart.update();
-  }
-  if (phaseChart) {
-    phaseChart.data.labels = [];
-    phaseChart.data.datasets.forEach(ds => ds.data = []);
-    phaseChart.update();
-  }
-}
-
-function cmdExportJSON() {
-  const data = JSON.stringify(analyticsData, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  downloadFile(blob, 'simulation-analytics.json');
-}
-
-function cmdExportCSV() {
-  let csv = 'Time,North,South,East,West\n';
-  for (let i = 0; i < analyticsData.queueHistory.labels.length; i++) {
-    csv += `${analyticsData.queueHistory.labels[i]},${analyticsData.queueHistory.N[i]},${analyticsData.queueHistory.S[i]},${analyticsData.queueHistory.E[i]},${analyticsData.queueHistory.W[i]}\n`;
-  }
-  const blob = new Blob([csv], { type: 'text/csv' });
-  downloadFile(blob, 'simulation-analytics.csv');
-}
-
-function cmdExportPDF() {
-  const element = document.getElementById('analytics-panel');
-  if (!element) return;
-  
-  const opt = {
-    margin: 10,
-    filename: 'simulation-analytics.pdf',
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-  };
-  
-  if (typeof html2pdf !== 'undefined') {
-    html2pdf().set(opt).from(element).save();
-  } else {
-    alert('PDF export library not available. Please use JSON or CSV export.');
-  }
-}
-
-function downloadFile(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-// ─── SocketIO ──────────────────────────────────────────────────────
-const socket = io({
-  transports: ['websocket'],
-  reconnection: true,
-  reconnectionAttempts: Infinity,
-  reconnectionDelay: 500,
-  reconnectionDelayMax: 3000,
+const anSessionTemplate = () => ({
+  id: 'xxxxxxxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16)),
+  startTime:null, endTime:null, config:{},
+  queueSnapshots:[], phaseEvents:[], vehicleEvents:[], statsSummary:{}
 });
+let anSession = anSessionTemplate();
 
-function setConnBadge(state) {
-  const el = document.getElementById('hdr-conn');
-  if (state === 'connected')    { el.className = 'pill pill-green'; el.textContent = 'Connected'; }
-  else if (state === 'reconnecting') { el.className = 'pill pill-yellow'; el.textContent = 'Reconnecting'; }
-  else                          { el.className = 'pill pill-red'; el.textContent = 'Disconnected'; }
+function anEnsureSessionStarted(stats) {
+  if (!anSession.startTime) {
+    anSession.startTime=new Date().toISOString();
+    document.getElementById('an-session-hint').textContent='Recording session data.';
+  }
+  anSession.statsSummary={ total_passed:stats.total_passed||0, avg_wait:stats.avg_wait||0, cycles:stats.cycles||0, sim_time:stats.sim_time||0 };
+  document.getElementById('an-session-duration').textContent=(stats.sim_time||0).toFixed(1)+'s';
+  document.getElementById('an-session-points').textContent=anSession.queueSnapshots.length;
+  document.getElementById('an-session-vehicles').textContent=anSession.vehicleEvents.length;
+  document.getElementById('an-session-id').textContent=anSession.id.slice(0,8);
 }
 
-socket.on('connect',       () => { setConnBadge('connected');    addLog({msg:'Connected to simulation server', cls:'green', sim_time:0}); });
-socket.on('disconnect',    () => { setConnBadge('disconnected'); });
-socket.on('connect_error', () => { setConnBadge('reconnecting'); });
+function anCaptureQueueSnapshot(stats) {
+  const q=stats.queues||{};
+  anSession.queueSnapshots.push({sim_time:stats.sim_time||0,N:q.N||0,S:q.S||0,E:q.E||0,W:q.W||0});
+  if (anSession.queueSnapshots.length>AN_MAX_QUEUE_SNAPSHOTS) anSession.queueSnapshots.shift();
+}
 
-socket.on('stats', data => { 
-  STATE.stats = data; 
+function anHandleStats(stats) {
+  if (!stats||typeof stats!=='object') return;
+  anEnsureSessionStarted(stats);
+  anCaptureQueueSnapshot(stats);
+  /* Update summary metrics in panel */
+  const q=stats.queues||{};
+  document.getElementById('an-passed').textContent  = stats.total_passed||0;
+  document.getElementById('an-wait').textContent    = (stats.avg_wait||0).toFixed(1)+'s';
+  document.getElementById('an-cycles').textContent  = stats.cycles||0;
+  document.getElementById('an-active').textContent  = stats.active_vehicles||0;
+  document.getElementById('an-ns-q').textContent    = (q.N||0)+(q.S||0);
+  document.getElementById('an-ew-q').textContent    = (q.E||0)+(q.W||0);
+}
+
+function anHandleLightChange(data) {
+  if (!data) return;
+  anSession.phaseEvents.push({phase:data.phase,sim_time:data.sim_time||0});
+}
+
+function anHandleVehicleMove(data) {
+  if (!data) return;
+  anSession.vehicleEvents.push({vid:data.vid,direction:data.direction,turn:data.turn,wait_time:data.wait_time,sim_time:data.sim_time});
+  if (anSession.vehicleEvents.length>AN_MAX_PERSIST_VEHICLES) anSession.vehicleEvents.shift();
+  document.getElementById('an-session-vehicles').textContent=anSession.vehicleEvents.length;
+}
+
+function anClearSession() {
+  anSession=anSessionTemplate();
+  ['an-passed','an-wait','an-cycles','an-active','an-ns-q','an-ew-q'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=id==='an-wait'?'0.0s':'0';
+  });
+  document.getElementById('an-session-id').textContent='--------';
+  document.getElementById('an-session-duration').textContent='0.0s';
+  document.getElementById('an-session-points').textContent='0';
+  document.getElementById('an-session-vehicles').textContent='0';
+  document.getElementById('an-session-hint').textContent='Start the simulation to see data.';
+}
+
+function anEscHtml(v){ return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function anExportJson() {
+  const payload={ session_id:anSession.id, exported_at:new Date().toISOString(), config:anSession.config||{}, summary:anSession.statsSummary||{}, queue_history:anSession.queueSnapshots||[], phase_events:anSession.phaseEvents||[], vehicle_events:anSession.vehicleEvents||[] };
+  anDl(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),`stimulation_session_${Date.now()}.json`);
+}
+
+function anExportCsv() {
+  const rows=['sim_time,queue_N,queue_S,queue_E,queue_W'];
+  (anSession.queueSnapshots||[]).forEach(r=>rows.push(`${r.sim_time},${r.N},${r.S},${r.E},${r.W}`));
+  anDl(new Blob([rows.join('\n')],{type:'text/csv'}),`stimulation_queues_${Date.now()}.csv`);
+}
+
+function anExportPdf() {
+  const s=anSession.statsSummary||{};
+  const report=document.createElement('div');
+  report.style.cssText="font-family:'JetBrains Mono',monospace;color:#1b1d36;padding:24px";
+  report.innerHTML=`<h1 style="margin:0 0 6px;font-size:20px">sTIMulation Session Report</h1><div style="font-size:12px;color:#64748b;margin-bottom:14px">Session ID: <strong>${anEscHtml(anSession.id)}</strong> · Exported: ${anEscHtml(new Date().toISOString())}</div><h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Summary</h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Total Passed: <b>${anEscHtml(s.total_passed??0)}</b></div><div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Avg Wait: <b>${anEscHtml(((s.avg_wait??0)).toFixed(2))}</b>s</div><div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Cycles: <b>${anEscHtml(s.cycles??0)}</b></div><div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Sim Time: <b>${anEscHtml(s.sim_time??0)}</b>s</div></div>`;
+  if (window.html2pdf) {
+    window.html2pdf().set({margin:.5,filename:`stimulation_report_${Date.now()}.pdf`,image:{type:'jpeg',quality:.96},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'in',format:'letter',orientation:'portrait'}}).from(report).save();
+  } else { alert('PDF export unavailable.'); }
+}
+
+function anDl(blob,name){ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url); }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION 5 — SOCKET.IO + UI UPDATES
+   ═══════════════════════════════════════════════════════════════════ */
+
+const socket = io({ transports:['websocket'], reconnection:true, reconnectionAttempts:Infinity, reconnectionDelay:500, reconnectionDelayMax:3000 });
+
+function setConnBadge(s) {
+  const el=document.getElementById('hdr-conn');
+  if(s==='connected'){el.className='pill pill-green';el.textContent='Connected';}
+  else if(s==='reconnecting'){el.className='pill pill-yellow';el.textContent='Reconnecting';}
+  else{el.className='pill pill-red';el.textContent='Disconnected';}
+}
+
+socket.on('connect',       ()=>{ setConnBadge('connected'); addLog({msg:'Connected to simulation server',cls:'green',sim_time:0}); });
+socket.on('disconnect',    ()=>setConnBadge('disconnected'));
+socket.on('connect_error', ()=>setConnBadge('reconnecting'));
+
+socket.on('stats', data=>{
+  STATE.stats=data;
   updateStatsUI(data);
-  updateAnalyticsUI(data);
+  anHandleStats(data);
 });
 
-socket.on('vehicles_snapshot', list => {
-  STATE.vehicles = {};
-  Object.keys(VIS).forEach(k => delete VIS[k]);
-  list.forEach(v => { STATE.vehicles[v.vid] = v; });
+socket.on('vehicles_snapshot', list=>{
+  STATE.vehicles={};
+  Object.keys(VIS).forEach(k=>delete VIS[k]);
+  list.forEach(v=>{ STATE.vehicles[v.vid]=v; });
 });
 
-socket.on('vehicle_arrive', v => { 
-  STATE.vehicles[v.vid] = v;
-  analyticsData.dataPointCount++;
-  document.getElementById('analytics-records').textContent = Object.keys(STATE.vehicles).length;
+socket.on('vehicle_arrive', v=>{ STATE.vehicles[v.vid]=v; });
+socket.on('vehicle_queued', v=>{ STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}),...v,state:'queued'}; });
+socket.on('vehicle_move',   v=>{
+  STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}),...v,state:'moving'};
+  anHandleVehicleMove(v);
 });
-socket.on('vehicle_queued', v => {
-  STATE.vehicles[v.vid] = { ...(STATE.vehicles[v.vid] || {}), ...v, state: 'queued' };
+socket.on('queue_update', ({direction,ids})=>{
+  ids.forEach((vid,pos)=>{ if(STATE.vehicles[vid])STATE.vehicles[vid].queue_pos=pos; });
 });
-socket.on('vehicle_move', v => {
-  STATE.vehicles[v.vid] = { ...(STATE.vehicles[v.vid] || {}), ...v, state: 'moving' };
-});
-socket.on('queue_update', ({ direction, ids }) => {
-  ids.forEach((vid, pos) => { if (STATE.vehicles[vid]) STATE.vehicles[vid].queue_pos = pos; });
-});
-socket.on('vehicle_exit', ({ vid }) => {
-  const v = STATE.vehicles[vid];
-  if (v && v.state === 'moving' && VIS[vid]) { v.serverExited = true; }
+socket.on('vehicle_exit', ({vid})=>{
+  const v=STATE.vehicles[vid];
+  if(v&&v.state==='moving'&&VIS[vid]){ v.serverExited=true; }
   else { delete STATE.vehicles[vid]; delete VIS[vid]; }
 });
+socket.on('pedestrian_arrive', ped=>{ if(!STATE.pedestrians)STATE.pedestrians={}; STATE.pedestrians[ped.pid]=ped; });
+socket.on('pedestrian_move',   ped=>{ if(!STATE.pedestrians)STATE.pedestrians={}; STATE.pedestrians[ped.pid]={...(STATE.pedestrians[ped.pid]||{}),...ped}; });
+socket.on('pedestrian_exit',   ({pid})=>{ if(STATE.pedestrians?.[pid])delete STATE.pedestrians[pid]; });
 
-socket.on('pedestrian_arrive', ped => {
-  if (!STATE.pedestrians) STATE.pedestrians = {};
-  STATE.pedestrians[ped.pid] = ped;
-});
-socket.on('pedestrian_move', ped => {
-  if (!STATE.pedestrians) STATE.pedestrians = {};
-  STATE.pedestrians[ped.pid] = { ...(STATE.pedestrians[ped.pid] || {}), ...ped };
-});
-socket.on('pedestrian_exit', ({ pid }) => {
-  if (STATE.pedestrians && STATE.pedestrians[pid]) delete STATE.pedestrians[pid];
-});
-
-socket.on('light_change', data => {
+socket.on('light_change', data=>{
   STATE.stats.phase    = data.phase;
   STATE.stats.ns_light = data.ns;
   STATE.stats.ew_light = data.ew;
-  STATE.phaseStart = data.sim_time || STATE.stats.sim_time || 0;
-  phaseProgress = 0;
+  STATE.phaseStart = data.sim_time||STATE.stats.sim_time||0;
   updatePhaseHeaders(data);
+  anHandleLightChange(data);
 });
 
-socket.on('log', entry => { addLog(entry); });
+socket.on('log', entry=>addLog(entry));
 
-socket.on('reset', () => {
-  STATE.vehicles = {};
-  STATE.pedestrians = {};
-  STATE.stats = { ...STATE.stats, total_passed:0, avg_wait:0, cycles:0, sim_time:0 };
-  Object.keys(VIS).forEach(k => delete VIS[k]);
-  STATE.simRunning = false;
-  STATE.simPaused = false;
-  analyticsData.queueHistory = { labels: [], N: [], S: [], E: [], W: [] };
-  analyticsData.waitBuckets = [0, 0, 0, 0, 0];
-  analyticsData.throughput = { labels: [], data: [] };
-  analyticsData.phaseSegments = [];
-  analyticsData.dataPointCount = 0;
-  analyticsData.sessionId = null;
-  analyticsData.startTime = null;
-  document.getElementById('analytics-session-id').textContent = '--------';
-  document.getElementById('analytics-session-duration').textContent = '0.0s';
-  document.getElementById('analytics-data-points').textContent = '0';
-  document.getElementById('analytics-records').textContent = '0';
-  if (queueChart) {
-    queueChart.data.labels = [];
-    queueChart.data.datasets.forEach(ds => ds.data = []);
-    queueChart.update();
-  }
-  if (waitChart) {
-    waitChart.data.datasets[0].data = [0, 0, 0, 0, 0];
-    waitChart.update();
-  }
-  if (throughputChart) {
-    throughputChart.data.labels = [];
-    throughputChart.data.datasets[0].data = [];
-    throughputChart.update();
-  }
-  if (phaseChart) {
-    phaseChart.data.labels = [];
-    phaseChart.data.datasets.forEach(ds => ds.data = []);
-    phaseChart.update();
-  }
-  updateButtonStates();
-  updateStatsUI(STATE.stats);
-  updateAnalyticsUI(STATE.stats);
+socket.on('reset', ()=>{
+  STATE.vehicles={}; STATE.pedestrians={};
+  STATE.stats={...STATE.stats,total_passed:0,avg_wait:0,cycles:0,sim_time:0};
+  Object.keys(VIS).forEach(k=>delete VIS[k]);
+  STATE.simRunning=false; STATE.simPaused=false;
+  anClearSession();
+  updateButtonStates(); updateStatsUI(STATE.stats);
 });
 
-socket.on('ack', data => {
-  if (data.action === 'start') {
-    STATE.simRunning = true;
-    STATE.simPaused = false;
-    if (!analyticsData.sessionId) {
-      analyticsData.sessionId = `sess-${Math.random().toString(36).slice(2,10)}`;
-      analyticsData.startTime = Date.now();
-      analyticsData.dataPointCount = 0;
-      document.getElementById('analytics-session-id').textContent = analyticsData.sessionId.slice(0, 8);
-      document.getElementById('analytics-data-points').textContent = '0';
-      document.getElementById('analytics-records').textContent = '0';
-    }
-    updateButtonStates();
-  }
-  if (data.action === 'reset') {
-    STATE.simRunning = false;
-    STATE.simPaused = false;
-    analyticsData.sessionId = null;
-    analyticsData.startTime = null;
-    analyticsData.dataPointCount = 0;
-    document.getElementById('analytics-session-id').textContent = '--------';
-    document.getElementById('analytics-session-duration').textContent = '0.0s';
-    document.getElementById('analytics-data-points').textContent = '0';
-    document.getElementById('analytics-records').textContent = '0';
-    updateButtonStates();
-  }
-  if ('paused' in data) {
-    STATE.simPaused = data.paused;
-    const btn = document.getElementById('btn-pause');
-    btn.textContent = data.paused ? '⏸ Resume' : '⏸ Pause';
-    btn.classList.toggle('active-yellow', data.paused);
+socket.on('ack', data=>{
+  if(data.action==='start'){ STATE.simRunning=true; STATE.simPaused=false; updateButtonStates(); }
+  if(data.action==='reset'){ STATE.simRunning=false; STATE.simPaused=false; updateButtonStates(); }
+  if('paused' in data){
+    STATE.simPaused=data.paused;
+    const btn=document.getElementById('btn-pause');
+    if(data.paused){ btn.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><polygon points="2,1 9,5 2,9"/></svg>Resume'; btn.classList.add('active-yellow'); }
+    else           { btn.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><rect x="2" y="1" width="2.5" height="8"/><rect x="5.5" y="1" width="2.5" height="8"/></svg>Pause'; btn.classList.remove('active-yellow'); }
   }
 });
 
-// ─── UI Updates ────────────────────────────────────────────────────
+/* ── UI helpers ── */
 function updateStatsUI(d) {
-  // Header pills
-  document.getElementById('hdr-time').textContent = 'T = ' + Math.round(d.sim_time) + 's';
-  document.getElementById('hdr-cycles').textContent = 'Cycle ' + d.cycles;
-
-  // Floating widgets
-  document.getElementById('w-passed').textContent = d.total_passed;
-  document.getElementById('w-wait').textContent   = (d.avg_wait || 0).toFixed(1) + 's';
-  document.getElementById('w-cycles').textContent = d.cycles;
-  document.getElementById('w-active').textContent = d.active_vehicles;
-
-  // Queue bars in widget
-  const maxQ = parseInt(document.getElementById('sel-road').value) / 2 * 8;
-  ['N','S','E','W'].forEach(dir => {
-    const n = d.queues[dir] || 0;
-    const dn = dir.toLowerCase();
-    const el = document.getElementById('wqb-' + dn);
-    if (el) el.style.width = Math.min(n / maxQ * 100, 100) + '%';
-    const cn = document.getElementById('wqn-' + dn);
-    if (cn) cn.textContent = n;
-  });
-
-  // Status bar
-  const nsL = d.ns_light || 'red', ewL = d.ew_light || 'red';
-  const nsc  = nsL==='green' ? '#22c55e' : nsL==='yellow' ? '#eab308' : '#ef4444';
-  const ewc  = ewL==='green' ? '#22c55e' : ewL==='yellow' ? '#eab308' : '#ef4444';
-  document.getElementById('sb-ns').textContent = nsL.toUpperCase();
-  document.getElementById('sb-ns').style.color = nsc;
-  document.getElementById('sb-ew').textContent = ewL.toUpperCase();
-  document.getElementById('sb-ew').style.color = ewc;
-  document.getElementById('sb-active').textContent = d.active_vehicles;
-  document.getElementById('sb-ns-q').textContent = (d.queues.N||0) + (d.queues.S||0);
-  document.getElementById('sb-ew-q').textContent = (d.queues.E||0) + (d.queues.W||0);
+  document.getElementById('hdr-time').textContent   = 'T = '+Math.round(d.sim_time)+'s';
+  document.getElementById('hdr-cycles').textContent = 'Cycle '+d.cycles;
+  const nsL=d.ns_light||'red', ewL=d.ew_light||'red';
+  const nsc=nsL==='green'?'#22c55e':nsL==='yellow'?'#eab308':'#ef4444';
+  const ewc=ewL==='green'?'#22c55e':ewL==='yellow'?'#eab308':'#ef4444';
+  document.getElementById('sb-ns').textContent=nsL.toUpperCase(); document.getElementById('sb-ns').style.color=nsc;
+  document.getElementById('sb-ew').textContent=ewL.toUpperCase(); document.getElementById('sb-ew').style.color=ewc;
+  document.getElementById('sb-active').textContent=d.active_vehicles;
+  document.getElementById('sb-ns-q').textContent=(d.queues.N||0)+(d.queues.S||0);
+  document.getElementById('sb-ew-q').textContent=(d.queues.E||0)+(d.queues.W||0);
 }
 
 function updatePhaseHeaders(data) {
-  const { phase } = data;
-  const pc = phase.includes('green') ? 'pill-green' : phase.includes('yellow') ? 'pill-yellow' : 'pill-red';
-  const ph = document.getElementById('hdr-phase');
-  ph.className = 'pill ' + pc;
-  ph.textContent = phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
-  document.getElementById('hdr-scenario').textContent =
-    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
+  const{phase}=data;
+  const pc=phase.includes('green')?'pill-green':phase.includes('yellow')?'pill-yellow':'pill-red';
+  const ph=document.getElementById('hdr-phase');
+  ph.className='pill '+pc;
+  ph.textContent=phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
+  document.getElementById('hdr-scenario').textContent=document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
 }
 
-// ─── Log ──────────────────────────────────────────────────────────
-const MAX_LOGS = 80;
-const logScroll = document.getElementById('log-scroll');
+const MAX_LOGS=80, logScroll=document.getElementById('log-scroll');
+function addLog(entry){ STATE.logs.unshift(entry); if(STATE.logs.length>MAX_LOGS)STATE.logs.pop(); renderLog(); }
+function renderLog(){ logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>`<div class="log-entry"><span class="log-time">${(l.sim_time||0).toFixed(1)}s</span><span class="log-msg c-${l.cls||'gray'}">${l.msg}</span></div>`).join(''); }
 
-function addLog(entry) {
-  STATE.logs.unshift(entry);
-  if (STATE.logs.length > MAX_LOGS) STATE.logs.pop();
-  renderLog();
-}
-function renderLog() {
-  logScroll.innerHTML = STATE.logs.slice(0, 50).map(l => `
-    <div class="log-entry">
-      <span class="log-time">${(l.sim_time||0).toFixed(1)}s</span>
-      <span class="log-msg c-${l.cls||'gray'}">${l.msg}</span>
-    </div>`).join('');
-}
-
-// ─── Button State Management ──────────────────────────────────────
 function updateButtonStates() {
-  const startBtn = document.getElementById('btn-start');
-  const pauseBtn = document.getElementById('btn-pause');
-
-  if (STATE.simRunning) {
-    // Simulation is active: Show PAUSE, hide START
-    startBtn.style.display = 'none';
-    pauseBtn.style.display = 'block';
-    pauseBtn.classList.remove('active-yellow');
-  } else {
-    // Simulation is inactive: Show START, hide PAUSE
-    startBtn.style.display = 'block';
-    startBtn.classList.remove('active-green');
-    pauseBtn.style.display = 'none';
-    pauseBtn.classList.remove('active-yellow');
-  }
+  const s=document.getElementById('btn-start'),p=document.getElementById('btn-pause');
+  if(STATE.simRunning){s.style.display='none';p.style.display='block';p.classList.remove('active-yellow');}
+  else{s.style.display='block';s.classList.remove('active-green');p.style.display='none';p.classList.remove('active-yellow');}
 }
 
-// ─── Commands ─────────────────────────────────────────────────────
-function getConfig() {
-  return {
-    green:     +document.getElementById('sl-green').value,
-    yellow:    +document.getElementById('sl-yellow').value,
-    red:       +document.getElementById('sl-red').value,
-    scenario:  document.getElementById('sel-scenario').value,
-    road_type: +document.getElementById('sel-road').value,
-    right_turn: document.getElementById('ck-rturn').checked,
-    speed:     +document.getElementById('sl-speed').value,
-    seed:      +document.getElementById('sl-seed').value,
-  };
-}
-
-function cmdStart() {
-  socket.emit('cmd_start', getConfig());
-}
-
-function cmdPause() {
-  socket.emit('cmd_pause');
-}
-
-function cmdReset() {
-  socket.emit('cmd_reset', getConfig());
-}
-
-function onCfgChange() {
-  socket.emit('cmd_update_config', {
-    green_duration:  +document.getElementById('sl-green').value,
-    yellow_duration: +document.getElementById('sl-yellow').value,
-    red_duration:    +document.getElementById('sl-red').value,
-    scenario:        document.getElementById('sel-scenario').value,
-    road_type:       +document.getElementById('sel-road').value,
-    right_turn_free: document.getElementById('ck-rturn').checked,
-    speed_factor:    +document.getElementById('sl-speed').value,
-    seed:            +document.getElementById('sl-seed').value,
-  });
-  const rt = document.getElementById('ck-rturn').checked;
-  document.getElementById('rt-label').textContent = rt ? 'Allowed' : 'Signal only';
-  document.getElementById('hdr-scenario').textContent =
-    document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
+function getConfig(){ return{ green:+document.getElementById('sl-green').value, yellow:+document.getElementById('sl-yellow').value, red:+document.getElementById('sl-red').value, scenario:document.getElementById('sel-scenario').value, road_type:+document.getElementById('sel-road').value, right_turn:document.getElementById('ck-rturn').checked, speed:+document.getElementById('sl-speed').value, seed:+document.getElementById('sl-seed').value }; }
+function cmdStart()  { socket.emit('cmd_start',  getConfig()); }
+function cmdPause()  { socket.emit('cmd_pause'); }
+function cmdReset()  { socket.emit('cmd_reset',  getConfig()); }
+function onCfgChange(){
+  socket.emit('cmd_update_config',{ green_duration:+document.getElementById('sl-green').value, yellow_duration:+document.getElementById('sl-yellow').value, red_duration:+document.getElementById('sl-red').value, scenario:document.getElementById('sel-scenario').value, road_type:+document.getElementById('sel-road').value, right_turn_free:document.getElementById('ck-rturn').checked, speed_factor:+document.getElementById('sl-speed').value, seed:+document.getElementById('sl-seed').value });
+  document.getElementById('rt-label').textContent=document.getElementById('ck-rturn').checked?'Allowed':'Signal only';
+  document.getElementById('hdr-scenario').textContent=document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
 }
 </script>
 </body>

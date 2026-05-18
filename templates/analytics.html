@@ -6,333 +6,275 @@
 <title>sTIMulation - Analytics Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  /* ── Core palette ── */
-  --bg:#1b1d36;
-  --bg2:#22253f;
-  --bg3:#2a2e4a;
-  --bg4:#323660;
-
-  --surface:#e1e7ed;
-  --surface2:#c8d2dc;
-
-  --pink:#fca6d1;
-  --pink-light:#fdc4e2;
-  --pink-dim:#c4718f;
-  --pink-bg:rgba(252,166,209,.12);
-
-  --cyan:#99d7ea;
-  --cyan-light:#b8e5f2;
-  --cyan-dim:#5fa8c0;
-  --cyan-bg:rgba(153,215,234,.12);
-
-  /* semantic aliases */
-  --green:#99d7ea;
-  --green-light:#b8e5f2;
-  --green-bg:rgba(153,215,234,.10);
-  --yellow:#fca6d1;
-  --yellow-light:#fdc4e2;
-  --yellow-bg:rgba(252,166,209,.10);
-  --red:#f87171;
-  --red-light:#fca5a5;
-  --red-bg:rgba(248,113,113,.10);
-  --blue:#99d7ea;
-  --blue-light:#b8e5f2;
-  --blue-bg:rgba(153,215,234,.10);
-  --purple:#fca6d1;
-  --purple-light:#fdc4e2;
-  --purple-bg:rgba(252,166,209,.10);
-
-  --border:rgba(153,215,234,.22);
-  --border2:rgba(153,215,234,.35);
-  --border-light:rgba(252,166,209,.45);
-
-  --text:#e1e7ed;
-  --text2:#a8b8cc;
-  --text3:#6a7f96;
-
-  --radius:12px;
-  --radius-sm:8px;
-
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#1b1d36; --bg2:#20223a; --bg3:#252844; --bg4:#2c2f52;
+  --pink:#fca6d1; --pink-dim:#c4718f; --pink-bg:rgba(252,166,209,.10); --pink-border:rgba(252,166,209,.30);
+  --cyan:#99d7ea; --cyan-dim:#5fa8c0; --cyan-bg:rgba(153,215,234,.10); --cyan-border:rgba(153,215,234,.28);
+  --red:#f87171; --red-bg:rgba(248,113,113,.12); --red-border:rgba(248,113,113,.30);
+  --border:rgba(153,215,234,.15); --border2:rgba(153,215,234,.25);
+  --text:#e1e7ed; --text2:#a8b8cc; --text3:#6a7f96;
+  --radius:14px; --radius-sm:9px; --radius-xs:6px;
+  --glass-bg:rgba(22,24,46,.90); --glass-blur:blur(20px); --glass-border:rgba(153,215,234,.18);
+  --shadow:0 8px 32px rgba(0,0,0,.55);
+  --header-h:52px; --status-h:32px;
   font-family:'JetBrains Mono',monospace;
 }
-body{
-  background:var(--bg);color:var(--text);
-  height:100vh;overflow:hidden;
-  display:grid;grid-template-rows:48px 1fr;
+body {
+  background:var(--bg); color:var(--text); min-height:100vh;
+  display:grid; grid-template-rows:var(--header-h) 1fr; overflow-x:hidden;
+}
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px; background:rgba(27,29,54,.98); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border); z-index:100; position:relative; height:var(--header-h);
+}
+.header-logo {
+  display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700;
+  letter-spacing:.4px; color:var(--text); user-select:none; z-index:2; text-decoration:none;
+}
+.header-logo svg { width:26px; height:26px; flex-shrink:0; }
+.header-center {
+  position:absolute; left:50%; transform:translateX(-50%); font-size:13px; font-weight:700;
+  letter-spacing:.6px; color:var(--cyan); pointer-events:none; white-space:nowrap; z-index:1;
+}
+.header-right { display:flex; align-items:center; gap:8px; z-index:2; }
+.pill {
+  padding:3px 10px; border-radius:20px; font-size:10px; font-weight:700;
+  letter-spacing:.6px; text-transform:uppercase; border:1px solid transparent;
+  transition:all .2s; white-space:nowrap;
+}
+.pill-green  { color:var(--cyan);  border-color:var(--cyan-border);  background:var(--cyan-bg); }
+.pill-yellow { color:var(--pink);  border-color:var(--pink-border);  background:var(--pink-bg); }
+.pill-red    { color:var(--red);   border-color:var(--red-border);   background:var(--red-bg); }
+.pill-blue   { color:var(--cyan);  border-color:var(--cyan-border);  background:var(--cyan-bg); }
+.pill-gray   { color:var(--text2); border-color:var(--border2);      background:rgba(153,215,234,.06); }
+.pill-back {
+  color:var(--text2); border-color:var(--border2); background:rgba(153,215,234,.06);
+  cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:5px; transition:all .2s;
+}
+.pill-back:hover { color:var(--cyan); border-color:var(--cyan-border); background:var(--cyan-bg); transform:translateX(-2px); }
+.main {
+  display:grid; grid-template-columns:1fr 320px; gap:16px;
+  padding:16px; height:calc(100vh - var(--header-h)); overflow:hidden;
+}
+.col-left {
+  display:flex; flex-direction:column; gap:14px; overflow-y:auto; overflow-x:hidden;
+  padding-right:4px; scrollbar-width:thin; scrollbar-color:var(--border2) transparent;
+}
+.col-left::-webkit-scrollbar { width:4px; }
+.col-left::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.col-right {
+  display:flex; flex-direction:column; gap:14px; overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:thin; scrollbar-color:var(--border2) transparent;
+}
+.col-right::-webkit-scrollbar { width:4px; }
+.col-right::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.card {
+  background:var(--glass-bg); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border); border-radius:var(--radius); box-shadow:var(--shadow);
+  overflow:hidden; animation:cardIn .4s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(10px) scale(.97); }
+  to   { opacity:1; transform:translateY(0)    scale(1);   }
+}
+.card:nth-child(1){animation-delay:.04s} .card:nth-child(2){animation-delay:.08s}
+.card:nth-child(3){animation-delay:.12s} .card:nth-child(4){animation-delay:.16s}
+.card:nth-child(5){animation-delay:.20s} .card:nth-child(6){animation-delay:.24s}
+.card-header {
+  padding:10px 14px 8px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.card-title { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--pink); }
+.card-body { padding:12px 14px; }
+.charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+/* ── CHART BOX: explicit height + positioning so Chart.js never sees 0px ── */
+.chart-box {
+  position:relative;
+  height:160px;
+  background:rgba(153,215,234,.03);
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  /* overflow visible so Chart.js tooltip isn't clipped */
+  overflow:visible;
+}
+.chart-box canvas {
+  position:absolute;
+  top:0; left:0;
+  width:100% !important;
+  height:100% !important;
 }
 
-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;
-  background:rgba(27,29,54,.96);
-  backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
-  z-index:20;height:48px;
+.kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.kpi-card {
+  background:rgba(153,215,234,.05); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:10px 12px; transition:all .22s cubic-bezier(.34,1.56,.64,1); cursor:default;
 }
-.header-left{display:flex;align-items:center;gap:12px}
-.logo{
-  display:flex;align-items:center;gap:10px;
-  font-size:14px;font-weight:700;letter-spacing:.5px;
-  transition:transform .2s ease;cursor:default;
-  font-family:'JetBrains Mono',monospace;
+.kpi-card:hover {
+  background:rgba(153,215,234,.09); border-color:var(--cyan-border);
+  transform:translateY(-2px); box-shadow:0 4px 16px rgba(153,215,234,.08);
 }
-.logo:hover{transform:translateY(-1px)}
-.logo-icon{width:28px;height:28px}
-.logo-icon svg{width:100%;height:100%}
-.header-right{display:flex;align-items:center;gap:10px}
-
-.pill{
-  padding:4px 12px;border-radius:20px;
-  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
-  border:1px solid currentColor;background:transparent;
-  transition:all .15s ease;cursor:default;
-  font-family:'JetBrains Mono',monospace;
+.kpi-label { font-size:9px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--text3); }
+.kpi-val   { font-size:22px; font-weight:700; line-height:1.15; margin-top:4px; }
+.kpi-sub   { font-size:9px; color:var(--text3); margin-top:2px; }
+.kv-cyan { color:var(--cyan); } .kv-pink { color:var(--pink); } .kv-red { color:var(--red); }
+.sess-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+.sess-item {
+  background:rgba(153,215,234,.05); border:1px solid var(--border);
+  border-radius:var(--radius-xs); padding:7px 8px; transition:all .15s ease;
 }
-.pill-green{color:var(--cyan);border-color:rgba(153,215,234,.4)}
-.pill-yellow{color:var(--pink);border-color:rgba(252,166,209,.4)}
-.pill-red{color:var(--red);border-color:rgba(248,113,113,.4)}
-.pill-blue{color:var(--cyan);border-color:rgba(153,215,234,.4)}
-.pill-gray{color:var(--text2);border-color:rgba(168,184,204,.3)}
-
-.main{display:grid;grid-template-columns:1.85fr 1fr;gap:18px;padding:18px;height:100%;overflow:hidden}
-.left{display:flex;flex-direction:column;gap:16px;overflow:hidden}
-.right{display:flex;flex-direction:column;gap:16px;overflow:hidden}
-
-.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.kpi-card{
-  background:var(--bg3);border-radius:var(--radius);
-  padding:12px 14px;border:1px solid var(--border);
-  transition:all .15s ease;cursor:default;
+.sess-item:hover { background:rgba(153,215,234,.09); border-color:var(--border2); }
+.sess-label { font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+.sess-val   { font-size:12px; font-weight:700; color:var(--cyan); margin-top:3px; word-break:break-all; }
+.btn-row { display:flex; gap:6px; flex-wrap:wrap; }
+.btn {
+  flex:1; padding:8px 10px; font-size:11px; font-weight:700; letter-spacing:.3px; text-transform:uppercase;
+  border:1px solid var(--border2); border-radius:var(--radius-sm); background:rgba(153,215,234,.06);
+  color:var(--text2); cursor:pointer; transition:all .18s cubic-bezier(.4,0,.2,1);
+  font-family:'JetBrains Mono',monospace; white-space:nowrap;
 }
-.kpi-card:hover{
-  background:var(--bg4);border-color:var(--border-light);
-  transform:translateY(-2px);
-  box-shadow:0 4px 16px rgba(252,166,209,.08);
+.btn:hover { background:rgba(153,215,234,.12); color:var(--cyan); border-color:var(--cyan-border); transform:translateY(-1px); }
+.btn:active { transform:translateY(0); }
+.btn.active-blue { background:var(--cyan-bg); color:var(--cyan); border-color:var(--cyan-border); }
+.btn.active-red  { background:var(--red-bg);  color:var(--red);  border-color:var(--red-border);  }
+.btn.active-pink { background:var(--pink-bg); color:var(--pink); border-color:var(--pink-border); }
+.btn-full { width:100%; flex:none; margin-bottom:5px; }
+.btn-full:last-child { margin-bottom:0; }
+.link-btn {
+  display:block; text-align:center; padding:8px 10px; font-size:11px; font-weight:700;
+  letter-spacing:.3px; text-transform:uppercase; text-decoration:none; border:1px solid var(--border2);
+  border-radius:var(--radius-sm); background:rgba(153,215,234,.04); color:var(--text2);
+  transition:all .18s; margin-top:6px;
 }
-.kpi-label{
-  font-size:10px;color:var(--text3);font-weight:700;
-  text-transform:uppercase;letter-spacing:.6px;
-  font-family:'JetBrains Mono',monospace;
+.link-btn:hover { color:var(--cyan); border-color:var(--cyan-border); background:var(--cyan-bg); transform:translateY(-1px); }
+.log-scroll {
+  max-height:200px; overflow-y:auto; padding-right:2px;
+  scrollbar-width:thin; scrollbar-color:var(--border2) transparent;
 }
-.kpi-val{font-size:24px;font-weight:700;line-height:1.2;margin-top:4px}
-.kpi-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace}
-.kpi-green{color:var(--cyan)}
-.kpi-yellow{color:var(--pink)}
-.kpi-blue{color:var(--cyan)}
-.kpi-purple{color:var(--pink)}
-.kpi-red{color:var(--red)}
-
-.charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;flex:1;overflow:auto;padding-right:2px}
-.chart-card{
-  background:var(--bg3);border-radius:var(--radius);
-  padding:12px;border:1px solid var(--border);
-  display:flex;flex-direction:column;min-height:240px;
+.log-scroll::-webkit-scrollbar { width:3px; }
+.log-scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.log-entry {
+  display:flex; gap:6px; padding:3px 0;
+  border-bottom:1px solid rgba(153,215,234,.05); font-size:10px; line-height:1.5;
 }
-.chart-title{
-  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
-  color:var(--pink);margin-bottom:8px;
-  font-family:'JetBrains Mono',monospace;
-}
-.chart-wrap{flex:1;position:relative}
-.chart-wrap canvas{width:100% !important;height:100% !important}
-
-.card{
-  background:var(--bg3);border-radius:var(--radius);
-  padding:14px;border:1px solid var(--border);
-}
-.card-title{
-  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
-  color:var(--pink);margin-bottom:10px;
-  font-family:'JetBrains Mono',monospace;
-}
-
-.btn-row{display:flex;gap:8px;flex-wrap:wrap}
-.btn{
-  padding:9px 12px;font-size:11px;font-weight:700;letter-spacing:.4px;
-  border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--bg3);color:var(--text2);cursor:pointer;
-  transition:all .15s cubic-bezier(.4,0,.2,1);text-transform:uppercase;
-  user-select:none;font-family:'JetBrains Mono',monospace;
-}
-.btn:hover{
-  background:var(--bg4);color:var(--cyan);border-color:var(--cyan-dim);
-  transform:translateY(-1px);box-shadow:0 2px 10px rgba(153,215,234,.15);
-}
-.btn:active{transform:translateY(0);box-shadow:none}
-.btn.active-blue{background:var(--blue-bg);color:var(--cyan);border-color:var(--cyan-dim)}
-.btn.active-red{background:var(--red-bg);color:var(--red);border-color:#b45454}
-
-.session-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.session-item{
-  background:var(--bg4);border-radius:var(--radius-sm);
-  padding:8px;border:1px solid var(--border);
-  transition:all .15s ease;cursor:default;
-}
-.session-item:hover{background:var(--bg3);border-color:var(--border-light)}
-.session-label{
-  font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;
-  font-family:'JetBrains Mono',monospace;
-}
-.session-val{font-size:13px;font-weight:700;margin-top:4px;color:var(--cyan);font-family:'JetBrains Mono',monospace}
-.session-hint{font-size:11px;color:var(--text3);margin-top:8px;font-family:'JetBrains Mono',monospace}
-
-.log-scroll{flex:1;overflow-y:auto;padding-right:2px}
-.log-scroll::-webkit-scrollbar{width:3px}
-.log-scroll::-webkit-scrollbar-track{background:transparent}
-.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.log-scroll::-webkit-scrollbar-thumb:hover{background:var(--border-light)}
-
-.log-entry{
-  display:flex;gap:6px;padding:4px 0;
-  border-bottom:1px solid rgba(153,215,234,.07);
-  font-size:10.5px;font-family:'JetBrains Mono',monospace;
-  line-height:1.5;transition:all .15s ease;
-}
-.log-entry:hover{background:rgba(153,215,234,.04)}
-.log-time{color:var(--text3);min-width:40px}
-.log-msg{flex:1;word-break:break-word}
-.c-green{color:var(--cyan)}
-.c-yellow{color:var(--pink)}
-.c-red{color:var(--red)}
-.c-blue{color:var(--cyan)}
-.c-gray{color:var(--text2)}
-
-@media (max-width: 1100px){
-  .main{grid-template-columns:1fr;overflow:auto}
-  .charts-grid{grid-template-columns:1fr}
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+.log-time { color:var(--text3); min-width:36px; }
+.log-msg  { flex:1; word-break:break-word; }
+.c-green{color:var(--cyan)} .c-yellow{color:var(--pink)} .c-red{color:var(--red)}
+.c-blue{color:var(--cyan)}  .c-gray{color:var(--text2)}
+.hint { font-size:11px; color:var(--text3); margin-top:6px; margin-bottom:10px; }
+@media(max-width:900px) {
+  .main { grid-template-columns:1fr; height:auto; overflow:auto; }
+  .charts-grid { grid-template-columns:1fr; }
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .header-center { display:none; }
 }
 </style>
 </head>
 <body>
+
 <header>
-  <div class="header-left">
-    <a class="pill pill-gray" href="/" style="text-decoration:none;cursor:pointer;transition:all .15s ease;display:inline-block"
-       onmouseover="this.style.transform='translateX(-2px)'"
-       onmouseout="this.style.transform='translateX(0)'">← Back to Simulator</a>
-    <div class="logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 28 28" fill="none">
-          <rect x="11" y="0" width="6" height="28" rx="2" fill="rgba(153,215,234,.2)"/>
-          <rect x="0" y="11" width="28" height="6" rx="2" fill="rgba(153,215,234,.2)"/>
-          <rect x="11" y="0" width="6" height="11" rx="2" fill="#99d7ea" opacity=".9"/>
-          <rect x="17" y="11" width="11" height="6" rx="2" fill="#fca6d1" opacity=".9"/>
-          <rect x="11" y="17" width="6" height="11" rx="2" fill="#fca6d1" opacity=".9"/>
-          <rect x="0" y="11" width="11" height="6" rx="2" fill="#99d7ea" opacity=".9"/>
-          <circle cx="14" cy="14" r="4" fill="#1b1d36"/>
-        </svg>
-      </div>
-      Analytics Dashboard
-    </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a class="pill pill-back" href="/">← Simulator</a>
+    <a class="header-logo" href="/">
+      <svg viewBox="0 0 26 26" fill="none">
+        <rect x="10" y="0" width="6" height="26" rx="2" fill="rgba(153,215,234,.18)"/>
+        <rect x="0" y="10" width="26" height="6" rx="2" fill="rgba(153,215,234,.18)"/>
+        <rect x="10" y="0" width="6" height="10" rx="2" fill="#99d7ea" opacity=".9"/>
+        <rect x="16" y="10" width="10" height="6" rx="2" fill="#fca6d1" opacity=".9"/>
+        <rect x="10" y="16" width="6" height="10" rx="2" fill="#fca6d1" opacity=".9"/>
+        <rect x="0"  y="10" width="10" height="6" rx="2" fill="#99d7ea" opacity=".9"/>
+        <circle cx="13" cy="13" r="3.5" fill="#1b1d36"/>
+      </svg>
+      sTIMulation
+    </a>
   </div>
+  <div class="header-center">Analytics Dashboard</div>
   <div class="header-right">
     <span id="hdr-conn" class="pill pill-red">Disconnected</span>
   </div>
 </header>
 
 <div class="main">
-  <div class="left">
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">Cars Passed</div>
-        <div class="kpi-val kpi-green" id="kpi-passed">0</div>
-        <div class="kpi-sub">Total vehicles cleared</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Avg Wait Time</div>
-        <div class="kpi-val kpi-yellow" id="kpi-wait">0.0s</div>
-        <div class="kpi-sub">Per vehicle average</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Signal Cycles</div>
-        <div class="kpi-val kpi-blue" id="kpi-cycles">0</div>
-        <div class="kpi-sub">Total completed cycles</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Active Vehicles</div>
-        <div class="kpi-val kpi-purple" id="kpi-active">0</div>
-        <div class="kpi-sub">Currently moving/queued</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">N+S Queue</div>
-        <div class="kpi-val kpi-blue" id="kpi-ns">0</div>
-        <div class="kpi-sub">North + South lanes</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">E+W Queue</div>
-        <div class="kpi-val kpi-red" id="kpi-ew">0</div>
-        <div class="kpi-sub">East + West lanes</div>
+  <div class="col-left">
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Live Metrics</span></div>
+      <div class="card-body">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">Cars Passed</div><div class="kpi-val kv-cyan" id="kpi-passed">0</div><div class="kpi-sub">total cleared</div></div>
+          <div class="kpi-card"><div class="kpi-label">Avg Wait</div><div class="kpi-val kv-pink" id="kpi-wait">0.0s</div><div class="kpi-sub">per vehicle</div></div>
+          <div class="kpi-card"><div class="kpi-label">Signal Cycles</div><div class="kpi-val kv-cyan" id="kpi-cycles">0</div><div class="kpi-sub">completed</div></div>
+          <div class="kpi-card"><div class="kpi-label">Active</div><div class="kpi-val kv-pink" id="kpi-active">0</div><div class="kpi-sub">on road</div></div>
+          <div class="kpi-card"><div class="kpi-label">N+S Queue</div><div class="kpi-val kv-cyan" id="kpi-ns">0</div><div class="kpi-sub">north + south</div></div>
+          <div class="kpi-card"><div class="kpi-label">E+W Queue</div><div class="kpi-val kv-red" id="kpi-ew">0</div><div class="kpi-sub">east + west</div></div>
+        </div>
       </div>
     </div>
 
     <div class="charts-grid">
-      <div class="chart-card">
-        <div class="chart-title">Queue Lengths Over Time</div>
-        <div class="chart-wrap"><canvas id="chart-queues"></canvas></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Queue Lengths Over Time</span></div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="chart-box"><canvas id="chart-queues" height="160"></canvas></div>
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">Wait Time Distribution</div>
-        <div class="chart-wrap"><canvas id="chart-waits"></canvas></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Wait Time Distribution</span></div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="chart-box"><canvas id="chart-waits" height="160"></canvas></div>
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">Vehicles Passed Per Cycle</div>
-        <div class="chart-wrap"><canvas id="chart-throughput"></canvas></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Vehicles Passed Per Cycle</span></div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="chart-box"><canvas id="chart-throughput" height="160"></canvas></div>
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">Signal Phase Timing</div>
-        <div class="chart-wrap"><canvas id="chart-phases"></canvas></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Signal Phase Timing</span></div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="chart-box"><canvas id="chart-phases" height="160"></canvas></div>
+        </div>
       </div>
     </div>
+
   </div>
 
-  <div class="right">
+  <div class="col-right">
     <div class="card">
-      <div class="card-title">Session Recording</div>
-      <div class="session-grid">
-        <div class="session-item">
-          <div class="session-label">Session ID</div>
-          <div class="session-val" id="session-id">--------</div>
+      <div class="card-header"><span class="card-title">Session Recording</span></div>
+      <div class="card-body">
+        <div class="sess-grid">
+          <div class="sess-item"><div class="sess-label">Session ID</div><div class="sess-val" id="session-id">--------</div></div>
+          <div class="sess-item"><div class="sess-label">Duration</div><div class="sess-val" id="session-duration">0.0s</div></div>
+          <div class="sess-item"><div class="sess-label">Data Points</div><div class="sess-val" id="session-points">0</div></div>
+          <div class="sess-item"><div class="sess-label">Vehicles Tracked</div><div class="sess-val" id="session-vehicles">0</div></div>
         </div>
-        <div class="session-item">
-          <div class="session-label">Duration</div>
-          <div class="session-val" id="session-duration">0.0s</div>
-        </div>
-        <div class="session-item">
-          <div class="session-label">Data Points</div>
-          <div class="session-val" id="session-points">0</div>
-        </div>
-        <div class="session-item">
-          <div class="session-label">Vehicles Tracked</div>
-          <div class="session-val" id="session-vehicles">0</div>
-        </div>
-      </div>
-      <div class="session-hint" id="session-hint">Start the simulation to see data.</div>
-      <div style="margin-top:10px;display:flex;justify-content:flex-end">
-        <button class="btn active-red" id="btn-clear">Clear Session</button>
+        <div class="hint" id="session-hint">Start the simulation to see data.</div>
+        <div class="btn-row"><button class="btn active-red" id="btn-clear">Clear Session</button></div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Export</div>
-      <div class="btn-row">
-        <button class="btn active-blue" id="btn-export-json">Export JSON</button>
-        <button class="btn active-blue" id="btn-export-csv">Export CSV</button>
-        <button class="btn active-blue" id="btn-export-report">Export PDF</button>
+      <div class="card-header"><span class="card-title">Export</span></div>
+      <div class="card-body">
+        <button class="btn active-blue btn-full" id="btn-export-json">Export JSON</button>
+        <button class="btn active-blue btn-full" id="btn-export-csv">Export CSV</button>
+        <button class="btn active-blue btn-full" id="btn-export-report">Export PDF Report</button>
+        <a href="/" class="link-btn">← Back to Simulator</a>
       </div>
     </div>
 
-    <div class="card" style="flex:1;display:flex;flex-direction:column">
-      <div class="card-title">Live Log</div>
-      <div class="log-scroll" id="log-scroll">
-        <div class="log-entry">
-          <span class="log-time">-</span>
-          <span class="log-msg c-gray">Waiting for simulation to start…</span>
+    <div class="card" style="flex:1">
+      <div class="card-header"><span class="card-title">Live Log</span></div>
+      <div class="card-body">
+        <div class="log-scroll" id="log-scroll">
+          <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
         </div>
       </div>
     </div>
@@ -340,595 +282,904 @@ header{
 </div>
 
 <script>
-const MAX_POINTS = 120;
-const MAX_LOGS = 60;
-const MAX_QUEUE_SNAPSHOTS = 500;
+/* ═══════════════════════════════════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════════════════════════════════ */
+const MAX_POINTS           = 120;
+const MAX_LOGS             = 60;
+const MAX_QUEUE_SNAPSHOTS  = 500;
 const MAX_PERSIST_VEHICLES = 2000;
-const MAX_PERSIST_PHASE_EVENTS = 500;
-let lastSimTime = 0;
+const MAX_PERSIST_PHASES   = 500;
+const PERSIST_KEY          = 'stimulation_analytics_session_v1';
+const PERSIST_META_KEY     = 'stimulation_analytics_meta_v1';
+const NAME_KEY             = 'stimulation_analytics_state_v1:';
+const GRID_COLOR           = 'rgba(153,215,234,.10)';
+const TICK_COLOR           = '#6a7f96';
 
-const makeId = () => {
-  if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
-  return `sess-${Math.random().toString(36).slice(2,10)}${Date.now().toString(36)}`;
-};
+/* ═══════════════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════════════ */
+let lastSimTime  = 0;
+let logs         = [];
+let pollTimer    = null;
+let persistTimer = null;
 
-const PERSIST_KEY = 'stimulation_analytics_session_v1';
-const PERSIST_META_KEY = 'stimulation_analytics_meta_v1';
-const NAME_KEY = 'stimulation_analytics_state_v1:';
+/*
+ * chartsReady gates every chart push. It starts false for all keys
+ * and is only set true inside initCharts() after each constructor
+ * succeeds. Socket handlers check this flag before pushing data so
+ * they never throw on a null chart instance.
+ *
+ * CRITICAL: once charts ARE ready, socket-driven updates must reach
+ * them. The previous bug was that chartsReady stayed false during the
+ * double-RAF delay, so all early socket events wrote to liveState but
+ * never pushed to charts. syncChartsFromLive() after init fixes the
+ * backlog, but only if it runs AFTER chartsReady is true.
+ */
+const charts      = { queues:null, waits:null, throughput:null, phases:null };
+const chartsReady = { queues:false, waits:false, throughput:false, phases:false };
+
+const makeId = () => 'xxxxxxxx'.replace(/x/g, () => (Math.random()*16|0).toString(16));
 
 const sessionTemplate = () => ({
-  id: makeId(), startTime: null, endTime: null, config: {},
-  queueSnapshots: [], phaseEvents: [], vehicleEvents: [], statsSummary: {}
+  id:makeId(), startTime:null, endTime:null, config:{},
+  queueSnapshots:[], phaseEvents:[], vehicleEvents:[], statsSummary:{}
 });
 let session = sessionTemplate();
 
+/* Single source of truth for all chart data */
 const liveState = {
-  queueSeries: {labels:[], N:[], S:[], E:[], W:[]},
-  waitBuckets: [0,0,0,0,0],
-  throughput: {labels:[], data:[]},
-  phaseSegments: [],
-  lastTotalPassed: null,
+  queueSeries:       { labels:[], N:[], S:[], E:[], W:[] },
+  waitBuckets:       [0,0,0,0,0],
+  throughput:        { labels:[], data:[] },
+  phaseSegments:     [],
+  lastTotalPassed:   null,
   currentCycleCount: 0,
-  cycleIndex: -1,
-  lastPhase: null,
-  lastPhaseTime: null
+  cycleIndex:        -1,
+  lastPhase:         null,
+  lastPhaseTime:     null,
 };
 
-let socketConnected = false;
-let pollTimer = null;
-let lastTotalPassed = null;
-let currentCycleCount = 0;
-let cycleIndex = -1;
-let lastPhase = null;
-let lastPhaseTime = null;
-const phaseSegments = [];
+/* ═══════════════════════════════════════════════════════════════════
+   DOM REFS
+   ═══════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const kpiPassed  = $('kpi-passed');
+const kpiWait    = $('kpi-wait');
+const kpiCycles  = $('kpi-cycles');
+const kpiActive  = $('kpi-active');
+const kpiNs      = $('kpi-ns');
+const kpiEw      = $('kpi-ew');
+const sessIdEl   = $('session-id');
+const sessDurEl  = $('session-duration');
+const sessPtsEl  = $('session-points');
+const sessVehEl  = $('session-vehicles');
+const sessHintEl = $('session-hint');
+const logScroll  = $('log-scroll');
 
-const kpiPassed = document.getElementById('kpi-passed');
-const kpiWait   = document.getElementById('kpi-wait');
-const kpiCycles = document.getElementById('kpi-cycles');
-const kpiActive = document.getElementById('kpi-active');
-const kpiNs     = document.getElementById('kpi-ns');
-const kpiEw     = document.getElementById('kpi-ew');
-const sessionIdEl       = document.getElementById('session-id');
-const sessionDurationEl = document.getElementById('session-duration');
-const sessionPointsEl   = document.getElementById('session-points');
-const sessionVehiclesEl = document.getElementById('session-vehicles');
-const sessionHintEl     = document.getElementById('session-hint');
-const logScroll = document.getElementById('log-scroll');
-let logs = [];
-
-function updateConnBadge(state){
-  const el = document.getElementById('hdr-conn');
-  if(state === 'connected'){ el.className='pill pill-green'; el.textContent='Connected'; }
-  else if(state === 'reconnecting'){ el.className='pill pill-yellow'; el.textContent='Reconnecting'; }
-  else { el.className='pill pill-red'; el.textContent='Disconnected'; }
+/* ═══════════════════════════════════════════════════════════════════
+   CHART HELPERS
+   ═══════════════════════════════════════════════════════════════════ */
+function makeBaseScales() {
+  return {
+    x: { grid:{ color:GRID_COLOR }, ticks:{ color:TICK_COLOR, maxTicksLimit:5 } },
+    y: { grid:{ color:GRID_COLOR }, ticks:{ color:TICK_COLOR }, beginAtZero:true }
+  };
 }
 
-function addLog(entry){
-  logs.unshift(entry);
-  if(logs.length > MAX_LOGS) logs.pop();
-  renderLog();
+function safeUpdate(key) {
+  if (chartsReady[key] && charts[key]) {
+    try { charts[key].update('none'); } catch(e) { console.warn('chart update error', key, e); }
+  }
 }
 
-let persistTimer = null;
-function schedulePersist(){
-  if(persistTimer) return;
-  persistTimer = setTimeout(()=>{ persistTimer=null; persistState(); }, 800);
-}
-
-function encodeState(str){ try{ return btoa(unescape(encodeURIComponent(str))); }catch(e){ return null; } }
-function decodeState(str){ try{ return decodeURIComponent(escape(atob(str))); }catch(e){ return null; } }
-
-function persistState(){
-  try{
-    const persistedSession = {
-      ...session,
-      queueSnapshots: (session.queueSnapshots||[]).slice(-MAX_QUEUE_SNAPSHOTS),
-      phaseEvents: (session.phaseEvents||[]).slice(-MAX_PERSIST_PHASE_EVENTS),
-      vehicleEvents: (session.vehicleEvents||[]).slice(-MAX_PERSIST_VEHICLES)
-    };
-    const payload = {
-      session: persistedSession,
-      live: {
-        queueSeries: liveState.queueSeries,
-        waitBuckets: liveState.waitBuckets,
-        throughput: liveState.throughput,
-        phaseSegments: liveState.phaseSegments,
-        lastTotalPassed: liveState.lastTotalPassed,
-        currentCycleCount: liveState.currentCycleCount,
-        cycleIndex: liveState.cycleIndex,
-        lastPhase: liveState.lastPhase,
-        lastPhaseTime: liveState.lastPhaseTime
-      }
-    };
-    const data = JSON.stringify(payload);
-    localStorage.setItem(PERSIST_KEY, data);
-    localStorage.setItem(PERSIST_META_KEY, JSON.stringify({savedAt:new Date().toISOString()}));
-    sessionStorage.setItem(PERSIST_KEY, data);
-    const encoded = encodeState(data);
-    if(encoded) window.name = NAME_KEY + encoded;
-  }catch(e){}
-}
-
-function restoreState(){
-  try{
-    let raw = localStorage.getItem(PERSIST_KEY) || sessionStorage.getItem(PERSIST_KEY);
-    if(!raw && typeof window.name==='string' && window.name.startsWith(NAME_KEY)){
-      const decoded = decodeState(window.name.slice(NAME_KEY.length));
-      if(decoded) raw = decoded;
-    }
-    if(!raw) return;
-    const parsed = JSON.parse(raw);
-    if(parsed && parsed.session){
-      session = { ...sessionTemplate(), ...parsed.session,
-        queueSnapshots: parsed.session.queueSnapshots||[],
-        phaseEvents: parsed.session.phaseEvents||[],
-        vehicleEvents: parsed.session.vehicleEvents||[]
-      };
-      sessionIdEl.textContent = (session.id||'').slice(0,8)||sessionIdEl.textContent;
-      sessionHintEl.textContent = session.startTime ? 'Recording session data.' : 'Start the simulation to see data.';
-      sessionPointsEl.textContent = (session.queueSnapshots||[]).length;
-      sessionVehiclesEl.textContent = (session.vehicleEvents||[]).length;
-      if(session.statsSummary){ updateKpis(session.statsSummary); sessionDurationEl.textContent=(session.statsSummary.sim_time||0).toFixed(1)+'s'; }
-    }
-    if(parsed && parsed.live){
-      const live = parsed.live;
-      liveState.queueSeries = live.queueSeries||liveState.queueSeries;
-      liveState.waitBuckets = live.waitBuckets||liveState.waitBuckets;
-      liveState.throughput  = live.throughput||liveState.throughput;
-      liveState.phaseSegments = live.phaseSegments||liveState.phaseSegments;
-      liveState.lastTotalPassed   = live.lastTotalPassed   ?? liveState.lastTotalPassed;
-      liveState.currentCycleCount = live.currentCycleCount ?? liveState.currentCycleCount;
-      liveState.cycleIndex  = live.cycleIndex  ?? liveState.cycleIndex;
-      liveState.lastPhase   = live.lastPhase   ?? liveState.lastPhase;
-      liveState.lastPhaseTime = live.lastPhaseTime ?? liveState.lastPhaseTime;
-      lastTotalPassed=liveState.lastTotalPassed; currentCycleCount=liveState.currentCycleCount;
-      cycleIndex=liveState.cycleIndex; lastPhase=liveState.lastPhase; lastPhaseTime=liveState.lastPhaseTime;
-      phaseSegments.length=0; liveState.phaseSegments.forEach(s=>phaseSegments.push(s));
-
-      if(queueChart){
-        queueChart.data.labels=[...( liveState.queueSeries.labels||[])];
-        queueChart.data.datasets[0].data=[...(liveState.queueSeries.N||[])];
-        queueChart.data.datasets[1].data=[...(liveState.queueSeries.S||[])];
-        queueChart.data.datasets[2].data=[...(liveState.queueSeries.E||[])];
-        queueChart.data.datasets[3].data=[...(liveState.queueSeries.W||[])];
-        queueChart.update('none');
-      }
-      if(waitChart){ waitChart.data.datasets[0].data=[...(liveState.waitBuckets||[0,0,0,0,0])]; waitChart.update('none'); }
-      if(throughputChart){
-        throughputChart.data.labels=[...(liveState.throughput.labels||[])];
-        throughputChart.data.datasets[0].data=[...(liveState.throughput.data||[])];
-        throughputChart.update('none');
-      }
-      if(phaseChart) updatePhaseChart();
-    }
-  }catch(e){}
-}
-
-window.addEventListener('beforeunload',()=>{ persistState(); });
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') persistState(); });
-
-function renderLog(){
-  if(!logs.length){
-    logScroll.innerHTML='<div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>';
+/* ═══════════════════════════════════════════════════════════════════
+   CHART INITIALISATION
+   Called only after layout has settled (inside the deferred block in
+   runInit). Each chart is built independently so one failure cannot
+   block the others.
+   ═══════════════════════════════════════════════════════════════════ */
+function initCharts() {
+  if (typeof window.Chart === 'undefined') {
+    console.error('Chart.js not loaded — aborting initCharts()');
     return;
   }
-  logScroll.innerHTML=logs.map(l=>`
-    <div class="log-entry">
-      <span class="log-time">${(l.sim_time||0).toFixed(1)}s</span>
-      <span class="log-msg c-${l.cls||'gray'}">${l.msg}</span>
-    </div>`).join('');
-  logScroll.scrollTop=0;
+
+  Chart.defaults.color       = '#a8b8cc';
+  Chart.defaults.borderColor = 'rgba(153,215,234,.12)';
+  Chart.defaults.font.family = "'JetBrains Mono',monospace";
+  Chart.defaults.font.size   = 9;
+
+  /* ── 1. Queue Lengths Over Time ─────────────────────────────── */
+  (function buildQueues() {
+    const el = $('chart-queues');
+    if (!el) return;
+    if (charts.queues) { try { charts.queues.destroy(); } catch(_){} }
+    try {
+      charts.queues = new Chart(el, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label:'N', data:[], borderColor:'#99d7ea', tension:.35, fill:false, pointRadius:0, borderWidth:1.5 },
+            { label:'S', data:[], borderColor:'#b8e5f2', tension:.35, fill:false, pointRadius:0, borderWidth:1.5 },
+            { label:'E', data:[], borderColor:'#fca6d1', tension:.35, fill:false, pointRadius:0, borderWidth:1.5 },
+            { label:'W', data:[], borderColor:'#fdc4e2', tension:.35, fill:false, pointRadius:0, borderWidth:1.5 },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: makeBaseScales(),
+          plugins: { legend:{ labels:{ color:TICK_COLOR, boxWidth:8, padding:6, font:{size:8} } } }
+        }
+      });
+      chartsReady.queues = true;
+    } catch(e) { console.error('chart-queues init failed:', e); }
+  })();
+
+  /* ── 2. Wait Time Distribution ──────────────────────────────── */
+  (function buildWaits() {
+    const el = $('chart-waits');
+    if (!el) return;
+    if (charts.waits) { try { charts.waits.destroy(); } catch(_){} }
+    try {
+      const ctx  = el.getContext('2d');
+      /*
+       * Read the parent box's actual rendered height after layout has
+       * settled. Fallback to 160 if clientHeight is still 0 somehow.
+       */
+      const boxH = (el.parentElement && el.parentElement.clientHeight > 0)
+        ? el.parentElement.clientHeight : 160;
+      const grad = ctx.createLinearGradient(0, 0, 0, boxH);
+      grad.addColorStop(0,   '#fca6d1');
+      grad.addColorStop(1,   'rgba(252,166,209,.08)');
+
+      charts.waits = new Chart(el, {
+        type: 'bar',
+        data: {
+          labels:   ['0-5s','5-10s','10-20s','20-40s','40s+'],
+          datasets: [{ label:'Vehicles', data:[0,0,0,0,0], backgroundColor:grad, borderRadius:3 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: makeBaseScales(),
+          plugins: { legend:{ display:false } }
+        }
+      });
+      chartsReady.waits = true;
+    } catch(e) { console.error('chart-waits init failed:', e); }
+  })();
+
+  /* ── 3. Vehicles Passed Per Cycle ───────────────────────────── */
+  (function buildThroughput() {
+    const el = $('chart-throughput');
+    if (!el) return;
+    if (charts.throughput) { try { charts.throughput.destroy(); } catch(_){} }
+    try {
+      charts.throughput = new Chart(el, {
+        type: 'bar',
+        data: {
+          labels:   [],
+          datasets: [{ label:'Vehicles', data:[], backgroundColor:'#99d7ea', borderRadius:3 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: makeBaseScales(),
+          plugins: { legend:{ display:false } }
+        }
+      });
+      chartsReady.throughput = true;
+    } catch(e) { console.error('chart-throughput init failed:', e); }
+  })();
+
+  /* ── 4. Signal Phase Timing ─────────────────────────────────── */
+  (function buildPhases() {
+    const el = $('chart-phases');
+    if (!el) return;
+    if (charts.phases) { try { charts.phases.destroy(); } catch(_){} }
+    try {
+      charts.phases = new Chart(el, {
+        type: 'bar',
+        data: {
+          labels:   [],
+          datasets: [
+            { label:'NS Green',  data:[], backgroundColor:'#99d7ea', stack:'phase' },
+            { label:'NS Yellow', data:[], backgroundColor:'#fca6d1', stack:'phase' },
+            { label:'NS Red',    data:[], backgroundColor:'#f87171', stack:'phase' },
+            { label:'EW Green',  data:[], backgroundColor:'#b8e5f2', stack:'phase' },
+            { label:'EW Yellow', data:[], backgroundColor:'#fdc4e2', stack:'phase' },
+            { label:'EW Red',    data:[], backgroundColor:'#fca5a5', stack:'phase' },
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{size:8}}, beginAtZero:true, stacked:true },
+            y:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{size:8}}, stacked:true }
+          },
+          plugins: { legend:{ labels:{ color:TICK_COLOR, boxWidth:8, padding:4, font:{size:7} } } }
+        }
+      });
+      chartsReady.phases = true;
+    } catch(e) { console.error('chart-phases init failed:', e); }
+  })();
 }
 
-let chartsReady=true;
-let queueChart=null, waitChart=null, throughputChart=null, phaseChart=null;
-const ChartLib = window.Chart||null;
+/* ═══════════════════════════════════════════════════════════════════
+   SYNC — flush ALL liveState data into ready chart instances.
 
-if(!ChartLib){
-  chartsReady=false;
-  addLog({msg:'Warning: Chart.js failed to load. Charts disabled.',cls:'yellow',sim_time:0});
-} else {
-  ChartLib.defaults.color='#a8b8cc';
-  ChartLib.defaults.borderColor='rgba(153,215,234,.18)';
-  ChartLib.defaults.font.family="'JetBrains Mono',monospace";
+   This is called once after initCharts() to replay every data point
+   that arrived via socket before the charts were constructed. Without
+   this, early events are silently discarded because chartsReady was
+   false when they arrived.
+
+   After this call, the normal per-event updaters (updateQueueChart,
+   updateWaitBuckets, etc.) take over for all future events.
+   ═══════════════════════════════════════════════════════════════════ */
+function syncChartsFromLive() {
+  /* Queue chart — copy all series arrays then force a resize + update */
+  if (chartsReady.queues) {
+    const c = charts.queues;
+    c.data.labels           = [...liveState.queueSeries.labels];
+    c.data.datasets[0].data = [...liveState.queueSeries.N];
+    c.data.datasets[1].data = [...liveState.queueSeries.S];
+    c.data.datasets[2].data = [...liveState.queueSeries.E];
+    c.data.datasets[3].data = [...liveState.queueSeries.W];
+    c.resize();   /* force Chart.js to re-read the canvas pixel size */
+    safeUpdate('queues');
+  }
+
+  /* Wait distribution */
+  if (chartsReady.waits) {
+    charts.waits.data.datasets[0].data = [...liveState.waitBuckets];
+    charts.waits.resize();
+    safeUpdate('waits');
+  }
+
+  /* Throughput */
+  if (chartsReady.throughput) {
+    charts.throughput.data.labels           = [...liveState.throughput.labels];
+    charts.throughput.data.datasets[0].data = [...liveState.throughput.data];
+    charts.throughput.resize();
+    safeUpdate('throughput');
+  }
+
+  /* Phase chart — needs a full rebuild */
+  rebuildPhaseChart();
 }
 
-function formatNumber(val){ return (val===undefined||val===null||Number.isNaN(val))?0:val; }
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE CHART REBUILD
+   ═══════════════════════════════════════════════════════════════════ */
+function rebuildPhaseChart() {
+  if (!chartsReady.phases) return;
 
-function updateKpis(stats){
-  const queues=stats.queues||{N:0,S:0,E:0,W:0};
-  kpiPassed.textContent=formatNumber(stats.total_passed);
-  kpiWait.textContent=(stats.avg_wait||0).toFixed(1)+'s';
-  kpiCycles.textContent=formatNumber(stats.cycles);
-  kpiActive.textContent=formatNumber(stats.active_vehicles);
-  kpiNs.textContent=(queues.N||0)+(queues.S||0);
-  kpiEw.textContent=(queues.E||0)+(queues.W||0);
+  const recentCycles = [...new Set(liveState.phaseSegments.map(s => s.cycle))].slice(-10);
+  charts.phases.data.labels = recentCycles.map(c => `C${c}`);
+
+  const phaseKeys = ['ns_green','ns_yellow','ns_red','ew_green','ew_yellow','ew_red'];
+  const dsMap = {};
+  phaseKeys.forEach((p, i) => { dsMap[p] = charts.phases.data.datasets[i]; });
+  phaseKeys.forEach(p => { dsMap[p].data = []; });
+
+  recentCycles.forEach(cycle => {
+    const acc = { ns_green:0, ns_yellow:0, ns_red:0, ew_green:0, ew_yellow:0, ew_red:0 };
+    liveState.phaseSegments
+      .filter(s => s.cycle === cycle)
+      .forEach(s => { if (acc[s.phase] !== undefined) acc[s.phase] += s.duration; });
+    phaseKeys.forEach(p => dsMap[p].data.push(Number(acc[p].toFixed(2))));
+  });
+
+  safeUpdate('phases');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PERSISTENCE
+   ═══════════════════════════════════════════════════════════════════ */
+function encodeState(str) { try { return btoa(unescape(encodeURIComponent(str))); } catch(_) { return null; } }
+function decodeState(str) { try { return decodeURIComponent(escape(atob(str))); } catch(_) { return null; } }
+
+function schedulePersist() {
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => { persistTimer = null; persistState(); }, 800);
+}
+
+function persistState() {
+  try {
+    const payload = JSON.stringify({
+      session: {
+        ...session,
+        queueSnapshots: (session.queueSnapshots||[]).slice(-MAX_QUEUE_SNAPSHOTS),
+        phaseEvents:    (session.phaseEvents||[]).slice(-MAX_PERSIST_PHASES),
+        vehicleEvents:  (session.vehicleEvents||[]).slice(-MAX_PERSIST_VEHICLES),
+      },
+      live: { ...liveState }
+    });
+    localStorage.setItem(PERSIST_KEY,      payload);
+    localStorage.setItem(PERSIST_META_KEY, JSON.stringify({ savedAt: new Date().toISOString() }));
+    sessionStorage.setItem(PERSIST_KEY,    payload);
+    const enc = encodeState(payload);
+    if (enc) window.name = NAME_KEY + enc;
+  } catch(_) {}
+}
+
+function restoreState() {
+  try {
+    let raw = localStorage.getItem(PERSIST_KEY) || sessionStorage.getItem(PERSIST_KEY);
+    if (!raw && typeof window.name === 'string' && window.name.startsWith(NAME_KEY)) {
+      raw = decodeState(window.name.slice(NAME_KEY.length)) || null;
+    }
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw);
+
+    if (parsed?.session) {
+      session = {
+        ...sessionTemplate(),
+        ...parsed.session,
+        queueSnapshots: Array.isArray(parsed.session.queueSnapshots) ? parsed.session.queueSnapshots : [],
+        phaseEvents:    Array.isArray(parsed.session.phaseEvents)    ? parsed.session.phaseEvents    : [],
+        vehicleEvents:  Array.isArray(parsed.session.vehicleEvents)  ? parsed.session.vehicleEvents  : [],
+      };
+      sessIdEl.textContent   = (session.id||'').slice(0, 8);
+      sessHintEl.textContent = session.startTime ? 'Recording session data.' : 'Start the simulation to see data.';
+      sessPtsEl.textContent  = session.queueSnapshots.length;
+      sessVehEl.textContent  = session.vehicleEvents.length;
+      if (session.statsSummary) {
+        updateKpis(session.statsSummary);
+        sessDurEl.textContent = (session.statsSummary.sim_time || 0).toFixed(1) + 's';
+      }
+    }
+
+    if (parsed?.live) {
+      const L = parsed.live;
+      if (L.queueSeries && Array.isArray(L.queueSeries.labels)) {
+        liveState.queueSeries = {
+          labels: L.queueSeries.labels,
+          N: Array.isArray(L.queueSeries.N) ? L.queueSeries.N : [],
+          S: Array.isArray(L.queueSeries.S) ? L.queueSeries.S : [],
+          E: Array.isArray(L.queueSeries.E) ? L.queueSeries.E : [],
+          W: Array.isArray(L.queueSeries.W) ? L.queueSeries.W : [],
+        };
+      }
+      if (Array.isArray(L.waitBuckets) && L.waitBuckets.length === 5) {
+        liveState.waitBuckets = [...L.waitBuckets];
+      }
+      if (L.throughput && Array.isArray(L.throughput.labels)) {
+        liveState.throughput = {
+          labels: [...L.throughput.labels],
+          data:   Array.isArray(L.throughput.data) ? [...L.throughput.data] : [],
+        };
+      }
+      if (Array.isArray(L.phaseSegments)) {
+        liveState.phaseSegments = [...L.phaseSegments];
+      }
+      liveState.lastTotalPassed   = L.lastTotalPassed   ?? null;
+      liveState.currentCycleCount = L.currentCycleCount ?? 0;
+      liveState.cycleIndex        = L.cycleIndex        ?? -1;
+      liveState.lastPhase         = L.lastPhase         ?? null;
+      liveState.lastPhaseTime     = L.lastPhaseTime     ?? null;
+    }
+  } catch(e) { console.warn('restoreState failed:', e); }
+}
+
+window.addEventListener('beforeunload',       () => persistState());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') persistState(); });
+setInterval(persistState, 5000);
+
+/* ═══════════════════════════════════════════════════════════════════
+   KPIs
+   ═══════════════════════════════════════════════════════════════════ */
+function updateKpis(stats) {
+  const q = stats.queues || {};
+  kpiPassed.textContent = stats.total_passed || 0;
+  kpiWait.textContent   = (stats.avg_wait || 0).toFixed(1) + 's';
+  kpiCycles.textContent = stats.cycles || 0;
+  kpiActive.textContent = stats.active_vehicles || 0;
+  kpiNs.textContent     = (q.N||0) + (q.S||0);
+  kpiEw.textContent     = (q.E||0) + (q.W||0);
   schedulePersist();
 }
 
-function ensureSessionStarted(stats){
-  if(!session.startTime){ session.startTime=new Date().toISOString(); sessionHintEl.textContent='Recording session data.'; }
-  session.statsSummary={ total_passed:stats.total_passed||0, avg_wait:stats.avg_wait||0, cycles:stats.cycles||0, sim_time:stats.sim_time||0 };
-  sessionDurationEl.textContent=(stats.sim_time||0).toFixed(1)+'s';
-  sessionPointsEl.textContent=session.queueSnapshots.length;
-  sessionVehiclesEl.textContent=session.vehicleEvents.length;
-  sessionIdEl.textContent=session.id.slice(0,8);
-  schedulePersist();
-}
-
-function captureQueueSnapshot(stats){
-  const q=stats.queues||{N:0,S:0,E:0,W:0};
-  session.queueSnapshots.push({sim_time:stats.sim_time||0,N:q.N||0,S:q.S||0,E:q.E||0,W:q.W||0});
-  if(session.queueSnapshots.length>MAX_QUEUE_SNAPSHOTS) session.queueSnapshots.shift();
-  schedulePersist();
-}
-
-function resetSession(){
-  session=sessionTemplate();
-  logs=[];
-  lastTotalPassed=null; currentCycleCount=0; cycleIndex=-1;
-  lastPhase=null; lastPhaseTime=null; lastSimTime=0;
-  phaseSegments.length=0;
-  liveState.queueSeries={labels:[],N:[],S:[],E:[],W:[]};
-  liveState.waitBuckets=[0,0,0,0,0];
-  liveState.throughput={labels:[],data:[]};
-  liveState.phaseSegments=[];
-  liveState.lastTotalPassed=null; liveState.currentCycleCount=0;
-  liveState.cycleIndex=-1; liveState.lastPhase=null; liveState.lastPhaseTime=null;
-  updateKpis({});
-  updateCharts(true);
-  renderLog();
-  sessionIdEl.textContent=session.id.slice(0,8);
-  sessionDurationEl.textContent='0.0s';
-  sessionPointsEl.textContent='0';
-  sessionVehiclesEl.textContent='0';
-  sessionHintEl.textContent='Start the simulation to see data.';
-  try{ localStorage.removeItem(PERSIST_KEY); localStorage.removeItem(PERSIST_META_KEY); }catch(e){}
-}
-
-function exportJson(){
-  const payload={
-    session_id:session.id, exported_at:new Date().toISOString(),
-    config:session.config||{}, summary:session.statsSummary||{},
-    queue_history:session.queueSnapshots||[], phase_events:session.phaseEvents||[],
-    vehicle_events:session.vehicleEvents||[]
+/* ═══════════════════════════════════════════════════════════════════
+   SESSION HELPERS
+   ═══════════════════════════════════════════════════════════════════ */
+function ensureSessionStarted(stats) {
+  if (!session.startTime) {
+    session.startTime      = new Date().toISOString();
+    sessHintEl.textContent = 'Recording session data.';
+  }
+  session.statsSummary = {
+    total_passed: stats.total_passed || 0, avg_wait: stats.avg_wait || 0,
+    cycles:       stats.cycles       || 0, sim_time: stats.sim_time || 0
   };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=`stimulation_session_${Date.now()}.json`;
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  sessDurEl.textContent = (stats.sim_time || 0).toFixed(1) + 's';
+  sessPtsEl.textContent = session.queueSnapshots.length;
+  sessVehEl.textContent = session.vehicleEvents.length;
+  sessIdEl.textContent  = session.id.slice(0, 8);
+  schedulePersist();
 }
 
-function exportCsv(){
-  const rows=['sim_time,queue_N,queue_S,queue_E,queue_W'];
-  session.queueSnapshots.forEach(r=>rows.push(`${r.sim_time},${r.N},${r.S},${r.E},${r.W}`));
-  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=`stimulation_queues_${Date.now()}.csv`;
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+function captureQueueSnapshot(stats) {
+  const q = stats.queues || {};
+  session.queueSnapshots.push({ sim_time:stats.sim_time||0, N:q.N||0, S:q.S||0, E:q.E||0, W:q.W||0 });
+  if (session.queueSnapshots.length > MAX_QUEUE_SNAPSHOTS) session.queueSnapshots.shift();
+  schedulePersist();
 }
 
-function escapeHtml(value){
-  return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+/* ═══════════════════════════════════════════════════════════════════
+   INDIVIDUAL CHART UPDATERS
+   Each one writes to liveState first (so the data survives a chart
+   reinit), then pushes to the chart if it is ready.
+   ═══════════════════════════════════════════════════════════════════ */
+function updateQueueChart(stats) {
+  const q = stats.queues || {};
+  const t = (stats.sim_time || 0).toFixed(1);
+  
+  // 1. Update live state
+  liveState.queueSeries.labels.push(t);
+  liveState.queueSeries.N.push(q.N || 0);
+  liveState.queueSeries.S.push(q.S || 0);
+  liveState.queueSeries.E.push(q.E || 0);
+  liveState.queueSeries.W.push(q.W || 0);
+  
+  if (liveState.queueSeries.labels.length > MAX_POINTS) {
+    liveState.queueSeries.labels.shift();
+    liveState.queueSeries.N.shift();
+    liveState.queueSeries.S.shift();
+    liveState.queueSeries.E.shift();
+    liveState.queueSeries.W.shift();
+  }
+  
+  if (!chartsReady.queues) return;  
+
+  // 2. Mutate chart arrays directly (do NOT use [...arr] spread here)
+  const c = charts.queues;
+  c.data.labels.push(t);
+  c.data.datasets[0].data.push(q.N || 0);
+  c.data.datasets[1].data.push(q.S || 0);
+  c.data.datasets[2].data.push(q.E || 0);
+  c.data.datasets[3].data.push(q.W || 0);
+  
+  if (c.data.labels.length > MAX_POINTS) {
+    c.data.labels.shift();
+    c.data.datasets.forEach(d => d.data.shift());
+  }
+  
+  safeUpdate('queues');
+  schedulePersist();
+}
+
+function updateThroughputAccum(stats) {
+  if (liveState.lastTotalPassed === null) {
+    liveState.lastTotalPassed = stats.total_passed || 0;
+    return;
+  }
+  const delta = Math.max(0, (stats.total_passed || 0) - liveState.lastTotalPassed);
+  liveState.lastTotalPassed    = stats.total_passed || 0;
+  liveState.currentCycleCount += delta;
+  schedulePersist();
+}
+
+function updateWaitBuckets(waitTime) {
+  if (waitTime == null) return;
+  const t = Number(waitTime);
+  let idx = 0;
+  if      (t >= 5  && t < 10) idx = 1;
+  else if (t >= 10 && t < 20) idx = 2;
+  else if (t >= 20 && t < 40) idx = 3;
+  else if (t >= 40)            idx = 4;
+  
+  // Update live state
+  liveState.waitBuckets[idx]++;
+  
+  if (!chartsReady.waits) return;
+
+  // Mutate index directly
+  charts.waits.data.datasets[0].data[idx] = liveState.waitBuckets[idx];
+  
+  safeUpdate('waits');
+  schedulePersist();
+}
+
+function pushCycleCount() {
+  liveState.cycleIndex = liveState.cycleIndex < 0 ? 0 : liveState.cycleIndex + 1;
+  const cycleStr = String(liveState.cycleIndex);
+  const count = liveState.currentCycleCount;
+
+  // 1. Update live state
+  liveState.throughput.labels.push(cycleStr);
+  liveState.throughput.data.push(count);
+  if (liveState.throughput.labels.length > 20) {
+    liveState.throughput.labels.shift();
+    liveState.throughput.data.shift();
+  }
+  liveState.currentCycleCount = 0;
+  
+  if (!chartsReady.throughput) return;
+
+  // 2. Mutate chart arrays directly
+  charts.throughput.data.labels.push(cycleStr);
+  charts.throughput.data.datasets[0].data.push(count);
+  
+  if (charts.throughput.data.labels.length > 20) {
+    charts.throughput.data.labels.shift();
+    charts.throughput.data.datasets[0].data.shift();
+  }
+  
+  safeUpdate('throughput');
+  schedulePersist();
+}
+
+function recordPhaseSegment(phase, simTime) {
+  if (liveState.lastPhase !== null && liveState.lastPhaseTime !== null) {
+    const duration = Math.max(0, simTime - liveState.lastPhaseTime);
+    liveState.phaseSegments.push({
+      phase:   liveState.lastPhase,
+      duration,
+      cycle:   Math.max(0, liveState.cycleIndex)
+    });
+    if (liveState.phaseSegments.length > 200) liveState.phaseSegments.shift();
+  }
+  liveState.lastPhase     = phase;
+  liveState.lastPhaseTime = simTime;
+  schedulePersist();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN EVENT HANDLERS
+   ═══════════════════════════════════════════════════════════════════ */
+function handleStats(stats) {
+  if (!stats || typeof stats !== 'object') return;
+
+  const simTime     = stats.sim_time     || 0;
+  const totalPassed = stats.total_passed || 0;
+  const cycles      = stats.cycles       || 0;
+
+  const isReset =
+    (simTime < lastSimTime) ||
+    (liveState.lastTotalPassed !== null && totalPassed < liveState.lastTotalPassed) ||
+    (session.startTime && simTime === 0 && totalPassed === 0 && cycles === 0);
+
+  if (isReset) resetSession();
+
+  if (cycles > 0 && liveState.cycleIndex < 0)                     liveState.cycleIndex = cycles - 1;
+  if (liveState.cycleIndex >= 0 && cycles < liveState.cycleIndex) resetSession();
+
+  lastSimTime = simTime;
+  updateKpis(stats);
+  ensureSessionStarted(stats);
+  captureQueueSnapshot(stats);
+  updateQueueChart(stats);
+  updateThroughputAccum(stats);
+}
+
+function handleLightChange(data) {
+  if (!data) return;
+  const simTime = data.sim_time || 0;
+  session.phaseEvents.push({ phase:data.phase, sim_time:simTime });
+  recordPhaseSegment(data.phase, simTime);
+  if (data.phase === 'ns_green') pushCycleCount();
+  rebuildPhaseChart();
+}
+
+function handleVehicleMove(data) {
+  if (!data) return;
+  session.vehicleEvents.push({
+    vid:data.vid, direction:data.direction, turn:data.turn,
+    wait_time:data.wait_time, sim_time:data.sim_time
+  });
+  if (session.vehicleEvents.length > MAX_PERSIST_VEHICLES) session.vehicleEvents.shift();
+  updateWaitBuckets(data.wait_time);
+  sessVehEl.textContent = session.vehicleEvents.length;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESET / CLEAR
+   ═══════════════════════════════════════════════════════════════════ */
+function resetSession() {
+  session     = sessionTemplate();
+  logs        = [];
+  lastSimTime = 0;
+
+  liveState.queueSeries       = { labels:[], N:[], S:[], E:[], W:[] };
+  liveState.waitBuckets       = [0,0,0,0,0];
+  liveState.throughput        = { labels:[], data:[] };
+  liveState.phaseSegments     = [];
+  liveState.lastTotalPassed   = null;
+  liveState.currentCycleCount = 0;
+  liveState.cycleIndex        = -1;
+  liveState.lastPhase         = null;
+  liveState.lastPhaseTime     = null;
+
+  updateKpis({});
+  renderLog();
+  sessIdEl.textContent   = session.id.slice(0, 8);
+  sessDurEl.textContent  = '0.0s';
+  sessPtsEl.textContent  = '0';
+  sessVehEl.textContent  = '0';
+  sessHintEl.textContent = 'Start the simulation to see data.';
+
+  if (chartsReady.queues) {
+    charts.queues.data.labels = [];
+    charts.queues.data.datasets.forEach(d => { d.data = []; });
+    safeUpdate('queues');
+  }
+  if (chartsReady.waits) {
+    charts.waits.data.datasets[0].data = [0,0,0,0,0];
+    safeUpdate('waits');
+  }
+  if (chartsReady.throughput) {
+    charts.throughput.data.labels = [];
+    charts.throughput.data.datasets[0].data = [];
+    safeUpdate('throughput');
+  }
+  if (chartsReady.phases) {
+    charts.phases.data.labels = [];
+    charts.phases.data.datasets.forEach(d => { d.data = []; });
+    safeUpdate('phases');
+  }
+
+  try {
+    localStorage.removeItem(PERSIST_KEY);
+    localStorage.removeItem(PERSIST_META_KEY);
+  } catch(_) {}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOG
+   ═══════════════════════════════════════════════════════════════════ */
+function addLog(entry) {
+  logs.unshift(entry);
+  if (logs.length > MAX_LOGS) logs.pop();
+  renderLog();
+}
+function renderLog() {
+  if (!logs.length) {
+    logScroll.innerHTML = '<div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>';
+    return;
+  }
+  logScroll.innerHTML = logs.map(l =>
+    `<div class="log-entry"><span class="log-time">${(l.sim_time||0).toFixed(1)}s</span><span class="log-msg c-${l.cls||'gray'}">${l.msg}</span></div>`
+  ).join('');
+  logScroll.scrollTop = 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   EXPORTS
+   ═══════════════════════════════════════════════════════════════════ */
+function escHtml(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function exportReport(){
-  const summary=session.statsSummary||{};
-  const config=session.config||{};
-  const exportedAt=new Date().toISOString();
-  const charts={
-    queues:queueChart?queueChart.toBase64Image():null,
-    waits:waitChart?waitChart.toBase64Image():null,
-    throughput:throughputChart?throughputChart.toBase64Image():null,
-    phases:phaseChart?phaseChart.toBase64Image():null
+function exportJson() {
+  dl(new Blob([JSON.stringify({
+    session_id:     session.id,
+    exported_at:    new Date().toISOString(),
+    config:         session.config || {},
+    summary:        session.statsSummary || {},
+    queue_history:  session.queueSnapshots || [],
+    phase_events:   session.phaseEvents || [],
+    vehicle_events: session.vehicleEvents || [],
+  }, null, 2)], { type:'application/json' }), `stimulation_session_${Date.now()}.json`);
+}
+
+function exportCsv() {
+  const rows = ['sim_time,queue_N,queue_S,queue_E,queue_W'];
+  (session.queueSnapshots||[]).forEach(r => rows.push(`${r.sim_time},${r.N},${r.S},${r.E},${r.W}`));
+  dl(new Blob([rows.join('\n')], { type:'text/csv' }), `stimulation_queues_${Date.now()}.csv`);
+}
+
+function exportPdf() {
+  const s   = session.statsSummary || {};
+  const cfg = session.config || {};
+  const imgs = {
+    queues:     chartsReady.queues     ? charts.queues.toBase64Image()     : null,
+    waits:      chartsReady.waits      ? charts.waits.toBase64Image()      : null,
+    throughput: chartsReady.throughput ? charts.throughput.toBase64Image() : null,
+    phases:     chartsReady.phases     ? charts.phases.toBase64Image()     : null,
   };
-  const report=document.createElement('div');
-  report.style.fontFamily="'JetBrains Mono',monospace";
-  report.style.color='#1b1d36'; report.style.padding='24px';
-  report.innerHTML=`
-    <h1 style="margin:0 0 6px;font-size:20px;font-family:'JetBrains Mono',monospace">sTIMulation Session Report</h1>
-    <div style="font-size:12px;color:#64748b;margin-bottom:14px;font-family:'JetBrains Mono',monospace">
-      Session ID: <strong>${escapeHtml(session.id)}</strong> · Exported: ${escapeHtml(exportedAt)}
+  const img = (key, label) => imgs[key]
+    ? `<div><div style="font-size:12px;color:#475569;margin-bottom:6px">${label}</div><img src="${imgs[key]}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`
+    : '';
+  const report = document.createElement('div');
+  report.style.cssText = "font-family:'JetBrains Mono',monospace;color:#1b1d36;padding:24px";
+  report.innerHTML = `
+    <h1 style="margin:0 0 6px;font-size:20px">sTIMulation Session Report</h1>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px">
+      Session ID: <strong>${escHtml(session.id)}</strong> · Exported: ${escHtml(new Date().toISOString())}
     </div>
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;font-family:'JetBrains Mono',monospace">Summary</h2>
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Total Passed: <b>${escapeHtml(summary.total_passed??0)}</b></div>
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Avg Wait: <b>${escapeHtml((summary.avg_wait??0).toFixed?(summary.avg_wait??0).toFixed(2):summary.avg_wait)}</b> s</div>
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Cycles: <b>${escapeHtml(summary.cycles??0)}</b></div>
-      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc;font-family:'JetBrains Mono',monospace">Sim Time: <b>${escapeHtml(summary.sim_time??0)}</b> s</div>
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Summary</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Total Passed: <b>${escHtml(s.total_passed??0)}</b></div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Avg Wait: <b>${escHtml((s.avg_wait??0).toFixed(2))}</b>s</div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Cycles: <b>${escHtml(s.cycles??0)}</b></div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Sim Time: <b>${escHtml(s.sim_time??0)}</b>s</div>
     </div>
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;font-family:'JetBrains Mono',monospace">Configuration</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:12px;font-family:'JetBrains Mono',monospace">
-      <tr><th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Key</th><th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Value</th></tr>
-      ${Object.keys(config).map(k=>`<tr><td style="border:1px solid #cbd5e1;padding:6px 8px">${escapeHtml(k)}</td><td style="border:1px solid #cbd5e1;padding:6px 8px">${escapeHtml(config[k])}</td></tr>`).join('')||'<tr><td style="border:1px solid #cbd5e1;padding:6px 8px" colspan="2">No config data</td></tr>'}
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Configuration</h2>
+    <table style="border-collapse:collapse;width:100%;font-size:12px">
+      <tr><th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Key</th>
+          <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Value</th></tr>
+      ${Object.keys(cfg).map(k=>`<tr><td style="border:1px solid #cbd5e1;padding:6px 8px">${escHtml(k)}</td><td style="border:1px solid #cbd5e1;padding:6px 8px">${escHtml(cfg[k])}</td></tr>`).join('')||'<tr><td colspan="2" style="border:1px solid #cbd5e1;padding:6px 8px">No config data</td></tr>'}
     </table>
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155;font-family:'JetBrains Mono',monospace">Charts</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      ${charts.queues?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Queue Lengths Over Time</div><img src="${charts.queues}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
-      ${charts.waits?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Wait Time Distribution</div><img src="${charts.waits}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
-      ${charts.throughput?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Vehicles Passed Per Cycle</div><img src="${charts.throughput}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
-      ${charts.phases?`<div><div style="font-size:12px;color:#475569;margin-bottom:6px;font-family:'JetBrains Mono',monospace">Signal Phase Timing</div><img src="${charts.phases}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`:''}
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Charts</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${img('queues','Queue Lengths Over Time')}
+      ${img('waits','Wait Distribution')}
+      ${img('throughput','Vehicles Per Cycle')}
+      ${img('phases','Phase Timing')}
     </div>`;
-  const options={
-    margin:0.5, filename:`stimulation_report_${Date.now()}.pdf`,
-    image:{type:'jpeg',quality:0.96},
-    html2canvas:{scale:2,useCORS:true},
-    jsPDF:{unit:'in',format:'letter',orientation:'portrait'}
-  };
-  if(window.html2pdf) window.html2pdf().set(options).from(report).save();
-  else alert('PDF export unavailable. Please refresh and try again.');
+  if (window.html2pdf) {
+    window.html2pdf().set({
+      margin:.5, filename:`stimulation_report_${Date.now()}.pdf`,
+      image:{ type:'jpeg', quality:.96 },
+      html2canvas:{ scale:2, useCORS:true },
+      jsPDF:{ unit:'in', format:'letter', orientation:'portrait' }
+    }).from(report).save();
+  } else { alert('PDF export unavailable.'); }
 }
 
-/* ── Charts ── */
-const queueCtx      = document.getElementById('chart-queues');
-const waitCtx       = document.getElementById('chart-waits');
-const throughputCtx = document.getElementById('chart-throughput');
-const phaseCtx      = document.getElementById('chart-phases');
-
-const GRID_COLOR  = 'rgba(153,215,234,.12)';
-const TICK_COLOR  = '#a8b8cc';
-
-if(chartsReady){
-  queueChart = new ChartLib(queueCtx,{
-    type:'line',
-    data:{labels:[],datasets:[
-      {label:'N',data:[],borderColor:'#99d7ea',tension:.35,fill:false,pointRadius:0},
-      {label:'S',data:[],borderColor:'#b8e5f2',tension:.35,fill:false,pointRadius:0},
-      {label:'E',data:[],borderColor:'#fca6d1',tension:.35,fill:false,pointRadius:0},
-      {label:'W',data:[],borderColor:'#fdc4e2',tension:.35,fill:false,pointRadius:0}
-    ]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      scales:{
-        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}},
-        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true}
-      },
-      plugins:{legend:{labels:{color:TICK_COLOR}}}
-    }
-  });
-
-  const waitGradient=(()=>{
-    const c=waitCtx.getContext('2d');
-    const g=c.createLinearGradient(0,0,0,240);
-    g.addColorStop(0,'#fca6d1'); g.addColorStop(1,'rgba(252,166,209,.1)');
-    return g;
-  })();
-
-  waitChart = new ChartLib(waitCtx,{
-    type:'bar',
-    data:{
-      labels:['0-5s','5-10s','10-20s','20-40s','40s+'],
-      datasets:[{label:'Vehicles',data:[0,0,0,0,0],backgroundColor:waitGradient}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      scales:{
-        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}},
-        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true}
-      },
-      plugins:{legend:{display:false}}
-    }
-  });
-
-  throughputChart = new ChartLib(throughputCtx,{
-    type:'bar',
-    data:{labels:[],datasets:[{label:'Vehicles',data:[],backgroundColor:'#99d7ea'}]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      scales:{
-        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}},
-        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true}
-      },
-      plugins:{legend:{display:false}}
-    }
-  });
-
-  phaseChart = new ChartLib(phaseCtx,{
-    type:'bar',
-    data:{labels:[],datasets:[
-      {label:'NS Green',  data:[],backgroundColor:'#99d7ea',  stack:'phase'},
-      {label:'NS Yellow', data:[],backgroundColor:'#fca6d1',  stack:'phase'},
-      {label:'NS Red',    data:[],backgroundColor:'#f87171',  stack:'phase'},
-      {label:'EW Green',  data:[],backgroundColor:'#b8e5f2',  stack:'phase'},
-      {label:'EW Yellow', data:[],backgroundColor:'#fdc4e2',  stack:'phase'},
-      {label:'EW Red',    data:[],backgroundColor:'#fca5a5',  stack:'phase'}
-    ]},
-    options:{
-      indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      scales:{
-        x:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR},beginAtZero:true},
-        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR}}
-      },
-      plugins:{legend:{labels:{color:TICK_COLOR}}}
-    }
-  });
+function dl(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
 }
 
-function updateQueueChart(stats){
-  if(!queueChart) return;
-  const queues=stats.queues||{N:0,S:0,E:0,W:0};
-  const t=(stats.sim_time||0).toFixed(1);
-  liveState.queueSeries.labels.push(t); liveState.queueSeries.N.push(queues.N||0);
-  liveState.queueSeries.S.push(queues.S||0); liveState.queueSeries.E.push(queues.E||0);
-  liveState.queueSeries.W.push(queues.W||0);
-  queueChart.data.labels.push(t);
-  queueChart.data.datasets[0].data.push(queues.N||0);
-  queueChart.data.datasets[1].data.push(queues.S||0);
-  queueChart.data.datasets[2].data.push(queues.E||0);
-  queueChart.data.datasets[3].data.push(queues.W||0);
-  if(queueChart.data.labels.length>MAX_POINTS){
-    ['labels','N','S','E','W'].forEach(k=>{ if(k==='labels') liveState.queueSeries.labels.shift(); else liveState.queueSeries[k].shift(); });
-    queueChart.data.labels.shift();
-    queueChart.data.datasets.forEach(ds=>ds.data.shift());
-  }
-  queueChart.update('none');
-  schedulePersist();
+/* ═══════════════════════════════════════════════════════════════════
+   POLLING FALLBACK
+   ═══════════════════════════════════════════════════════════════════ */
+async function fetchConfig() {
+  try { const r = await fetch('/api/config'); if (r.ok) session.config = await r.json(); } catch(_) {}
 }
-
-function updateThroughput(stats){
-  if(lastTotalPassed===null){ lastTotalPassed=stats.total_passed||0; liveState.lastTotalPassed=lastTotalPassed; return; }
-  const delta=Math.max(0,(stats.total_passed||0)-lastTotalPassed);
-  lastTotalPassed=stats.total_passed||0; currentCycleCount+=delta;
-  liveState.lastTotalPassed=lastTotalPassed; liveState.currentCycleCount=currentCycleCount;
-  schedulePersist();
-}
-
-function updateWaitBuckets(waitTime){
-  if(!waitChart||waitTime===undefined||waitTime===null) return;
-  const t=Number(waitTime);
-  let idx=0;
-  if(t>=5&&t<10) idx=1; else if(t>=10&&t<20) idx=2; else if(t>=20&&t<40) idx=3; else if(t>=40) idx=4;
-  waitChart.data.datasets[0].data[idx]+=1;
-  liveState.waitBuckets[idx]=waitChart.data.datasets[0].data[idx];
-  waitChart.update('none'); schedulePersist();
-}
-
-function pushCycleCount(){
-  if(!throughputChart) return;
-  cycleIndex = cycleIndex<0 ? 0 : cycleIndex+1;
-  throughputChart.data.labels.push(String(cycleIndex));
-  throughputChart.data.datasets[0].data.push(currentCycleCount);
-  liveState.throughput.labels.push(String(cycleIndex));
-  liveState.throughput.data.push(currentCycleCount);
-  if(throughputChart.data.labels.length>20){
-    throughputChart.data.labels.shift(); throughputChart.data.datasets[0].data.shift();
-    liveState.throughput.labels.shift(); liveState.throughput.data.shift();
-  }
-  throughputChart.update('none');
-  currentCycleCount=0; liveState.cycleIndex=cycleIndex; liveState.currentCycleCount=currentCycleCount;
-  schedulePersist();
-}
-
-function recordPhaseSegment(phase,simTime){
-  if(lastPhase!==null&&lastPhaseTime!==null){
-    const duration=Math.max(0,simTime-lastPhaseTime);
-    const seg={phase:lastPhase,duration,cycle:cycleIndex<0?0:cycleIndex};
-    phaseSegments.push(seg); liveState.phaseSegments.push(seg);
-    if(phaseSegments.length>200) phaseSegments.shift();
-    if(liveState.phaseSegments.length>200) liveState.phaseSegments.shift();
-  }
-  lastPhase=phase; lastPhaseTime=simTime;
-  liveState.lastPhase=lastPhase; liveState.lastPhaseTime=lastPhaseTime;
-  schedulePersist();
-}
-
-function updatePhaseChart(){
-  if(!phaseChart) return;
-  const recentCycles=Array.from(new Set(phaseSegments.map(s=>s.cycle))).slice(-10);
-  phaseChart.data.labels=recentCycles.map(c=>`Cycle ${c}`);
-  const phases=['ns_green','ns_yellow','ns_red','ew_green','ew_yellow','ew_red'];
-  const dsMap={ns_green:phaseChart.data.datasets[0],ns_yellow:phaseChart.data.datasets[1],
-    ns_red:phaseChart.data.datasets[2],ew_green:phaseChart.data.datasets[3],
-    ew_yellow:phaseChart.data.datasets[4],ew_red:phaseChart.data.datasets[5]};
-  phases.forEach(p=>{ dsMap[p].data=[]; });
-  recentCycles.forEach(cycle=>{
-    const perPhase={ns_green:0,ns_yellow:0,ns_red:0,ew_green:0,ew_yellow:0,ew_red:0};
-    phaseSegments.filter(s=>s.cycle===cycle).forEach(s=>{ perPhase[s.phase]+=s.duration; });
-    phases.forEach(p=>dsMap[p].data.push(Number(perPhase[p].toFixed(2))));
-  });
-  phaseChart.update('none');
-}
-
-function updateCharts(reset=false){
-  if(reset){
-    if(queueChart){ queueChart.data.labels=[]; queueChart.data.datasets.forEach(ds=>ds.data=[]); queueChart.update('none'); }
-    if(waitChart){ waitChart.data.datasets[0].data=[0,0,0,0,0]; waitChart.update('none'); }
-    if(throughputChart){ throughputChart.data.labels=[]; throughputChart.data.datasets[0].data=[]; throughputChart.update('none'); }
-    if(phaseChart){ phaseChart.data.labels=[]; phaseChart.data.datasets.forEach(ds=>ds.data=[]); phaseChart.update('none'); }
-    return;
-  }
-  if(queueChart) queueChart.update('none');
-  if(waitChart) waitChart.update('none');
-  if(throughputChart) throughputChart.update('none');
-  if(phaseChart) phaseChart.update('none');
-}
-
-function handleStats(stats){
-  if(!stats||typeof stats!=='object') return;
-  const simTime=stats.sim_time||0;
-  const totalPassed=stats.total_passed??0;
-  const cycles=stats.cycles??0;
-  const resetSignal=(simTime<lastSimTime)||(lastTotalPassed!==null&&totalPassed<lastTotalPassed)
-    ||(session.startTime&&simTime===0&&totalPassed===0&&cycles===0);
-  if(resetSignal) resetSession();
-  if(cycles>0&&cycleIndex<0){ cycleIndex=cycles-1; liveState.cycleIndex=cycleIndex; }
-  if(cycleIndex>=0&&cycles<cycleIndex) resetSession();
-  lastSimTime=simTime;
-  updateKpis(stats); ensureSessionStarted(stats); captureQueueSnapshot(stats); updateQueueChart(stats); updateThroughput(stats);
-}
-
-function handleLightChange(data){
-  if(!data) return;
-  const simTime=data.sim_time||0;
-  session.phaseEvents.push({phase:data.phase,sim_time:simTime});
-  recordPhaseSegment(data.phase,simTime);
-  if(data.phase==='ns_green') pushCycleCount();
-  updatePhaseChart();
-}
-
-function handleVehicleMove(data){
-  if(!data) return;
-  session.vehicleEvents.push({vid:data.vid,direction:data.direction,turn:data.turn,wait_time:data.wait_time,sim_time:data.sim_time});
-  updateWaitBuckets(data.wait_time);
-}
-
-async function fetchConfig(){
-  try{ const res=await fetch('/api/config'); if(res.ok) session.config=await res.json(); }catch(e){}
-}
-async function fetchMetrics(){
-  try{
-    const res=await fetch('/api/metrics'); if(!res.ok) return;
-    const data=await res.json();
-    if(data&&(data.sim_time===0||data.sim_time===0.0)&&data.total_passed===0&&data.cycles===0){ resetSession(); return; }
+async function fetchMetrics() {
+  try {
+    const r = await fetch('/api/metrics');
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data && data.sim_time === 0 && data.total_passed === 0 && data.cycles === 0) { resetSession(); return; }
     handleStats(data);
-  }catch(e){}
+  } catch(_) {}
 }
-async function fetchStatus(){
-  try{
-    const res=await fetch('/api/status'); if(!res.ok) return;
-    const data=await res.json();
-    if(data&&data.running===false&&session.startTime&&!session.endTime) session.endTime=new Date().toISOString();
-  }catch(e){}
+async function fetchStatus() {
+  try {
+    const r = await fetch('/api/status');
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data && data.running === false && session.startTime && !session.endTime)
+      session.endTime = new Date().toISOString();
+  } catch(_) {}
 }
+function startPolling() { if (pollTimer) return; pollTimer = setInterval(() => { fetchStatus(); fetchMetrics(); }, 3000); }
+function stopPolling()  { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
 
-function startPolling(){
-  if(pollTimer) return;
-  pollTimer=setInterval(()=>{ fetchStatus(); fetchMetrics(); },3000);
-}
-function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
-
-const socket=io({
-  transports:['websocket'],reconnection:true,
-  reconnectionAttempts:Infinity,reconnectionDelay:500,reconnectionDelayMax:3000
+/* ═══════════════════════════════════════════════════════════════════
+   SOCKET.IO
+   ═══════════════════════════════════════════════════════════════════ */
+const socket = io({
+  transports:['websocket'], reconnection:true,
+  reconnectionAttempts:Infinity, reconnectionDelay:500, reconnectionDelayMax:3000
 });
 
-socket.on('connect',()=>{ socketConnected=true; updateConnBadge('connected'); stopPolling(); addLog({msg:'🔌 Connected to simulation server',cls:'green',sim_time:0}); });
-socket.on('disconnect',()=>{ socketConnected=false; updateConnBadge('disconnected'); startPolling(); });
-socket.on('connect_error',()=>{ socketConnected=false; updateConnBadge('reconnecting'); startPolling(); });
-socket.on('stats',data=>{ handleStats(data); });
-socket.on('light_change',data=>{ handleLightChange(data); });
-socket.on('vehicle_move',data=>{ handleVehicleMove(data); });
-socket.on('vehicle_exit',()=>{});
-socket.on('log',entry=>{ addLog(entry); });
-socket.on('reset',()=>{ resetSession(); });
-
-async function init(){
-  sessionIdEl.textContent=session.id.slice(0,8);
-  restoreState();
-  await fetchConfig();
-  await fetchStatus();
-  await fetchMetrics();
+function setConnBadge(s) {
+  const el = $('hdr-conn');
+  if      (s === 'connected')    { el.className = 'pill pill-green';  el.textContent = 'Connected';    }
+  else if (s === 'reconnecting') { el.className = 'pill pill-yellow'; el.textContent = 'Reconnecting'; }
+  else                           { el.className = 'pill pill-red';    el.textContent = 'Disconnected'; }
 }
-init();
 
-setInterval(()=>{ persistState(); },5000);
+socket.on('connect',       () => { setConnBadge('connected');    stopPolling();  addLog({ msg:'Connected to simulation server', cls:'green', sim_time:0 }); });
+socket.on('disconnect',    () => { setConnBadge('disconnected'); startPolling(); });
+socket.on('connect_error', () => { setConnBadge('reconnecting'); startPolling(); });
+socket.on('stats',         data  => handleStats(data));
+socket.on('light_change',  data  => handleLightChange(data));
+socket.on('vehicle_move',  data  => handleVehicleMove(data));
+socket.on('vehicle_exit',  ()    => {});
+socket.on('log',           entry => addLog(entry));
+socket.on('reset',         ()    => resetSession());
 
-document.getElementById('btn-export-json').addEventListener('click',exportJson);
-document.getElementById('btn-export-csv').addEventListener('click',exportCsv);
-document.getElementById('btn-export-report').addEventListener('click',exportReport);
-document.getElementById('btn-clear').addEventListener('click',resetSession);
+/* ═══════════════════════════════════════════════════════════════════
+   BUTTON BINDINGS
+   ═══════════════════════════════════════════════════════════════════ */
+$('btn-export-json').addEventListener('click',   exportJson);
+$('btn-export-csv').addEventListener('click',    exportCsv);
+$('btn-export-report').addEventListener('click', exportPdf);
+$('btn-clear').addEventListener('click',         resetSession);
+
+/* ═══════════════════════════════════════════════════════════════════
+   INIT SEQUENCE
+   ─────────────────────────────────────────────────────────────────
+   Problem confirmed from screenshot: data IS flowing (KPIs live,
+   124 data points, log active) but all four charts are blank.
+
+   Root cause: Socket.IO connects and fires stats/light_change events
+   immediately. The chart updaters (updateQueueChart, etc.) check
+   chartsReady[key] which is still false during the double-RAF delay,
+   so they write to liveState but never push to charts. By the time
+   initCharts() runs and sets chartsReady = true, all that early data
+   is sitting in liveState unrendered, and no further socket event
+   arrives to trigger a push.
+
+   Fix: syncChartsFromLive() is called immediately after initCharts()
+   completes, replaying every liveState array into the now-ready chart
+   instances via chart.resize() + chart.update('none'). From that
+   point, all new socket events push directly to charts as normal.
+
+   Additionally: socket is NOT connected inside runInit() — it is
+   registered at module load time, so events fire regardless of when
+   runInit() runs. restoreState() now runs BEFORE the deferred block
+   so persisted data is in liveState before any socket event fires.
+   ═══════════════════════════════════════════════════════════════════ */
+function runInit() {
+  sessIdEl.textContent = session.id.slice(0, 8);
+
+  /*
+   * Step 1: restore persisted liveState IMMEDIATELY (synchronous),
+   * before socket events can fire. This ensures that any historical
+   * data from localStorage is in liveState when the first stats event
+   * arrives, preventing duplicate entries.
+   */
+  restoreState();
+
+  /*
+   * Steps 2-4: defer chart creation until the browser has finished
+   * layout. double-RAF guarantees the style recalc and layout pass
+   * have completed; the 50ms setTimeout adds headroom for slower
+   * devices or deeply nested CSS grid chains.
+   *
+   * During this window, socket events ARE firing and writing to
+   * liveState (chartsReady is false, so chart pushes are skipped).
+   * syncChartsFromLive() replays all of that buffered data once
+   * the charts are ready.
+   */
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+
+        /* Step 2: create Chart.js instances against the settled DOM */
+        initCharts();
+
+        /*
+         * Step 3: replay ALL buffered liveState data into the charts.
+         * This is the critical fix — without this, data that arrived
+         * during the double-RAF delay is never rendered.
+         */
+        syncChartsFromLive();
+
+        /* Step 4: pull fresh server state (may trigger more handleStats calls) */
+        fetchConfig().then(() => fetchStatus()).then(() => fetchMetrics());
+
+      }, 50);
+    });
+  });
+}
+
+/*
+ * Poll for Chart.js availability. If the CDN script hasn't executed
+ * by the time this runs, retry every 100ms rather than proceeding
+ * with window.Chart undefined and silently skipping all chart init.
+ */
+function safeInit() {
+  if (typeof window.Chart === 'undefined') {
+    console.warn('Chart.js not ready yet, retrying in 100ms…');
+    setTimeout(safeInit, 100);
+    return;
+  }
+  runInit();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', safeInit);
+} else {
+  safeInit();
+}
 </script>
 </body>
 </html>
