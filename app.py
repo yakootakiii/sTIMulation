@@ -205,6 +205,16 @@ def on_pause():
         emit("ack", {"ok": True, "paused": paused})
 
 
+@socketio.on("cmd_stop")
+def on_stop():
+    if sim:
+        sim.stop()
+        invalidate_sim_cache()   # status changed — clear cache
+        socketio.emit("log", {"msg": "⏹ Simulation stopped", "cls": "red",
+                              "sim_time": sim.env.now})
+        emit("ack", {"ok": True, "action": "stop"})
+
+
 @socketio.on("cmd_reset")
 def on_reset(data=None):
     global sim

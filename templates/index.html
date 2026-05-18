@@ -5,178 +5,699 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sTIMulation - Modern Traffic Simulator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── Reset & Modern Design ────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0;transition:color .15s,border-color .15s}
-:root{
-  --bg:#070a13;--bg2:#0f1422;--bg3:#1a202c;--bg4:#252d3f;
-  --border:#2a3d52;--border2:#3a5070;--border-light:#4a6090;
-  --text:#f0f4f9;--text2:#a0b0c8;--text3:#708090;
-  --green:#10b981;--green-light:#34d399;--green-bg:#011810;
-  --yellow:#f59e0b;--yellow-light:#fbbf24;--yellow-bg:#331800;
-  --red:#ef4444;--red-light:#f87171;--red-bg:#1c0a0a;
-  --blue:#3b82f6;--blue-light:#60a5fa;--blue-bg:#0c1a3d;
-  --purple:#a78bfa;--purple-light:#c4b5fd;--purple-bg:#2d1b69;
-  --accent:#3b82f6;--accent2:#8b5cf6;
-  --radius:12px; --radius-sm:8px;
-  --shadow:0 4px 20px rgba(0,0,0,.3);--shadow-sm:0 2px 8px rgba(0,0,0,.15);
-  font-family:'Inter','Segoe UI',system-ui,sans-serif;
-}
-body{background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:grid;
-  grid-template-rows:48px 1fr;grid-template-columns:1fr 340px}
+/* ══════════════════════════════════════════════════════
+   RESET & CSS VARIABLES
+══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Header ──────────────────────────────────────────────────── */
-header{
-  grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;background:var(--bg2);border-bottom:1px solid var(--border);
-  z-index:20;
-}
-.logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:.3px}
-.logo-icon{width:28px;height:28px;position:relative}
-.logo-icon svg{width:100%;height:100%}
-.header-right{display:flex;align-items:center;gap:10px}
-.pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-.pill-green{background:var(--green-bg);color:var(--green);border:1px solid #166534}
-.pill-yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid #854d0e}
-.pill-red{background:var(--red-bg);color:var(--red);border:1px solid #991b1b}
-.pill-blue{background:var(--blue-bg);color:var(--blue);border:1px solid #1e3a8a}
-.pill-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+:root {
+  /* Core palette */
+  --bg:           #1b1d36;
+  --bg2:          #20223a;
+  --bg3:          #252844;
+  --bg4:          #2c2f52;
+  --surface:      #e1e7ed;
+  --surface2:     #c8d2dc;
 
-/* ── Canvas area ──────────────────────────────────────────────── */
-#canvas-wrap{
-  background:#0a0e14;position:relative;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
-}
-canvas{display:block}
+  --pink:         #fca6d1;
+  --pink-dim:     #c4718f;
+  --pink-bg:      rgba(252,166,209,.10);
+  --pink-border:  rgba(252,166,209,.30);
+  --pink-glow:    rgba(252,166,209,.20);
 
-/* ── Side panel ──────────────────────────────────────────────── */
-#panel{
-  background:var(--bg2);border-left:1px solid var(--border);
-  display:flex;flex-direction:column;overflow:hidden;
-}
-.p-section{
-  border-bottom:1px solid var(--border);padding:14px 16px;
-}
-.p-section:last-child{border-bottom:none;flex:1;overflow:hidden;display:flex;flex-direction:column}
-.sec-title{
-  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
-  color:var(--text3);margin-bottom:10px;
+  --cyan:         #99d7ea;
+  --cyan-dim:     #5fa8c0;
+  --cyan-bg:      rgba(153,215,234,.10);
+  --cyan-border:  rgba(153,215,234,.28);
+  --cyan-glow:    rgba(153,215,234,.18);
+
+  --red:          #f87171;
+  --red-bg:       rgba(248,113,113,.12);
+  --red-border:   rgba(248,113,113,.30);
+
+  --border:       rgba(153,215,234,.15);
+  --border2:      rgba(153,215,234,.25);
+  --border-pink:  rgba(252,166,209,.25);
+
+  --text:         #e1e7ed;
+  --text2:        #a8b8cc;
+  --text3:        #6a7f96;
+
+  --radius:       14px;
+  --radius-sm:    9px;
+  --radius-xs:    6px;
+
+  --glass-bg:     rgba(27,29,54,.75);
+  --glass-blur:   blur(18px);
+  --glass-border: rgba(153,215,234,.18);
+
+  --shadow:       0 8px 32px rgba(0,0,0,.45);
+  --shadow-sm:    0 4px 16px rgba(0,0,0,.30);
+  --shadow-pink:  0 4px 24px rgba(252,166,209,.18);
+  --shadow-cyan:  0 4px 24px rgba(153,215,234,.15);
+
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* ── Buttons ──────────────────────────────────────────────────── */
-.btn-row{display:flex;gap:6px}
-.btn{
-  flex:1;padding:8px 6px;font-size:12px;font-weight:600;letter-spacing:.3px;
-  border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--bg3);color:var(--text2);cursor:pointer;
-  transition:all .15s;text-transform:uppercase;
+body {
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 52px 1fr;
 }
-.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--text3)}
-.btn.active-green{background:var(--green-bg);color:var(--green);border-color:#166534}
-.btn.active-yellow{background:var(--yellow-bg);color:var,--yellow;border-color:#854d0e}
-.btn.active-red{background:var(--red-bg);color:var(--red);border-color:#991b1b}
-.btn.active-blue{background:var(--blue-bg);color:var(--blue);border-color:#1e3a8a}
 
-/* ── Form controls ──────────────────────────────────────────── */
-.ctrl{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.ctrl:last-child{margin-bottom:0}
-.ctrl-label{font-size:11px;color:var(--text2);min-width:72px;font-weight:500}
-.ctrl-val{font-size:11px;font-weight:700;color:var(--text);min-width:30px;text-align:right}
-input[type=range]{
-  flex:1;-webkit-appearance:none;height:3px;
-  background:var(--border2);border-radius:2px;outline:none;cursor:pointer;
+/* ══════════════════════════════════════════════════════
+   HEADER — centered title
+══════════════════════════════════════════════════════ */
+header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: rgba(27,29,54,.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+  position: relative;
 }
-input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
-  background:var(--accent);cursor:pointer;border:2px solid var(--bg2);
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  color: var(--text);
+  user-select: none;
+  z-index: 2;
 }
-select{
-  flex:1;font-size:11px;padding:5px 8px;
-  border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--bg3);color:var(--text);cursor:pointer;outline:none;
+.header-logo svg { width: 26px; height: 26px; flex-shrink: 0; }
+
+/* Centered title absolutely positioned */
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  color: var(--cyan);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1;
 }
-select:focus{border-color:var(--accent)}
-.toggle-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
-.toggle{position:relative;width:32px;height:17px;cursor:pointer}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{
-  position:absolute;inset:0;background:var(--border2);border-radius:9px;transition:.2s;
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
 }
-.toggle-slider:before{
-  content:'';position:absolute;width:11px;height:11px;
-  left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;
+
+/* ══════════════════════════════════════════════════════
+   PILL / BADGE
+══════════════════════════════════════════════════════ */
+.pill {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: all .2s ease;
+  white-space: nowrap;
 }
-.toggle input:checked + .toggle-slider{background:var(--green)}
-.toggle input:checked + .toggle-slider:before{transform:translateX(15px)}
+.pill-green  { color: var(--cyan);  border-color: var(--cyan-border);  background: var(--cyan-bg);  }
+.pill-yellow { color: var(--pink);  border-color: var(--pink-border);  background: var(--pink-bg);  }
+.pill-red    { color: var(--red);   border-color: var(--red-border);   background: var(--red-bg);   }
+.pill-blue   { color: var(--cyan);  border-color: var(--cyan-border);  background: var(--cyan-bg);  }
+.pill-gray   { color: var(--text2); border-color: var(--border2);      background: rgba(153,215,234,.06); }
 
-/* ── Queue bars ──────────────────────────────────────────────── */
-.q-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.q-dir{font-size:11px;font-weight:700;color:var(--text2);width:22px}
-.q-track{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative}
-.q-fill{height:100%;border-radius:4px;transition:width .4s cubic-bezier(.4,0,.2,1);width:0%}
-.q-ns{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
-.q-ew{background:linear-gradient(90deg,#d85a30,#f97316)}
-.q-count{font-size:11px;font-weight:700;min-width:24px;text-align:right}
-
-/* ── Metric cards ──────────────────────────────────────────── */
-.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:2px}
-.metric{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;border:1px solid var(--border)}
-.metric-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.metric-val{font-size:22px;font-weight:700;line-height:1.1;margin-top:3px}
-.metric-sub{font-size:10px;color:var(--text3);margin-top:1px}
-.mv-green{color:var(--green)}
-.mv-blue{color:var(--blue)}
-.mv-yellow{color:var(--yellow)}
-.mv-purple{color:var(--purple)}
-
-/* ── Log ──────────────────────────────────────────────────────── */
-.log-scroll{flex:1;overflow-y:auto;padding-right:2px}
-.log-scroll::-webkit-scrollbar{width:3px}
-.log-scroll::-webkit-scrollbar-track{background:transparent}
-.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.log-entry{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:10.5px;font-family:'Cascadia Code','Consolas',monospace;line-height:1.5}
-.log-time{color:var(--text3);min-width:40px}
-.log-msg{flex:1;word-break:break-word}
-.c-green{color:var(--green)}.c-yellow{color:var(--yellow)}
-.c-red{color:var(--red)}.c-blue{color:var(--blue)}.c-gray{color:var(--text2)}
-
-/* ── Status bar (bottom of canvas) ─────────────────────────── */
-#status-bar{
-  position:absolute;bottom:0;left:0;right:0;
-  background:rgba(10,14,20,.85);backdrop-filter:blur(4px);
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;padding:6px 14px;
-  font-size:11px;color:var(--text2);
-
-  
+/* ══════════════════════════════════════════════════════
+   CANVAS AREA — full screen
+══════════════════════════════════════════════════════ */
+#canvas-wrap {
+  position: relative;
+  background: #0c0e1a;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.sb-item{display:flex;align-items:center;gap:5px}
-.sb-dot{width:7px;height:7px;border-radius:50%}
+canvas { display: block; }
 
-/* ── Connection badge ─────────────────────────────────────── */
-#conn-badge{position:absolute;top:10px;left:14px;z-index:10}
+/* ══════════════════════════════════════════════════════
+   STATUS BAR — bottom of canvas
+══════════════════════════════════════════════════════ */
+#status-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(11,13,28,.88);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 5px 16px;
+  font-size: 11px;
+  color: var(--text2);
+  z-index: 10;
+}
+.sb-item { display: flex; align-items: center; gap: 5px; }
+.sb-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ══════════════════════════════════════════════════════
+   FLOATING METRICS WIDGETS — bottom-left
+══════════════════════════════════════════════════════ */
+#metrics-widgets {
+  position: absolute;
+  bottom: 44px;
+  left: 16px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.widget {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+  min-width: 140px;
+  pointer-events: auto;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, border-color .25s ease;
+  animation: widgetIn .4s cubic-bezier(.34,1.56,.64,1) both;
+}
+.widget:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: var(--shadow), var(--shadow-cyan);
+  border-color: rgba(153,215,234,.35);
+}
+@keyframes widgetIn {
+  from { opacity: 0; transform: translateX(-12px) scale(.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.widget:nth-child(1) { animation-delay: .05s; }
+.widget:nth-child(2) { animation-delay: .10s; }
+.widget:nth-child(3) { animation-delay: .15s; }
+.widget:nth-child(4) { animation-delay: .20s; }
+
+.widget-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+.widget-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.widget-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.widget-val {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+.widget-sub {
+  font-size: 9px;
+  color: var(--text3);
+  margin-top: 1px;
+}
+.w-pink  { color: var(--pink); }
+.w-cyan  { color: var(--cyan); }
+.w-red   { color: var(--red);  }
+
+.widget-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wq-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wq-dir {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text2);
+  width: 16px;
+}
+.wq-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(153,215,234,.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.wq-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .4s cubic-bezier(.4,0,.2,1);
+  width: 0%;
+}
+.wq-ns { background: linear-gradient(90deg, var(--cyan), #b8e5f2); }
+.wq-ew { background: linear-gradient(90deg, var(--pink), #fdc4e2); }
+.wq-count {
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: right;
+  color: var(--text2);
+}
+
+/* ══════════════════════════════════════════════════════
+   ZOOM CONTROLS — top-left
+══════════════════════════════════════════════════════ */
+#zoom-group {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 50;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ══════════════════════════════════════════════════════
+   FLOATING ACTION BUTTONS — bottom-right
+   Panel bottom edge aligns with FAB bottom edge.
+   Gap between panel right edge and FAB group = 10px.
+══════════════════════════════════════════════════════ */
+:root {
+  --panel-width:  340px;
+  --fab-size:     44px;   /* single source of truth for both primary FABs */
+  --fab-bottom:   52px;   /* height of status bar + 8px breathing room */
+  --panel-gap:    10px;   /* gap between panel and FAB group */
+}
+
+#fab-group {
+  position: absolute;
+  bottom: var(--fab-bottom);
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* center-align so both 44px FABs line up */
+  gap: 8px;
+  transition: right .35s cubic-bezier(.4,0,.2,1);
+}
+
+/* When panel is open, slide FABs left of the panel with consistent gap */
+#fab-group.panel-open {
+  right: calc(var(--panel-width) + 16px + var(--panel-gap));
+}
+
+/* Base FAB — all share this */
+.fab {
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1),
+              box-shadow .2s ease,
+              background .2s ease,
+              border-color .2s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+.fab:hover {
+  transform: scale(1.10);
+  box-shadow: var(--shadow), var(--shadow-cyan);
+  border-color: var(--cyan-border);
+  background: rgba(27,29,54,.92);
+}
+.fab:active { transform: scale(.95); }
+/* All FABs get the same icon size */
+.fab svg { width: 18px; height: 18px; pointer-events: none; }
+
+/* Controls FAB — same size as analytics, distinct color treatment */
+.fab-controls {
+  background: linear-gradient(135deg, rgba(153,215,234,.15), rgba(252,166,209,.10));
+  border-color: var(--cyan-border);
+  color: var(--cyan);
+}
+.fab-controls:hover {
+  background: linear-gradient(135deg, rgba(153,215,234,.28), rgba(252,166,209,.16));
+  box-shadow: var(--shadow), var(--shadow-cyan), 0 0 0 2px rgba(153,215,234,.14);
+  border-color: var(--cyan);
+}
+.fab-controls.is-open {
+  background: linear-gradient(135deg, rgba(153,215,234,.22), rgba(252,166,209,.18));
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: var(--shadow), 0 0 0 2px rgba(153,215,234,.18);
+}
+
+/* Analytics FAB — same size, pink accent */
+.fab-analytics {
+  color: var(--pink);
+  border-color: var(--pink-border);
+  background: linear-gradient(135deg, rgba(252,166,209,.10), rgba(153,215,234,.06));
+}
+.fab-analytics:hover {
+  background: linear-gradient(135deg, rgba(252,166,209,.22), rgba(153,215,234,.10));
+  border-color: var(--pink);
+  box-shadow: var(--shadow), var(--shadow-pink);
+}
+
+/* Zoom FABs — smaller, top-left group */
+.fab-zoom {
+  width: 36px;
+  height: 36px;
+  color: var(--text2);
+  border-color: var(--border);
+  background: var(--glass-bg);
+}
+.fab-zoom svg { width: 16px; height: 16px; }
+.fab-zoom:hover {
+  color: var(--cyan);
+  border-color: var(--cyan-border);
+  box-shadow: var(--shadow-sm), var(--shadow-cyan);
+  transform: scale(1.08);
+}
+
+/* ══════════════════════════════════════════════════════
+   FLOATING CONTROLS PANEL
+══════════════════════════════════════════════════════ */
+#panel, #analytics-panel {
+  position: absolute;
+  width: var(--panel-width);
+  max-height: 65vh;
+  height: auto;
+  overflow-y: auto;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 40;
+
+  /* Animation */
+  transform-origin: bottom right;
+  transition: opacity .3s cubic-bezier(.4,0,.2,1),
+              transform .3s cubic-bezier(.4,0,.2,1);
+  opacity: 0;
+  transform: scale(.92) translateY(12px);
+  pointer-events: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#panel.visible, #analytics-panel.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+#panel.dragging, #analytics-panel.dragging {
+  cursor: grabbing;
+  z-index: 45;
+  opacity: 0.95;
+  transition: none;
+}
+
+#panel::-webkit-scrollbar, #analytics-panel::-webkit-scrollbar { width: 4px; }
+#panel::-webkit-scrollbar-track, #analytics-panel::-webkit-scrollbar-track { background: transparent; }
+#panel::-webkit-scrollbar-thumb, #analytics-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Panel sections */
+.p-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.p-section:last-child { border-bottom: none; }
+
+.sec-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--pink);
+  margin-bottom: 10px;
+}
+
+/* ══════════════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════════════ */
+.btn-row { display: flex; gap: 6px; }
+.btn {
+  flex: 1;
+  padding: 8px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: rgba(153,215,234,.06);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .2s cubic-bezier(.4,0,.2,1);
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: rgba(153,215,234,.12);
+  color: var(--cyan);
+  border-color: var(--cyan-border);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(153,215,234,.12);
+}
+.btn:active { transform: translateY(0); box-shadow: none; }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn.active-green {
+  background: var(--cyan-bg);
+  color: var(--cyan);
+  border-color: var(--cyan-border);
+}
+.btn.active-yellow {
+  background: var(--pink-bg);
+  color: var(--pink);
+  border-color: var(--pink-border);
+}
+.btn.active-red {
+  background: var(--red-bg);
+  color: var(--red);
+  border-color: var(--red-border);
+}
+.btn.active-blue {
+  background: var(--cyan-bg);
+  color: var(--cyan);
+  border-color: var(--cyan-border);
+}
+
+/* ══════════════════════════════════════════════════════
+   FORM CONTROLS
+══════════════════════════════════════════════════════ */
+.ctrl { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ctrl:last-child { margin-bottom: 0; }
+.ctrl-label {
+  font-size: 10px;
+  color: var(--text2);
+  min-width: 78px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+.ctrl-val {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  min-width: 30px;
+  text-align: right;
+}
+
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 3px;
+  background: var(--border2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--cyan);
+  cursor: pointer;
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 6px rgba(153,215,234,.4);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(153,215,234,.6);
+}
+
+input[type=number] {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 8px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  background: rgba(153,215,234,.06);
+  color: var(--text);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+input[type=number]:focus {
+  border-color: var(--cyan-border);
+  box-shadow: 0 0 0 2px rgba(153,215,234,.10);
+}
+
+select {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 8px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  background: rgba(27,29,54,.9);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+select:focus {
+  border-color: var(--cyan-border);
+  box-shadow: 0 0 0 2px rgba(153,215,234,.10);
+}
+select option { background: var(--bg3); }
+
+/* Toggle */
+.toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text2); }
+.toggle { position: relative; width: 32px; height: 17px; cursor: pointer; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: rgba(153,215,234,.15);
+  border-radius: 9px;
+  transition: .25s;
+  border: 1px solid var(--border2);
+}
+.toggle-slider:before {
+  content: '';
+  position: absolute;
+  width: 11px; height: 11px;
+  left: 2px; top: 2px;
+  background: var(--text3);
+  border-radius: 50%;
+  transition: .25s;
+}
+.toggle input:checked + .toggle-slider { background: var(--cyan-bg); border-color: var(--cyan-border); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(15px); background: var(--cyan); }
+
+/* ══════════════════════════════════════════════════════
+   LOG
+══════════════════════════════════════════════════════ */
+.log-scroll {
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.log-scroll::-webkit-scrollbar { width: 3px; }
+.log-scroll::-webkit-scrollbar-track { background: transparent; }
+.log-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.log-entry {
+  display: flex; gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(153,215,234,.06);
+  font-size: 10px;
+  line-height: 1.5;
+  transition: background .1s;
+}
+.log-entry:hover { background: rgba(153,215,234,.04); }
+.log-time { color: var(--text3); min-width: 36px; }
+.log-msg  { flex: 1; word-break: break-word; }
+.c-green  { color: var(--cyan); }
+.c-yellow { color: var(--pink); }
+.c-red    { color: var(--red); }
+.c-blue   { color: var(--cyan); }
+.c-gray   { color: var(--text2); }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  :root {
+    --panel-width: calc(100vw - 32px);
+    --panel-gap: 8px;
+  }
+  #panel { right: 16px; width: var(--panel-width); }
+  /* On mobile with panel open, FABs slide above the panel */
+  #fab-group.panel-open {
+    right: 16px;
+    bottom: calc(var(--fab-bottom) + var(--panel-mobile-height, 360px) + 12px);
+  }
+  .header-center { display: none; }
+  #metrics-widgets { gap: 6px; }
+  #zoom-group { top: 12px; left: 12px; gap: 5px; }
+}
 </style>
 </head>
 <body>
 
-<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<!-- ══ HEADER ═══════════════════════════════════════════════════════ -->
 <header>
-  <div class="logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 28 28" fill="none">
-        <rect x="11" y="0" width="6" height="28" rx="2" fill="#2a3352"/>
-        <rect x="0" y="11" width="28" height="6" rx="2" fill="#2a3352"/>
-        <rect x="11" y="0" width="6" height="11" rx="2" fill="#3b82f6" opacity=".8"/>
-        <rect x="17" y="11" width="11" height="6" rx="2" fill="#ef4444" opacity=".8"/>
-        <rect x="11" y="17" width="6" height="11" rx="2" fill="#ef4444" opacity=".8"/>
-        <rect x="0" y="11" width="11" height="6" rx="2" fill="#3b82f6" opacity=".8"/>
-        <circle cx="14" cy="14" r="4" fill="#1e2434"/>
-      </svg>
-    </div>
-    4-Way Intersection Traffic Simulator
+  <div class="header-logo">
+    <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="0" width="6" height="26" rx="2" fill="rgba(153,215,234,.18)"/>
+      <rect x="0" y="10" width="26" height="6" rx="2" fill="rgba(153,215,234,.18)"/>
+      <rect x="10" y="0"  width="6" height="10" rx="2" fill="#99d7ea" opacity=".9"/>
+      <rect x="16" y="10" width="10" height="6" rx="2" fill="#fca6d1" opacity=".9"/>
+      <rect x="10" y="16" width="6" height="10" rx="2" fill="#fca6d1" opacity=".9"/>
+      <rect x="0"  y="10" width="10" height="6" rx="2" fill="#99d7ea" opacity=".9"/>
+      <circle cx="13" cy="13" r="3.5" fill="#1b1d36"/>
+    </svg>
+    sTIMulation
   </div>
+
+  <div class="header-center">4-Way Intersection Traffic Simulator</div>
+
   <div class="header-right">
-    <a class="pill pill-blue" href="/analytics" style="text-decoration:none">📊 Analytics</a>
     <span id="hdr-scenario" class="pill pill-blue">Normal</span>
     <span id="hdr-phase" class="pill pill-green">N-S Green</span>
     <span id="hdr-cycles" class="pill pill-gray">Cycle 0</span>
@@ -185,718 +706,929 @@ select:focus{border-color:var(--accent)}
   </div>
 </header>
 
-<!-- ══ CANVAS ══════════════════════════════════════════════════════ -->
+<!-- ══ CANVAS AREA ═══════════════════════════════════════════════════ -->
 <div id="canvas-wrap">
   <canvas id="c"></canvas>
+
+  <!-- Status bar -->
   <div id="status-bar">
-    <div class="sb-item"><div class="sb-dot" style="background:var(--green)"></div>N-S: <span id="sb-ns">GREEN</span></div>
-    <div class="sb-item"><div class="sb-dot" style="background:var(--red)"></div>E-W: <span id="sb-ew">RED</span></div>
-    <div class="sb-item">Active vehicles: <b id="sb-active">0</b></div>
-    <div class="sb-item">Queue N+S: <b id="sb-ns-q">0</b></div>
-    <div class="sb-item">Queue E+W: <b id="sb-ew-q">0</b></div>
+    <div class="sb-item">
+      <div class="sb-dot" id="sb-ns-dot" style="background:#99d7ea"></div>
+      N-S: <span id="sb-ns" style="color:#99d7ea;font-weight:700">GREEN</span>
+    </div>
+    <div class="sb-item">
+      <div class="sb-dot" id="sb-ew-dot" style="background:#f87171"></div>
+      E-W: <span id="sb-ew" style="color:#f87171;font-weight:700">RED</span>
+    </div>
+    <div class="sb-item">Active: <b id="sb-active" style="color:var(--text)">0</b></div>
+    <div class="sb-item">N+S: <b id="sb-ns-q" style="color:var(--cyan)">0</b></div>
+    <div class="sb-item">E+W: <b id="sb-ew-q" style="color:var(--pink)">0</b></div>
+
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      Phase timer:
-      <div style="width:120px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden">
-        <div id="phase-bar" style="height:100%;width:0%;background:var(--green);transition:width .3s;border-radius:2px"></div>
+      Phase:
+      <div style="width:110px;height:3px;background:rgba(153,215,234,.15);border-radius:2px;overflow:hidden">
+        <div id="phase-bar" style="height:100%;width:0%;background:var(--cyan);transition:width .3s;border-radius:2px"></div>
       </div>
       <span id="phase-label" style="color:var(--text3);font-size:10px">NS GREEN</span>
     </div>
+
     <button onclick="CAM={x:0,y:0,scale:1}"
-      style="margin-left:auto;padding:2px 10px;font-size:10px;background:var(--bg3);
-            color:var(--text2);border:1px solid var(--border2);border-radius:6px;cursor:pointer">
-      Reset view
+      style="padding:2px 10px;font-size:10px;background:rgba(153,215,234,.08);
+             color:var(--text2);border:1px solid var(--border2);border-radius:6px;
+             cursor:pointer;font-family:'JetBrains Mono',monospace;
+             transition:all .2s;margin-left:8px;"
+      onmouseover="this.style.borderColor='var(--cyan-border)';this.style.color='var(--cyan)'"
+      onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
+      Reset View
     </button>
   </div>
-</div>
 
-<!-- ══ SIDE PANEL ═══════════════════════════════════════════════════ -->
-<div id="panel">
+  <!-- ── Floating Metrics Widgets (bottom-left) ── -->
+  <div id="metrics-widgets">
 
-  <!-- Controls -->
-  <div class="p-section">
-    <div class="sec-title">Simulation Controls</div>
-    <div class="btn-row">
-      <button class="btn" id="btn-start" onclick="cmdStart()">▶ Start</button>
-      <button class="btn" id="btn-pause" onclick="cmdPause()" disabled>⏸ Pause</button>
-      <button class="btn" id="btn-reset" onclick="cmdReset()">↺ Reset</button>
-    </div>
-  </div>
-
-  <!-- Scenario & Road -->
-  <div class="p-section">
-    <div class="sec-title">Scenario & Configuration</div>
-    <div class="ctrl">
-      <span class="ctrl-label">Scenario</span>
-      <select id="sel-scenario" onchange="onCfgChange()">
-        <option value="normal">Normal Traffic</option>
-        <option value="rush">Rush Hour</option>
-        <option value="low">Low Traffic</option>
-      </select>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">Road type</span>
-      <select id="sel-road" onchange="onCfgChange()">
-        <option value="2">2-lane (1 per direction)</option>
-        <option value="4" selected>4-lane (2 per direction)</option>
-        <option value="6">6-lane (3 per direction)</option>
-      </select>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">Speed</span>
-      <input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4"
-        oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()">
-      <span class="ctrl-val" id="v-speed">4×</span>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">Random Seed</span>
-      <input type="number" id="sl-seed" value="42" style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg3);color:var(--text);outline:none;"
-        onchange="onCfgChange()">
-    </div>
-    <div class="ctrl" style="margin-top:4px">
-      <span class="ctrl-label">Right-on-red</span>
-      <label class="toggle">
-        <input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()">
-        <span class="toggle-slider"></span>
-      </label>
-      <span style="font-size:11px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span>
-    </div>
-  </div>
-
-  <!-- Signal Timing -->
-  <div class="p-section">
-    <div class="sec-title">Signal Timing</div>
-    <div class="ctrl">
-      <span class="ctrl-label">🟢 Green (s)</span>
-      <input type="range" id="sl-green" min="5" max="60" value="20"
-        oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()">
-      <span class="ctrl-val" id="v-green">20</span>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">🟡 Yellow (s)</span>
-      <input type="range" id="sl-yellow" min="2" max="10" value="4"
-        oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()">
-      <span class="ctrl-val" id="v-yellow">4</span>
-    </div>
-    <div class="ctrl">
-      <span class="ctrl-label">🔴 All-red (s)</span>
-      <input type="range" id="sl-red" min="0" max="5" step="0.5" value="1"
-        oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()">
-      <span class="ctrl-val" id="v-red">1</span>
-    </div>
-  </div>
-
-  <!-- Queue bars -->
-  <div class="p-section">
-    <div class="sec-title">Queue Lengths</div>
-    <div class="q-row"><span class="q-dir">N↓</span><div class="q-track"><div class="q-fill q-ns" id="qb-n"></div></div><span class="q-count" id="qn-n">0</span></div>
-    <div class="q-row"><span class="q-dir">S↑</span><div class="q-track"><div class="q-fill q-ns" id="qb-s"></div></div><span class="q-count" id="qn-s">0</span></div>
-    <div class="q-row"><span class="q-dir">E→</span><div class="q-track"><div class="q-fill q-ew" id="qb-e"></div></div><span class="q-count" id="qn-e">0</span></div>
-    <div class="q-row"><span class="q-dir">W←</span><div class="q-track"><div class="q-fill q-ew" id="qb-w"></div></div><span class="q-count" id="qn-w">0</span></div>
-  </div>
-
-  <!-- Metrics -->
-  <div class="p-section">
-    <div class="sec-title">Statistics</div>
-    <div class="metrics-grid">
-      <div class="metric">
-        <div class="metric-label">Cars passed</div>
-        <div class="metric-val mv-green" id="m-passed">0</div>
-        <div class="metric-sub">total</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Avg wait</div>
-        <div class="metric-val mv-yellow" id="m-wait">0.0s</div>
-        <div class="metric-sub">per vehicle</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Cycles</div>
-        <div class="metric-val mv-blue" id="m-cycles">0</div>
-        <div class="metric-sub">completed</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Active</div>
-        <div class="metric-val mv-purple" id="m-active">0</div>
-        <div class="metric-sub">vehicles</div>
+    <!-- Stats widget -->
+    <div class="widget">
+      <div class="widget-row">
+        <div class="widget-item">
+          <div class="widget-label">Cars Passed</div>
+          <div class="widget-val w-cyan" id="w-passed">0</div>
+          <div class="widget-sub">total</div>
+        </div>
+        <div class="widget-item">
+          <div class="widget-label">Avg Wait</div>
+          <div class="widget-val w-pink" id="w-wait">0.0s</div>
+          <div class="widget-sub">per vehicle</div>
+        </div>
+        <div class="widget-item">
+          <div class="widget-label">Cycles</div>
+          <div class="widget-val w-cyan" id="w-cycles">0</div>
+          <div class="widget-sub">done</div>
+        </div>
+        <div class="widget-item">
+          <div class="widget-label">Active</div>
+          <div class="widget-val w-pink" id="w-active">0</div>
+          <div class="widget-sub">on road</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Log -->
-  <div class="p-section">
-    <div class="sec-title">Live Log</div>
-    <div class="log-scroll" id="log-scroll">
-      <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
+    <!-- Queue widget -->
+    <div class="widget">
+      <div class="widget-label" style="margin-bottom:7px">Queue Lengths</div>
+      <div class="widget-queue">
+        <div class="wq-row"><span class="wq-dir">N</span><div class="wq-track"><div class="wq-fill wq-ns" id="wqb-n"></div></div><span class="wq-count" id="wqn-n">0</span></div>
+        <div class="wq-row"><span class="wq-dir">S</span><div class="wq-track"><div class="wq-fill wq-ns" id="wqb-s"></div></div><span class="wq-count" id="wqn-s">0</span></div>
+        <div class="wq-row"><span class="wq-dir">E</span><div class="wq-track"><div class="wq-fill wq-ew" id="wqb-e"></div></div><span class="wq-count" id="wqn-e">0</span></div>
+        <div class="wq-row"><span class="wq-dir">W</span><div class="wq-track"><div class="wq-fill wq-ew" id="wqb-w"></div></div><span class="wq-count" id="wqn-w">0</span></div>
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- ══ CANVAS RENDERER ══════════════════════════════════════════════ -->
+  </div><!-- /metrics-widgets -->
+
+  <!-- ── Zoom Controls (top-left) ── -->
+  <div id="zoom-group">
+    <button class="fab fab-zoom" id="fab-zoom-out" title="Zoom Out" onclick="zoomAt(0.85)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+    </button>
+    <button class="fab fab-zoom" id="fab-zoom-in" title="Zoom In" onclick="zoomAt(1.15)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Floating Action Buttons (bottom-right) ── -->
+  <div id="fab-group">
+
+    <!-- Analytics button -->
+    <button class="fab fab-analytics" id="fab-analytics-btn" title="Analytics Panel" onclick="toggleAnalyticsPanel()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+    </button>
+
+    <!-- Controls toggle button -->
+    <button class="fab fab-controls" id="fab-controls-btn" title="Simulation Controls" onclick="togglePanel()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+        <circle cx="7" cy="6" r="2" fill="currentColor" stroke="none"/>
+        <circle cx="14" cy="12" r="2" fill="currentColor" stroke="none"/>
+        <circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+
+  </div><!-- /fab-group -->
+
+  <!-- ── Floating Controls Panel ── -->
+  <div id="panel">
+
+    <!-- Controls -->
+    <div class="p-section">
+      <div class="sec-title">Simulation Controls</div>
+      <div class="btn-row">
+        <button class="btn" id="btn-start" onclick="cmdStart()" style="display:block">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><polygon points="2,1 9,5 2,9"/></svg>Start
+        </button>
+        <button class="btn" id="btn-pause" onclick="cmdPause()" style="display:none">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><rect x="2" y="1" width="2.5" height="8"/><rect x="5.5" y="1" width="2.5" height="8"/></svg>Pause
+        </button>
+        <button class="btn" id="btn-reset" onclick="cmdReset()">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:4px;vertical-align:middle"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.87"/></svg>Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Scenario & Road -->
+    <div class="p-section">
+      <div class="sec-title">Scenario & Configuration</div>
+      <div class="ctrl">
+        <span class="ctrl-label">Scenario</span>
+        <select id="sel-scenario" onchange="onCfgChange()">
+          <option value="normal">Normal Traffic</option>
+          <option value="rush">Rush Hour</option>
+          <option value="low">Low Traffic</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Road Type</span>
+        <select id="sel-road" onchange="onCfgChange()">
+          <option value="2">2-lane (1 per dir)</option>
+          <option value="4" selected>4-lane (2 per dir)</option>
+          <option value="6">6-lane (3 per dir)</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Speed</span>
+        <input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4"
+          oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()">
+        <span class="ctrl-val" id="v-speed">4×</span>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Random Seed</span>
+        <input type="number" id="sl-seed" value="42" onchange="onCfgChange()">
+      </div>
+      <div class="ctrl" style="margin-top:4px">
+        <span class="ctrl-label">Right-on-Red</span>
+        <label class="toggle">
+          <input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()">
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:10px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span>
+      </div>
+    </div>
+
+    <!-- Signal Timing -->
+    <div class="p-section">
+      <div class="sec-title">Signal Timing</div>
+      <div class="ctrl">
+        <span class="ctrl-label">Green (s)</span>
+        <input type="range" id="sl-green" min="5" max="60" value="20"
+          oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()">
+        <span class="ctrl-val" id="v-green">20</span>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">Yellow (s)</span>
+        <input type="range" id="sl-yellow" min="2" max="10" value="4"
+          oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()">
+        <span class="ctrl-val" id="v-yellow">4</span>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-label">All-Red (s)</span>
+        <input type="range" id="sl-red" min="0" max="5" step="0.5" value="1"
+          oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()">
+        <span class="ctrl-val" id="v-red">1</span>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="p-section">
+      <div class="sec-title">Live Log</div>
+      <div class="log-scroll" id="log-scroll">
+        <div class="log-entry">
+          <span class="log-time">-</span>
+          <span class="log-msg c-gray">Waiting for simulation to start…</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /panel -->
+
+  <!-- ── Floating Analytics Panel ── -->
+  <div id="analytics-panel">
+
+    <!-- Charts Section -->
+    <div class="p-section">
+      <div class="sec-title">Queue Lengths Over Time</div>
+      <div style="height:140px;position:relative;background:rgba(153,215,234,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
+        <canvas id="analytics-queue-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="p-section">
+      <div class="sec-title">Wait Time Distribution</div>
+      <div style="height:140px;position:relative;background:rgba(252,166,209,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
+        <canvas id="analytics-wait-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="p-section">
+      <div class="sec-title">Vehicles Passed Per Cycle</div>
+      <div style="height:140px;position:relative;background:rgba(153,215,234,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
+        <canvas id="analytics-throughput-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="p-section">
+      <div class="sec-title">Signal Phase Timing</div>
+      <div style="height:140px;position:relative;background:rgba(248,113,113,.04);border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;padding:8px">
+        <canvas id="analytics-phase-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Session Info -->
+    <div class="p-section">
+      <div class="sec-title">Session Recording</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
+          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Session ID</div>
+          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px;word-break:break-all" id="analytics-session-id">--------</div>
+        </div>
+        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
+          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Duration</div>
+          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px" id="analytics-session-duration">0.0s</div>
+        </div>
+        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
+          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Data Points</div>
+          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px" id="analytics-data-points">0</div>
+        </div>
+        <div style="background:rgba(153,215,234,.06);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;font-size:9px">
+          <div style="color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Records</div>
+          <div style="color:var(--cyan);font-weight:700;margin-top:3px;font-size:9px" id="analytics-records">0</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn active-red" id="btn-analytics-clear" onclick="cmdAnalyticsClear()" style="flex:1">
+          Clear Session
+        </button>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="p-section">
+      <div class="sec-title">Export Data</div>
+      <div class="btn-row" style="flex-direction:column;gap:6px">
+        <button class="btn active-blue" id="btn-export-json" onclick="cmdExportJSON()" style="width:100%">Export JSON</button>
+        <button class="btn active-blue" id="btn-export-csv" onclick="cmdExportCSV()" style="width:100%">Export CSV</button>
+        <button class="btn active-blue" id="btn-export-pdf" onclick="cmdExportPDF()" style="width:100%">Export PDF</button>
+      </div>
+    </div>
+
+  </div><!-- /analytics-panel -->
+
+<!-- ══ SCRIPTS ═══════════════════════════════════════════════════════ -->
 <script>
+// ─── Panel toggle ──────────────────────────────────────────────────
+let panelOpen = false;
+let analyticsOpen = false;
+
+function togglePanel() {
+  panelOpen = !panelOpen;
+  const panel = document.getElementById('panel');
+  const btn   = document.getElementById('fab-controls-btn');
+  const fab   = document.getElementById('fab-group');
+
+  panel.classList.toggle('visible', panelOpen);
+  btn.classList.toggle('is-open', panelOpen);
+  fab.classList.toggle('panel-open', panelOpen);
+}
+
+function toggleAnalyticsPanel() {
+  analyticsOpen = !analyticsOpen;
+  const panel = document.getElementById('analytics-panel');
+  const btn = document.getElementById('fab-analytics-btn');
+  
+  panel.classList.toggle('visible', analyticsOpen);
+  btn.classList.toggle('is-open', analyticsOpen);
+}
+
+// ─── Dragging for Panels ───────────────────────────────────────────
+let dragState = null;
+
+function startDragPanel(e, panelId) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || 
+      e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' ||
+      e.target.closest('.btn') || e.target.closest('button')) return;
+  
+  const panel = document.getElementById(panelId);
+  const rect = panel.getBoundingClientRect();
+  
+  dragState = {
+    panelId,
+    startX: e.clientX,
+    startY: e.clientY,
+    initialX: rect.left,
+    initialY: rect.top,
+  };
+  
+  panel.classList.add('dragging');
+  e.preventDefault();
+}
+
+function dragPanel(e) {
+  if (!dragState) return;
+  
+  const panel = document.getElementById(dragState.panelId);
+  const deltaX = e.clientX - dragState.startX;
+  const deltaY = e.clientY - dragState.startY;
+  
+  const newX = dragState.initialX + deltaX;
+  const newY = dragState.initialY + deltaY;
+  
+  const maxX = window.innerWidth - panel.offsetWidth;
+  const maxY = window.innerHeight - panel.offsetHeight;
+  
+  panel.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+  panel.style.top = Math.max(52, Math.min(newY, maxY)) + 'px';
+  panel.style.right = 'auto';
+  panel.style.bottom = 'auto';
+}
+
+function stopDragPanel() {
+  if (!dragState) return;
+  
+  const panel = document.getElementById(dragState.panelId);
+  panel.classList.remove('dragging');
+  dragState = null;
+}
+
+document.addEventListener('mousemove', dragPanel);
+document.addEventListener('mouseup', stopDragPanel);
+
+// ─── Initial Panel Positioning ─────────────────────────────────────
+function initializePanelPositions() {
+  const panel = document.getElementById('panel');
+  const analyticsPanel = document.getElementById('analytics-panel');
+  const panelWidth = 340;
+  const panelGap = 12;
+  const margin = 16;
+  const fabBottomHeight = 52;
+  
+  // Function to calculate positions
+  function updatePanelPositions() {
+    const isControlsOpen = panelOpen;
+    const isAnalyticsOpen = analyticsOpen;
+    
+    if (isAnalyticsOpen && isControlsOpen) {
+      // Both open: side by side
+      const totalWidth = panelWidth * 2 + panelGap;
+      const rightEdge = window.innerWidth - margin;
+      const startRight = rightEdge - totalWidth;
+      
+      analyticsPanel.style.right = (rightEdge - startRight) + 'px';
+      analyticsPanel.style.bottom = fabBottomHeight + 'px';
+      analyticsPanel.style.left = 'auto';
+      analyticsPanel.style.top = 'auto';
+      
+      panel.style.right = margin + 'px';
+      panel.style.bottom = fabBottomHeight + 'px';
+      panel.style.left = 'auto';
+      panel.style.top = 'auto';
+    } else if (isAnalyticsOpen) {
+      // Only analytics: spawn from far right
+      analyticsPanel.style.right = margin + 'px';
+      analyticsPanel.style.bottom = fabBottomHeight + 'px';
+      analyticsPanel.style.left = 'auto';
+      analyticsPanel.style.top = 'auto';
+    } else if (isControlsOpen) {
+      // Only controls: bottom right
+      panel.style.right = margin + 'px';
+      panel.style.bottom = fabBottomHeight + 'px';
+      panel.style.left = 'auto';
+      panel.style.top = 'auto';
+    }
+  }
+  
+  // Update positions when panels toggle
+  const originalTogglePanel = togglePanel;
+  const originalToggleAnalytics = toggleAnalyticsPanel;
+  
+  window.togglePanel = function() {
+    originalTogglePanel();
+    updatePanelPositions();
+  };
+  
+  window.toggleAnalyticsPanel = function() {
+    originalToggleAnalytics();
+    updatePanelPositions();
+  };
+  
+  // Make panels draggable - add drag listener to all section titles
+  document.addEventListener('mousedown', (e) => {
+    const titleEl = e.target.closest('.sec-title');
+    if (titleEl) {
+      const pnl = titleEl.closest('#panel, #analytics-panel');
+      if (pnl && (pnl.classList.contains('visible'))) {
+        convertToAbsolutePos(pnl);
+        startDragPanel(e, pnl.id);
+      }
+    }
+  });
+  
+  // Convert to absolute positioning when first dragged
+  function convertToAbsolutePos(element) {
+    if (element.style.left || element.style.top) return;
+    
+    const rect = element.getBoundingClientRect();
+    element.style.left = rect.left + 'px';
+    element.style.top = rect.top + 'px';
+    element.style.right = 'auto';
+    element.style.bottom = 'auto';
+  }
+}
+
+// Call initialization when DOM is ready
+setTimeout(initializePanelPositions, 0);
+
 // ─── Canvas setup ──────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const wrap   = document.getElementById('canvas-wrap');
 
-function resize(){
+function resize() {
   canvas.width  = wrap.clientWidth;
   canvas.height = wrap.clientHeight;
 }
 resize();
 window.addEventListener('resize', resize);
 
-// ─── Zoom & Pan state ──────────────────────────────────────────────
-  let CAM = { x: 0, y: 0, scale: 1 };
-  let _drag = null; // { startX, startY, camX, camY }
+// ─── Zoom & Pan ────────────────────────────────────────────────────
+let CAM = { x: 0, y: 0, scale: 1 };
+let _drag = null;
+const MIN_SCALE = 0.3, MAX_SCALE = 5;
 
-  const MIN_SCALE = 0.3, MAX_SCALE = 5;
+// Zoom toward center (for FAB buttons)
+function zoomAt(factor) {
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, CAM.scale * factor));
+  const ratio = newScale / CAM.scale;
+  CAM.x = cx - ratio * (cx - CAM.x);
+  CAM.y = cy - ratio * (cy - CAM.y);
+  CAM.scale = newScale;
+}
 
-  // Zoom toward cursor
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, CAM.scale * zoomFactor));
-    const ratio = newScale / CAM.scale;
-
-    // Zoom toward the mouse cursor position
+canvas.addEventListener('wheel', e => {
+  if (panelOpen && e.target !== canvas) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  
+  // Handle horizontal panning (trackpad swipe) vs vertical zoom
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+    // Dominant horizontal movement = pan
+    CAM.x -= e.deltaX;
+    CAM.y -= e.deltaY;
+  } else {
+    // Dominant vertical movement = zoom
+    const zf = e.deltaY < 0 ? 1.1 : 0.9;
+    const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, CAM.scale * zf));
+    const ratio = ns / CAM.scale;
     CAM.x = mx - ratio * (mx - CAM.x);
     CAM.y = my - ratio * (my - CAM.y);
-    CAM.scale = newScale;
-  }, { passive: false });
+    CAM.scale = ns;
+  }
+}, { passive: false });
 
-  // Pan on middle-click drag or right-click drag
-  canvas.addEventListener('mousedown', e => {
-    if (e.button === 1 || e.button === 2) {
-      e.preventDefault();
-      _drag = { startX: e.clientX, startY: e.clientY, camX: CAM.x, camY: CAM.y };
-    }
-  });
-  canvas.addEventListener('mousemove', e => {
-    if (_drag) {
-      CAM.x = _drag.camX + (e.clientX - _drag.startX);
-      CAM.y = _drag.camY + (e.clientY - _drag.startY);
-    }
-  });
-  canvas.addEventListener('mouseup',   () => _drag = null);
-  canvas.addEventListener('mouseleave',() => _drag = null);
-  canvas.addEventListener('contextmenu', e => e.preventDefault()); // suppress right-click menu
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 1 || e.button === 2) {
+    e.preventDefault();
+    _drag = { startX: e.clientX, startY: e.clientY, camX: CAM.x, camY: CAM.y };
+  }
+});
+canvas.addEventListener('mousemove', e => {
+  if (_drag) {
+    CAM.x = _drag.camX + (e.clientX - _drag.startX);
+    CAM.y = _drag.camY + (e.clientY - _drag.startY);
+  }
+});
+canvas.addEventListener('mouseup', () => _drag = null);
+canvas.addEventListener('mouseleave', () => _drag = null);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-  // Touch: pinch-to-zoom + single-finger pan
-  let _touches = null;
-  canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
-    if (e.touches.length === 1) {
-      _touches = { type:'pan', startX: e.touches[0].clientX, startY: e.touches[0].clientY, camX: CAM.x, camY: CAM.y };
-    } else if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      _touches = { type:'pinch', startDist: Math.hypot(dx, dy), startScale: CAM.scale,
-                  midX:(e.touches[0].clientX+e.touches[1].clientX)/2,
-                  midY:(e.touches[0].clientY+e.touches[1].clientY)/2,
-                  camX: CAM.x, camY: CAM.y };
-    }
-  }, { passive: false });
-  canvas.addEventListener('touchmove', e => {
-    e.preventDefault();
-    if (!_touches) return;
-    if (_touches.type === 'pan' && e.touches.length === 1) {
-      CAM.x = _touches.camX + (e.touches[0].clientX - _touches.startX);
-      CAM.y = _touches.camY + (e.touches[0].clientY - _touches.startY);
-    } else if (_touches.type === 'pinch' && e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, _touches.startScale * (dist / _touches.startDist)));
-      const ratio = newScale / CAM.scale;
-      CAM.x = _touches.midX - ratio * (_touches.midX - CAM.x);
-      CAM.y = _touches.midY - ratio * (_touches.midY - CAM.y);
-      CAM.scale = newScale;
-    }
-  }, { passive: false });
-  canvas.addEventListener('touchend', () => _touches = null);
+let _touches = null;
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    _touches = { type: 'pan', startX: e.touches[0].clientX, startY: e.touches[0].clientY, camX: CAM.x, camY: CAM.y };
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    _touches = { type: 'pinch', startDist: Math.hypot(dx, dy), startScale: CAM.scale,
+      midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+      midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      camX: CAM.x, camY: CAM.y };
+  }
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!_touches) return;
+  if (_touches.type === 'pan' && e.touches.length === 1) {
+    CAM.x = _touches.camX + (e.touches[0].clientX - _touches.startX);
+    CAM.y = _touches.camY + (e.touches[0].clientY - _touches.startY);
+  } else if (_touches.type === 'pinch' && e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, _touches.startScale * (dist / _touches.startDist)));
+    const ratio = ns / CAM.scale;
+    CAM.x = _touches.midX - ratio * (_touches.midX - CAM.x);
+    CAM.y = _touches.midY - ratio * (_touches.midY - CAM.y);
+    CAM.scale = ns;
+  }
+}, { passive: false });
+canvas.addEventListener('touchend', () => _touches = null);
+
 // ─── State ─────────────────────────────────────────────────────────
 let STATE = {
   simRunning: false,
   simPaused:  false,
-  vehicles:   {},   // vid -> vehicle obj
-  pedestrians: {},  // pid -> pedestrian obj
+  vehicles:   {},
+  pedestrians: {},
   stats: {
-    total_passed:0, avg_wait:0, cycles:0, sim_time:0,
-    queues:{N:0,S:0,E:0,W:0}, active_vehicles:0,
-    phase:'ns_green', ns_light:'green', ew_light:'red',
+    total_passed: 0, avg_wait: 0, cycles: 0, sim_time: 0,
+    queues: {N:0,S:0,E:0,W:0}, active_vehicles: 0,
+    phase: 'ns_green', ns_light: 'green', ew_light: 'red',
   },
   logs: [],
   phaseStart: 0,
-  phaseDur:   20,
+  phaseDur: 20,
 };
-
-// vehicle visual state (separate from sim state for smooth animation)
-const VIS = {};  // vid -> {x,y,angle,targetX,targetY,targetAngle,progress,alpha}
+const VIS = {};
 
 // ─── Geometry ──────────────────────────────────────────────────────
-function geo(){
-  const W=canvas.width, H=canvas.height;
-  const cx=W/2, cy=H/2;
-  const road = parseInt(document.getElementById('sel-road').value);
-  const lanes = road/2;
-  const lw = Math.min(26, Math.max(18, (Math.min(W,H)*0.06)/lanes));
-  const rw = lanes*lw*2 + 8;
-  return{W,H,cx,cy,rw,lw,lanes};
+function geo() {
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const road  = parseInt(document.getElementById('sel-road').value);
+  const lanes = road / 2;
+  const lw    = Math.min(26, Math.max(18, (Math.min(W,H) * 0.06) / lanes));
+  const rw    = lanes * lw * 2 + 8;
+  return { W, H, cx, cy, rw, lw, lanes };
 }
 
 // ─── Drawing ───────────────────────────────────────────────────────
-function drawScene(){
+function drawScene() {
   const g = geo();
-  const{W,H,cx,cy,rw,lw,lanes} = g;
-  ctx.clearRect(0,0,W,H);
+  const { W, H, cx, cy, rw, lw, lanes } = g;
+  ctx.clearRect(0, 0, W, H);
 
-  // ── Background ──
-  ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
+  // Background
+  ctx.fillStyle = '#0c0e1a';
+  ctx.fillRect(0, 0, W, H);
 
-  // ── Grass/zones ──
-  const grassGrad = ctx.createLinearGradient(0,0,W,H);
-  grassGrad.addColorStop(0,'#0e1c0e');
-  grassGrad.addColorStop(1,'#0a140a');
-  ctx.fillStyle=grassGrad;
+  // Grass zones
+  const grassGrad = ctx.createLinearGradient(0, 0, W, H);
+  grassGrad.addColorStop(0, '#0e1320');
+  grassGrad.addColorStop(1, '#0a0f18');
+  ctx.fillStyle = grassGrad;
   [[0,0,cx-rw/2,H],[cx+rw/2,0,W-cx-rw/2,H],
-   [cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r=>ctx.fillRect(...r));
+   [cx-rw/2,0,rw,cy-rw/2],[cx-rw/2,cy+rw/2,rw,H-cy-rw/2]].forEach(r => ctx.fillRect(...r));
 
-  // Grid lines on grass
-  ctx.strokeStyle='rgba(255,255,255,.02)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
-  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(153,215,234,.025)'; ctx.lineWidth = 1;
+  for (let x=0; x<W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0; y<H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
 
-  // ── Road pavement ──
-  ctx.fillStyle='#1e2332';
-  ctx.fillRect(cx-rw/2, 0, rw, H);      // N-S
-  ctx.fillRect(0, cy-rw/2, W, rw);      // E-W
+  // Road pavement
+  ctx.fillStyle = '#1a1e38';
+  ctx.fillRect(cx - rw/2, 0, rw, H);
+  ctx.fillRect(0, cy - rw/2, W, rw);
 
-  // ── Intersection box ──
-  ctx.fillStyle='#252d40';
-  ctx.fillRect(cx-rw/2, cy-rw/2, rw, rw);
+  // Intersection box
+  ctx.fillStyle = '#1e2240';
+  ctx.fillRect(cx - rw/2, cy - rw/2, rw, rw);
 
-  // ── Intersection diagonal markings ──
-  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
-  for(let i=-rw;i<rw*2;i+=16){
+  // Intersection diagonal hatching
+  ctx.strokeStyle = 'rgba(153,215,234,.03)'; ctx.lineWidth = 1;
+  for (let i = -rw; i < rw*2; i += 16) {
     ctx.beginPath();
-    ctx.moveTo(cx-rw/2+i, cy-rw/2);
-    ctx.lineTo(cx-rw/2+i+rw, cy+rw/2);
+    ctx.moveTo(cx - rw/2 + i, cy - rw/2);
+    ctx.lineTo(cx - rw/2 + i + rw, cy + rw/2);
     ctx.stroke();
   }
 
-  // ── Lane dashes (white) ──
-  ctx.setLineDash([26,18]); ctx.lineWidth=2;
-  ctx.strokeStyle='rgba(255,255,255,.22)';
-  for(let i=1;i<lanes*2;i++){
-    const x=cx-rw/2+i*lw;
-    if(Math.abs(x-cx)>4){
-      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-rw/2);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x,cy+rw/2);ctx.lineTo(x,H);ctx.stroke();
+  // Lane dashes
+  ctx.setLineDash([26, 18]); ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  for (let i = 1; i < lanes * 2; i++) {
+    const x = cx - rw/2 + i * lw;
+    if (Math.abs(x - cx) > 4) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cy - rw/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, cy + rw/2); ctx.lineTo(x, H); ctx.stroke();
     }
-    const y=cy-rw/2+i*lw;
-    if(Math.abs(y-cy)>4){
-      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-rw/2,y);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(cx+rw/2,y);ctx.lineTo(W,y);ctx.stroke();
+    const y = cy - rw/2 + i * lw;
+    if (Math.abs(y - cy) > 4) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cx - rw/2, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + rw/2, y); ctx.lineTo(W, y); ctx.stroke();
     }
   }
   ctx.setLineDash([]);
 
-  // ── Center median — stops at the stop line (50px from intersection edge) ──
-  [-2,2].forEach(d=>{
-    ctx.strokeStyle='#e8b800'; ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(cx+d,0);ctx.lineTo(cx+d,cy-rw/2-50);ctx.stroke();       // N
-    ctx.beginPath();ctx.moveTo(cx+d,cy+rw/2+50);ctx.lineTo(cx+d,H);ctx.stroke();       // S
-    ctx.beginPath();ctx.moveTo(0,cy+d);ctx.lineTo(cx-rw/2-50,cy+d);ctx.stroke();       // W
-    ctx.beginPath();ctx.moveTo(cx+rw/2+50,cy+d);ctx.lineTo(W,cy+d);ctx.stroke();       // E
+  // Center medians
+  [-2, 2].forEach(d => {
+    ctx.strokeStyle = '#d4a017'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx+d, 0); ctx.lineTo(cx+d, cy-rw/2-50); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+d, cy+rw/2+50); ctx.lineTo(cx+d, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, cy+d); ctx.lineTo(cx-rw/2-50, cy+d); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+rw/2+50, cy+d); ctx.lineTo(W, cy+d); ctx.stroke();
   });
 
-  // ── Sidewalk border stripe along road edge ──
-  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=10;
+  // Stop lines
+  ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-rw/2, cy-rw/2-50); ctx.lineTo(cx, cy-rw/2-50); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy+rw/2+50); ctx.lineTo(cx+rw/2, cy+rw/2+50); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+rw/2+50, cy-rw/2); ctx.lineTo(cx+rw/2+50, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-rw/2-50, cy); ctx.lineTo(cx-rw/2-50, cy+rw/2); ctx.stroke();
 
-  /// ── Stop lines — full width across all lanes ──
-  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2;
-  // N: spans full N-S road width (left half only — southbound lanes)
-  ctx.beginPath();ctx.moveTo(cx-rw/2, cy-rw/2-50);ctx.lineTo(cx, cy-rw/2-50);ctx.stroke();
-  // S: northbound lanes
-  ctx.beginPath();ctx.moveTo(cx, cy+rw/2+50);ctx.lineTo(cx+rw/2, cy+rw/2+50);ctx.stroke();
-  // E: westbound lanes
-  ctx.beginPath();ctx.moveTo(cx+rw/2+50, cy-rw/2);ctx.lineTo(cx+rw/2+50, cy);ctx.stroke();
-  // W: eastbound lanes
-  ctx.beginPath();ctx.moveTo(cx-rw/2-50, cy);ctx.lineTo(cx-rw/2-50, cy+rw/2);ctx.stroke();
+  // Crosswalks
+  ctx.fillStyle = 'rgba(255,255,255,.88)';
+  const pw = 6, pg = 6;
+  const stripeCount = Math.floor(rw / (pw + pg)) + 1;
+  const cwOffset = 40;
+  for (let i = 0; i < stripeCount; i++) {
+    ctx.fillRect(cx - rw/2 + i*(pw+pg), cy - rw/2 - cwOffset - pw, pw, cwOffset);
+  }
+  for (let i = 0; i < stripeCount; i++) {
+    ctx.fillRect(cx - rw/2 + i*(pw+pg), cy + rw/2 + 4, pw, cwOffset);
+  }
+  for (let i = 0; i < stripeCount; i++) {
+    ctx.fillRect(cx + rw/2 + 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
+  }
+  for (let i = 0; i < stripeCount; i++) {
+    ctx.fillRect(cx - rw/2 - cwOffset - 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
+  }
 
-  // ── Pedestrian crosswalks (white stripes) ──
-ctx.fillStyle = 'rgba(255,255,255,.90)';
-const pw=6;  // stripe width
-const pg=6;  // gap between stripes
-const stripeCount = Math.floor(rw / (pw + pg)) + 1;  // fill the full road width
-const cwOffset = 40; // how far from the intersection box edge
-
-// N crosswalk — horizontal stripes just above the intersection, spanning N-S road width
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx - rw/2 + i*(pw+pg), cy - rw/2 - cwOffset - pw, pw, cwOffset);
-}
-// S crosswalk — just below the intersection
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx - rw/2 + i*(pw+pg), cy + rw/2 + 4, pw, cwOffset);
-}
-// E crosswalk — vertical stripes just right of the intersection, spanning E-W road height
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx + rw/2 + 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
-}
-// W crosswalk — just left of the intersection
-for (let i = 0; i < stripeCount; i++) {
-  ctx.fillRect(cx - rw/2 - cwOffset - 4, cy - rw/2 + i*(pw+pg), cwOffset, pw);
-}
-
-  // ── Traffic lights ──
   drawLights(g);
-
-
-  // ── Queued cars ──
   drawQueuedCars(g);
-
-  // ── Moving cars ──
   drawMovingCars(g);
-
-  // ── Pedestrians ──
   drawPedestrians(g);
-
-  // ── Direction labels ──
   drawDirLabels(g);
 }
 
-function lightColor(dir){
-  const s=STATE.stats;
+function lightColor(dir) {
+  const s = STATE.stats;
   return ['N','S'].includes(dir) ? s.ns_light : s.ew_light;
 }
 
-function drawLights(g){
-  const{cx,cy,rw}=g;
-  const lights=[
-    {dir:'N', x:cx+rw/2+6,  y:cy-rw/2-56},
-    {dir:'S', x:cx-rw/2-30, y:cy+rw/2+6},
-    {dir:'E', x:cx+rw/2+6,  y:cy+rw/2+6},
-    {dir:'W', x:cx-rw/2-30, y:cy-rw/2-56},
+function drawLights(g) {
+  const { cx, cy, rw } = g;
+  const lights = [
+    { dir: 'N', x: cx+rw/2+6,  y: cy-rw/2-56 },
+    { dir: 'S', x: cx-rw/2-30, y: cy+rw/2+6  },
+    { dir: 'E', x: cx+rw/2+6,  y: cy+rw/2+6  },
+    { dir: 'W', x: cx-rw/2-30, y: cy-rw/2-56 },
   ];
-  lights.forEach(({dir,x,y})=>{
-    const lc=lightColor(dir);
-    // Post
-    const px=x+11, py1=dir==='N'||dir==='W'?y+60:y;
-    const py2=dir==='N'||dir==='W'?cy-rw/2:cy+rw/2;
-    ctx.strokeStyle='#374151'; ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(px,py1);ctx.lineTo(px,py2);ctx.stroke();
+  lights.forEach(({ dir, x, y }) => {
+    const lc = lightColor(dir);
+    const px = x+11, py1 = (dir==='N'||dir==='W') ? y+60 : y;
+    const py2 = (dir==='N'||dir==='W') ? cy-rw/2 : cy+rw/2;
+    ctx.strokeStyle = '#374151'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(px, py1); ctx.lineTo(px, py2); ctx.stroke();
 
-    // Housing
-    ctx.fillStyle='#111827'; ctx.strokeStyle='#374151'; ctx.lineWidth=1;
-    roundRect(x,y,22,58,5); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#111827'; ctx.strokeStyle = '#374151'; ctx.lineWidth = 1;
+    roundRect(x, y, 22, 58, 5); ctx.fill(); ctx.stroke();
 
-    // Bulbs
-    ['red','yellow','green'].forEach((c,i)=>{
-      const bx=x+11, by=y+10+i*16;
-      const on=lc===c;
-      if(on){
-        const hx=c==='green'?'#22c55e':c==='yellow'?'#eab308':'#ef4444';
-        // outer glow
-        const grd=ctx.createRadialGradient(bx,by,0,bx,by,14);
-        grd.addColorStop(0,hx+'55');grd.addColorStop(1,'transparent');
-        ctx.fillStyle=grd;ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fill();
-        // bulb
-        const bgrd=ctx.createRadialGradient(bx-1,by-1,1,bx,by,6);
-        bgrd.addColorStop(0,'#fff');bgrd.addColorStop(.3,hx);bgrd.addColorStop(1,hx+'aa');
-        ctx.fillStyle=bgrd;
-        ctx.shadowColor=hx;ctx.shadowBlur=16;
+    ['red','yellow','green'].forEach((c, i) => {
+      const bx = x+11, by = y+10+i*16;
+      const on = lc === c;
+      if (on) {
+        const hx = c==='green' ? '#22c55e' : c==='yellow' ? '#eab308' : '#ef4444';
+        const grd = ctx.createRadialGradient(bx, by, 0, bx, by, 14);
+        grd.addColorStop(0, hx+'55'); grd.addColorStop(1, 'transparent');
+        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(bx, by, 14, 0, Math.PI*2); ctx.fill();
+        const bgrd = ctx.createRadialGradient(bx-1, by-1, 1, bx, by, 6);
+        bgrd.addColorStop(0, '#fff'); bgrd.addColorStop(.3, hx); bgrd.addColorStop(1, hx+'aa');
+        ctx.fillStyle = bgrd;
+        ctx.shadowColor = hx; ctx.shadowBlur = 16;
       } else {
-        ctx.fillStyle=c==='green'?'#052e16':c==='yellow'?'#1c1500':'#1c0000';
-        ctx.shadowBlur=0;
+        ctx.fillStyle = c==='green' ? '#052e16' : c==='yellow' ? '#1c1500' : '#1c0000';
+        ctx.shadowBlur = 0;
       }
-      ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);ctx.fill();
-      ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.arc(bx, by, 6, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
     });
-    // Label
-    ctx.fillStyle='#6b7280'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillStyle = '#6b7280'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
     ctx.fillText(dir, x+11, y+64);
   });
 }
 
-function roundRect(x,y,w,h,r){
+function roundRect(x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
   ctx.closePath();
 }
 
-function getQueuePos(v, g){
-  const{cx,cy,rw,lw,lanes}=g;
-  const li=v.lane_idx%lanes;
-  const qi=v.visual_queue_pos ?? v.queue_pos;
-  const gap=22;
-  const off = li*lw+lw/2;
-
-  // Stop line is at 50px from intersection edge; crosswalk is between 4px and 44px from edge.
-  // Cars must queue BEHIND the stop line (>= 55px from intersection edge).
-  const stopLine = 55; // distance from intersection edge to front of first queued car
-  switch(v.direction){
-    case'N':return{x:cx-(off), y:cy-rw/2-stopLine-qi*gap, a:Math.PI/2};   // southbound: N approach
-    case'S':return{x:cx+(off), y:cy+rw/2+stopLine+qi*gap, a:-Math.PI/2};  // northbound: S approach
-    case'E':return{x:cx+rw/2+stopLine+qi*gap, y:cy-(off), a:Math.PI};     // westbound: E approach
-    case'W':return{x:cx-rw/2-stopLine-qi*gap, y:cy+(off), a:0};           // eastbound: W approach
+function getQueuePos(v, g) {
+  const { cx, cy, rw, lw, lanes } = g;
+  const li = v.lane_idx % lanes;
+  const qi = v.visual_queue_pos ?? v.queue_pos;
+  const gap = 22;
+  const off = li * lw + lw / 2;
+  const stopLine = 55;
+  switch (v.direction) {
+    case 'N': return { x: cx-(off), y: cy-rw/2-stopLine-qi*gap, a: Math.PI/2 };
+    case 'S': return { x: cx+(off), y: cy+rw/2+stopLine+qi*gap, a: -Math.PI/2 };
+    case 'E': return { x: cx+rw/2+stopLine+qi*gap, y: cy-(off), a: Math.PI };
+    case 'W': return { x: cx-rw/2-stopLine-qi*gap, y: cy+(off), a: 0 };
   }
-  return{x:cx,y:cy,a:0};
+  return { x: cx, y: cy, a: 0 };
 }
 
-function getExitTarget(outDir, off, g){
-  const{cx,cy,rw}=g;
+function getExitTarget(outDir, off, g) {
+  const { cx, cy, rw } = g;
   const margin = 140;
-  const distX = (g.W/2) + rw + margin;
-  const distY = (g.H/2) + rw + margin;
-
-  switch(outDir){
-    case'S':return{x:cx-off, y:cy+distY};
-    case'N':return{x:cx+off, y:cy-distY};
-    case'W':return{x:cx-distX, y:cy-off};
-    case'E':return{x:cx+distX, y:cy+off};
+  const distX = (g.W / 2) + rw + margin;
+  const distY = (g.H / 2) + rw + margin;
+  switch (outDir) {
+    case 'S': return { x: cx-off, y: cy+distY };
+    case 'N': return { x: cx+off, y: cy-distY };
+    case 'W': return { x: cx-distX, y: cy-off };
+    case 'E': return { x: cx+distX, y: cy+off };
   }
-  return{x:cx,y:cy};
+  return { x: cx, y: cy };
 }
 
-function getOutboundDir(v){
+function getOutboundDir(v) {
   const turns = {
-    N:{straight:'S', right:'W', left:'E'},
-    S:{straight:'N', right:'E', left:'W'},
-    E:{straight:'W', right:'N', left:'S'},
-    W:{straight:'E', right:'S', left:'N'},
+    N: { straight:'S', right:'W', left:'E' },
+    S: { straight:'N', right:'E', left:'W' },
+    E: { straight:'W', right:'N', left:'S' },
+    W: { straight:'E', right:'S', left:'N' },
   };
   return (turns[v.direction] && turns[v.direction][v.turn]) || v.direction;
 }
 
-function getMovingPath(v,g){
-  const{cx,cy,rw,lw,lanes}=g;
-  const li=v.lane_idx%lanes;
-  const off = li*lw+lw/2;
+function getMovingPath(v, g) {
+  const { cx, cy, rw, lw, lanes } = g;
+  const li = v.lane_idx % lanes;
+  const off = li * lw + lw / 2;
   const out = getOutboundDir(v);
   const exit = getExitTarget(out, off, g);
-
-  if(v.turn === 'straight'){
-    return [exit];
-  }
-
+  if (v.turn === 'straight') return [exit];
   const entry = {
-    N:{x:cx-off, y:cy-rw*.18},
-    S:{x:cx+off, y:cy+rw*.18},
-    E:{x:cx+rw*.18, y:cy-off},
-    W:{x:cx-rw*.18, y:cy+off},
+    N: { x: cx-off, y: cy-rw*.18 },
+    S: { x: cx+off, y: cy+rw*.18 },
+    E: { x: cx+rw*.18, y: cy-off },
+    W: { x: cx-rw*.18, y: cy+off },
   }[v.direction];
   const turn = {
-    S:{x:cx-off, y:cy+off},
-    N:{x:cx+off, y:cy-off},
-    W:{x:cx-off, y:cy-off},
-    E:{x:cx+off, y:cy+off},
+    S: { x: cx-off, y: cy+off },
+    N: { x: cx+off, y: cy-off },
+    W: { x: cx-off, y: cy-off },
+    E: { x: cx+off, y: cy+off },
   }[out];
-
   return [entry, turn, exit].filter(Boolean);
 }
 
-function drawVehicle(x,y,angle,color,state,alpha=1){
+function drawVehicle(x, y, angle, color, state, alpha=1) {
   ctx.save();
-  ctx.globalAlpha=alpha;
-  ctx.translate(x,y);
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
   ctx.rotate(angle);
-
-  // Shadow
-  ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
-
-  // Body
-  ctx.fillStyle=color;
-  roundRect(-9,-5.5,18,11,2.5); ctx.fill();
-  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-
-  // Roof
-  ctx.fillStyle=color+'cc';
-  roundRect(-5,-4,9,8,2); ctx.fill();
-
-  // Windshields
-  ctx.fillStyle='rgba(200,230,255,.35)';
-  roundRect(-5,-3.5,7,7,1.5); ctx.fill();
-  ctx.fillStyle='rgba(200,230,255,.2)';
-  roundRect(4,-3,3.5,6,1); ctx.fill();
-
-  if(state==='moving'){
-    // Headlights
-    ctx.fillStyle='#ffffc0dd';
-    roundRect(-9.5,-4,3,2.5,1); ctx.fill();
-    roundRect(-9.5,1.5,3,2.5,1); ctx.fill();
-    // Headlight beam
-    ctx.fillStyle='rgba(255,255,180,.06)';
-    ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-45,-14);ctx.lineTo(-45,14);ctx.closePath();ctx.fill();
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+  ctx.fillStyle = color;
+  roundRect(-9, -5.5, 18, 11, 2.5); ctx.fill();
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.fillStyle = color + 'cc';
+  roundRect(-5, -4, 9, 8, 2); ctx.fill();
+  ctx.fillStyle = 'rgba(200,230,255,.35)';
+  roundRect(-5, -3.5, 7, 7, 1.5); ctx.fill();
+  ctx.fillStyle = 'rgba(200,230,255,.2)';
+  roundRect(4, -3, 3.5, 6, 1); ctx.fill();
+  if (state === 'moving') {
+    ctx.fillStyle = '#ffffc0dd';
+    roundRect(-9.5, -4, 3, 2.5, 1); ctx.fill();
+    roundRect(-9.5, 1.5, 3, 2.5, 1); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,180,.06)';
+    ctx.beginPath(); ctx.moveTo(-9,0); ctx.lineTo(-45,-14); ctx.lineTo(-45,14); ctx.closePath(); ctx.fill();
   } else {
-    // Brake lights
-    ctx.fillStyle='#ff3333cc';
-    roundRect(7,-4,2.5,2.5,0.8); ctx.fill();
-    roundRect(7,1.5,2.5,2.5,0.8); ctx.fill();
+    ctx.fillStyle = '#ff3333cc';
+    roundRect(7, -4, 2.5, 2.5, .8); ctx.fill();
+    roundRect(7, 1.5, 2.5, 2.5, .8); ctx.fill();
   }
-
   ctx.restore();
 }
 
-function drawQueuedCars(g){
+function drawQueuedCars(g) {
   const laneCounts = {};
   const queued = Object.values(STATE.vehicles)
-    .filter(v=>v.state==='queued')
-    .sort((a,b)=>(a.direction||'').localeCompare(b.direction||'') || (a.queue_pos||0)-(b.queue_pos||0));
-
-  queued.forEach(v=>{
+    .filter(v => v.state === 'queued')
+    .sort((a,b) => (a.direction||'').localeCompare(b.direction||'') || (a.queue_pos||0) - (b.queue_pos||0));
+  queued.forEach(v => {
     const laneKey = `${v.direction}:${v.lane_idx}`;
-    const visualQueuePos = laneCounts[laneKey] || 0;
-    laneCounts[laneKey] = visualQueuePos + 1;
-
-    const pos=getQueuePos({...v, visual_queue_pos:visualQueuePos},g);
-    // Init or update visual
-    if(!VIS[v.vid]){VIS[v.vid]={x:pos.x,y:pos.y,a:pos.a,alpha:0,prog:0}}
-    const vis=VIS[v.vid];
-    vis.x+=(pos.x-vis.x)*.15; vis.y+=(pos.y-vis.y)*.15;
-    // queued cars should be fixed to lane heading
-    vis.a += (pos.a - vis.a) * 0.25;
-    vis.alpha=Math.min(vis.alpha+.08,1);
-    drawVehicle(vis.x,vis.y,vis.a,v.color,'queued',vis.alpha);
+    const vqp = laneCounts[laneKey] || 0;
+    laneCounts[laneKey] = vqp + 1;
+    const pos = getQueuePos({ ...v, visual_queue_pos: vqp }, g);
+    if (!VIS[v.vid]) { VIS[v.vid] = { x: pos.x, y: pos.y, a: pos.a, alpha: 0 }; }
+    const vis = VIS[v.vid];
+    vis.x += (pos.x - vis.x) * .15;
+    vis.y += (pos.y - vis.y) * .15;
+    vis.a += (pos.a - vis.a) * .25;
+    vis.alpha = Math.min(vis.alpha + .08, 1);
+    drawVehicle(vis.x, vis.y, vis.a, v.color, 'queued', vis.alpha);
   });
 }
 
-function drawMovingCars(g){
-  Object.values(STATE.vehicles).filter(v=>v.state==='moving').forEach(v=>{
-    if(!VIS[v.vid]){
-      const qp=getQueuePos({...v,queue_pos:0},g);
-      VIS[v.vid]={x:qp.x,y:qp.y,a:qp.a,alpha:1,path:getMovingPath(v,g),pathIdx:0};
+function drawMovingCars(g) {
+  Object.values(STATE.vehicles).filter(v => v.state === 'moving').forEach(v => {
+    if (!VIS[v.vid]) {
+      const qp = getQueuePos({ ...v, queue_pos: 0 }, g);
+      VIS[v.vid] = { x: qp.x, y: qp.y, a: qp.a, alpha: 1, path: getMovingPath(v, g), pathIdx: 0 };
     }
-    const vis=VIS[v.vid];
-    if(!vis.path || vis.path.length === 0){
-      vis.path = getMovingPath(v,g);
-      vis.pathIdx = 0;
+    const vis = VIS[v.vid];
+    if (!vis.path || vis.path.length === 0) {
+      vis.path = getMovingPath(v, g); vis.pathIdx = 0;
     }
-    const tgt=vis.path[Math.min(vis.pathIdx||0, vis.path.length-1)];
-
+    const tgt = vis.path[Math.min(vis.pathIdx || 0, vis.path.length - 1)];
     const uiSpeed = +document.getElementById('sl-speed').value || 1;
     const speed = (125 + uiSpeed * 18) * FRAME_DT;
-
-    const dx = tgt.x - vis.x;
-    const dy = tgt.y - vis.y;
-    const d  = Math.hypot(dx,dy) || 1;
+    const dx = tgt.x - vis.x, dy = tgt.y - vis.y;
+    const d  = Math.hypot(dx, dy) || 1;
     const step = Math.min(speed, d);
-    const nx = vis.x + (dx/d)*step;
-    const ny = vis.y + (dy/d)*step;
-
-    // Compute heading from velocity.
-    const vx=nx-vis.x, vy=ny-vis.y;
-    if(Math.hypot(vx,vy) > 0.001){
-      const desired = Math.atan2(vy,vx) + Math.PI;
-      vis.a = vis.a + angleDelta(vis.a, desired) * 0.35;
+    const nx = vis.x + (dx/d)*step, ny = vis.y + (dy/d)*step;
+    const vx = nx - vis.x, vy = ny - vis.y;
+    if (Math.hypot(vx, vy) > .001) {
+      const desired = Math.atan2(vy, vx) + Math.PI;
+      vis.a = vis.a + angleDelta(vis.a, desired) * .35;
     }
-
-    vis.x = nx;
-    vis.y = ny;
-    if(d <= speed + 0.1 && vis.pathIdx < vis.path.length - 1){
-      vis.pathIdx += 1;
-    }
-    drawVehicle(vis.x,vis.y,vis.a,v.color,'moving',1);
-
-    // Despawn visually once out of frame (server still controls sim lifecycle).
+    vis.x = nx; vis.y = ny;
+    if (d <= speed + .1 && vis.pathIdx < vis.path.length - 1) vis.pathIdx += 1;
+    drawVehicle(vis.x, vis.y, vis.a, v.color, 'moving', 1);
     const pad = 180;
-    if(vis.x < -pad || vis.x > g.W+pad || vis.y < -pad || vis.y > g.H+pad){
+    if (vis.x < -pad || vis.x > g.W+pad || vis.y < -pad || vis.y > g.H+pad) {
       delete VIS[v.vid];
-      // also remove from rendered state to prevent re-creating VIS immediately
       delete STATE.vehicles[v.vid];
     }
   });
 }
 
-function lerp(a,b,t){return a+(b-a)*t}
-function easeInOut(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
-function angleDelta(from,to){
-  return Math.atan2(Math.sin(to-from), Math.cos(to-from));
-}
+function angleDelta(from, to) { return Math.atan2(Math.sin(to-from), Math.cos(to-from)); }
 
-function drawDirLabels(g){
-  const{W,H,cx,cy}=g;
-  const lbls=[
-    {t:'NORTH',x:cx,y:18,d:'N'},{t:'SOUTH',x:cx,y:H-10,d:'S'},
-    {t:'EAST',x:W-28,y:cy-6,d:'E'},{t:'WEST',x:28,y:cy-6,d:'W'},
+function drawDirLabels(g) {
+  const { W, H, cx, cy } = g;
+  const lbls = [
+    { t:'NORTH', x:cx, y:18, d:'N' }, { t:'SOUTH', x:cx, y:H-10, d:'S' },
+    { t:'EAST',  x:W-28, y:cy-6, d:'E' }, { t:'WEST', x:28, y:cy-6, d:'W' },
   ];
-  ctx.font='bold 10px monospace'; ctx.textAlign='center';
-  lbls.forEach(({t,x,y,d})=>{
-    const lc=lightColor(d);
-    const c=lc==='green'?'#22c55e':lc==='yellow'?'#eab308':'#ef4444';
-    ctx.fillStyle=c+'cc'; ctx.fillText(t,x,y);
+  ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+  lbls.forEach(({ t, x, y, d }) => {
+    const lc = lightColor(d);
+    const c = lc==='green' ? '#22c55e' : lc==='yellow' ? '#eab308' : '#ef4444';
+    ctx.fillStyle = c + 'cc'; ctx.fillText(t, x, y);
   });
 }
 
-function getPedestrianPos(ped, g){
-  const{cx,cy,rw}=g;
-  // Matches the exact crosswalk geometry drawn in drawScene:
-  //   N crosswalk: y band [cy-rw/2-40 .. cy-rw/2],   x span [cx-rw/2 .. cx+rw/2]
-  //   S crosswalk: y band [cy+rw/2+4  .. cy+rw/2+44], x span [cx-rw/2 .. cx+rw/2]
-  //   E crosswalk: x band [cx+rw/2+4  .. cx+rw/2+44], y span [cy-rw/2 .. cy+rw/2]
-  //   W crosswalk: x band [cx-rw/2-44 .. cx-rw/2-4],  y span [cy-rw/2 .. cy+rw/2]
+function getPedestrianPos(ped, g) {
+  const { cx, cy, rw } = g;
   const cwOffset = 40;
   const pos_pct = (ped.cross_pos || 0) / 100;
-  const row = ped.cross_dir === 'left' ? 0.25 : 0.72; // two rows within the crosswalk band
-
-  switch(ped.direction){
-    case 'N': {
-      const pedY = cy - rw/2 - cwOffset + row * cwOffset;
-      return {x: (cx - rw/2) + rw * pos_pct, y: pedY};
-    }
-    case 'S': {
-      const pedY = cy + rw/2 + 4 + row * cwOffset;
-      return {x: (cx - rw/2) + rw * pos_pct, y: pedY};
-    }
-    case 'E': {
-      const pedX = cx + rw/2 + 4 + row * cwOffset;
-      return {x: pedX, y: (cy - rw/2) + rw * pos_pct};
-    }
-    case 'W': {
-      const pedX = cx - rw/2 - cwOffset - 4 + row * cwOffset;
-      return {x: pedX, y: (cy - rw/2) + rw * pos_pct};
-    }
+  const row = ped.cross_dir === 'left' ? 0.25 : 0.72;
+  switch (ped.direction) {
+    case 'N': return { x: (cx - rw/2) + rw * pos_pct, y: cy - rw/2 - cwOffset + row * cwOffset };
+    case 'S': return { x: (cx - rw/2) + rw * pos_pct, y: cy + rw/2 + 4 + row * cwOffset };
+    case 'E': return { x: cx + rw/2 + 4 + row * cwOffset, y: (cy - rw/2) + rw * pos_pct };
+    case 'W': return { x: cx - rw/2 - cwOffset - 4 + row * cwOffset, y: (cy - rw/2) + rw * pos_pct };
   }
-  return {x:cx,y:cy};
+  return { x: cx, y: cy };
 }
 
-function drawPedestrian(x,y,state){
+function drawPedestrian(x, y, state) {
   ctx.save();
-  ctx.translate(x,y);
-  
-  if(state === 'waiting'){
-    ctx.fillStyle='#60a5fa';  // blue for waiting
-  } else {
-    ctx.fillStyle='#fbbf24';  // amber for crossing
-  }
-  
-  // Head
-  ctx.beginPath();
-  ctx.arc(0,-5,4,0,Math.PI*2);
-  ctx.fill();
-  
-  // Body
-  ctx.fillRect(-3,0,6,7);
-  
-  // Arms
-  ctx.fillRect(-5,1,10,2);
-  
-  // Legs
-  ctx.fillRect(-2,7,2,5);
-  ctx.fillRect(0,7,2,5);
-  
+  ctx.translate(x, y);
+  ctx.fillStyle = state === 'waiting' ? '#60a5fa' : '#fbbf24';
+  ctx.beginPath(); ctx.arc(0, -5, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(-3, 0, 6, 7);
+  ctx.fillRect(-5, 1, 10, 2);
+  ctx.fillRect(-2, 7, 2, 5);
+  ctx.fillRect(0, 7, 2, 5);
   ctx.restore();
 }
 
-function drawPedestrians(g){
-  const pedestrians = Object.values(STATE.pedestrians || {});
-  pedestrians.forEach(ped => {
-    if(ped.state === 'waiting' || ped.state === 'crossing'){
+function drawPedestrians(g) {
+  Object.values(STATE.pedestrians || {}).forEach(ped => {
+    if (ped.state === 'waiting' || ped.state === 'crossing') {
       const pos = getPedestrianPos(ped, g);
       drawPedestrian(pos.x, pos.y, ped.state);
     }
@@ -904,42 +1636,291 @@ function drawPedestrians(g){
 }
 
 // ─── Animation loop ────────────────────────────────────────────────
-let phaseProgress=0;
-let FRAME_DT=1/60;
-let LAST_FRAME=performance.now();
-function frame(now){
-  FRAME_DT=Math.min((now-LAST_FRAME)/1000, 0.05);
-  LAST_FRAME=now;
+let phaseProgress = 0;
+let FRAME_DT = 1/60;
+let LAST_FRAME = performance.now();
+
+function frame(now) {
+  FRAME_DT = Math.min((now - LAST_FRAME) / 1000, 0.05);
+  LAST_FRAME = now;
   ctx.save();
-  ctx.translate(CAM.x, CAM.y);   // ← ADD
-  ctx.scale(CAM.scale, CAM.scale); // ← ADD
-
+  ctx.translate(CAM.x, CAM.y);
+  ctx.scale(CAM.scale, CAM.scale);
   drawScene();
-
-  ctx.restore();                   // ← ADD
+  ctx.restore();
   updatePhaseBar();
   requestAnimationFrame(frame);
 }
 
-function updatePhaseBar(){
-  const cfg={
-    ns_green:+document.getElementById('sl-green').value,
-    ns_yellow:+document.getElementById('sl-yellow').value,
-    ns_red:+document.getElementById('sl-red').value,
-    ew_green:+document.getElementById('sl-green').value,
-    ew_yellow:+document.getElementById('sl-yellow').value,
-    ew_red:+document.getElementById('sl-red').value,
+function updatePhaseBar() {
+  const cfg = {
+    ns_green:  +document.getElementById('sl-green').value,
+    ns_yellow: +document.getElementById('sl-yellow').value,
+    ns_red:    +document.getElementById('sl-red').value,
+    ew_green:  +document.getElementById('sl-green').value,
+    ew_yellow: +document.getElementById('sl-yellow').value,
+    ew_red:    +document.getElementById('sl-red').value,
   };
-  const p=STATE.stats.phase||'ns_green';
-  const dur=(p in cfg) ? cfg[p] : 20;
-  const elapsed=Math.max(0, (STATE.stats.sim_time||0) - (STATE.phaseStart||0));
-  phaseProgress=dur > 0 ? Math.min(elapsed/dur,1) : 1;
-  const c=p.includes('green')?'#22c55e':p.includes('yellow')?'#eab308':'#ef4444';
-  document.getElementById('phase-bar').style.width=(phaseProgress*100)+'%';
-  document.getElementById('phase-bar').style.background=c;
-  document.getElementById('phase-label').textContent=p.toUpperCase().replace('_',' ');
+  const p = STATE.stats.phase || 'ns_green';
+  const dur = (p in cfg) ? cfg[p] : 20;
+  const elapsed = Math.max(0, (STATE.stats.sim_time || 0) - (STATE.phaseStart || 0));
+  phaseProgress = dur > 0 ? Math.min(elapsed / dur, 1) : 1;
+  const c = p.includes('green') ? '#22c55e' : p.includes('yellow') ? '#eab308' : '#ef4444';
+  document.getElementById('phase-bar').style.width = (phaseProgress * 100) + '%';
+  document.getElementById('phase-bar').style.background = c;
+  document.getElementById('phase-label').textContent = p.toUpperCase().replace('_', ' ');
 }
+
 requestAnimationFrame(frame);
+
+// ─── Analytics Data Tracking ──────────────────────────────────────
+let analyticsData = {
+  queueHistory: { labels: [], N: [], S: [], E: [], W: [] },
+  waitBuckets: [0, 0, 0, 0, 0],
+  throughput: { labels: [], data: [] },
+  phaseSegments: [],
+  sessionId: null,
+  startTime: null,
+  chartsInitialized: false,
+  dataPointCount: 0,
+};
+
+let queueChart = null, waitChart = null, throughputChart = null, phaseChart = null;
+
+function initAnalyticsCharts() {
+  if (analyticsData.chartsInitialized) return;
+  
+  // Queue Chart
+  const queueCanvas = document.getElementById('analytics-queue-chart');
+  if (queueCanvas) {
+    const ctx = queueCanvas.getContext('2d');
+    queueChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'North', data: [], borderColor: '#99d7ea', backgroundColor: 'rgba(153,215,234,.08)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
+          { label: 'South', data: [], borderColor: '#99d7ea', backgroundColor: 'rgba(153,215,234,.04)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
+          { label: 'East', data: [], borderColor: '#fca6d1', backgroundColor: 'rgba(252,166,209,.08)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
+          { label: 'West', data: [], borderColor: '#fca6d1', backgroundColor: 'rgba(252,166,209,.04)', borderWidth: 2, tension: 0.3, pointRadius: 1 },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: true, labels: { color: 'var(--text2)', font: { size: 8 }, padding: 8 } } },
+        scales: {
+          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } },
+          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+  
+  // Wait Time Chart
+  const waitCanvas = document.getElementById('analytics-wait-chart');
+  if (waitCanvas) {
+    const ctx = waitCanvas.getContext('2d');
+    waitChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['0-5s', '5-10s', '10-20s', '20-40s', '40s+'],
+        datasets: [{ label: 'Vehicles', data: [0, 0, 0, 0, 0], backgroundColor: '#fca6d1' }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } },
+          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+  
+  // Throughput Chart
+  const throughputCanvas = document.getElementById('analytics-throughput-chart');
+  if (throughputCanvas) {
+    const ctx = throughputCanvas.getContext('2d');
+    throughputChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Vehicles', data: [], backgroundColor: '#99d7ea' }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } },
+          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+  
+  // Phase Chart
+  const phaseCanvas = document.getElementById('analytics-phase-chart');
+  if (phaseCanvas) {
+    const ctx = phaseCanvas.getContext('2d');
+    phaseChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'NS Green', data: [], backgroundColor: '#99d7ea', stack: 'phase' },
+          { label: 'NS Yellow', data: [], backgroundColor: '#fca6d1', stack: 'phase' },
+          { label: 'NS Red', data: [], backgroundColor: '#f87171', stack: 'phase' },
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: 'var(--text2)', font: { size: 8 } } } },
+        scales: {
+          x: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } }, beginAtZero: true },
+          y: { grid: { color: 'rgba(153,215,234,.08)' }, ticks: { color: 'var(--text3)', font: { size: 8 } } }
+        }
+      }
+    });
+  }
+  
+  analyticsData.chartsInitialized = true;
+}
+
+function updateAnalyticsUI(stats) {
+  if (!stats) return;
+  
+  if (!queueChart && document.getElementById('analytics-queue-chart')) {
+    initAnalyticsCharts();
+  }
+  
+  analyticsData.dataPointCount++;
+  document.getElementById('analytics-data-points').textContent = analyticsData.dataPointCount;
+  
+  if (analyticsData.startTime) {
+    const duration = ((Date.now() - analyticsData.startTime) / 1000).toFixed(1);
+    document.getElementById('analytics-session-duration').textContent = duration + 's';
+  }
+  
+  if (queueChart) {
+    const t = (stats.sim_time || 0).toFixed(1);
+    analyticsData.queueHistory.labels.push(t);
+    analyticsData.queueHistory.N.push(stats.queues?.N || 0);
+    analyticsData.queueHistory.S.push(stats.queues?.S || 0);
+    analyticsData.queueHistory.E.push(stats.queues?.E || 0);
+    analyticsData.queueHistory.W.push(stats.queues?.W || 0);
+    
+    queueChart.data.labels = [...analyticsData.queueHistory.labels];
+    queueChart.data.datasets[0].data = [...analyticsData.queueHistory.N];
+    queueChart.data.datasets[1].data = [...analyticsData.queueHistory.S];
+    queueChart.data.datasets[2].data = [...analyticsData.queueHistory.E];
+    queueChart.data.datasets[3].data = [...analyticsData.queueHistory.W];
+    
+    if (queueChart.data.labels.length > 50) {
+      queueChart.data.labels.shift();
+      queueChart.data.datasets.forEach(ds => ds.data.shift());
+      analyticsData.queueHistory.labels.shift();
+      analyticsData.queueHistory.N.shift();
+      analyticsData.queueHistory.S.shift();
+      analyticsData.queueHistory.E.shift();
+      analyticsData.queueHistory.W.shift();
+    }
+    
+    queueChart.update('none');
+  }
+  
+  if (waitChart) {
+    waitChart.data.datasets[0].data = [...analyticsData.waitBuckets];
+    waitChart.update('none');
+  }
+  
+  if (throughputChart) {
+    throughputChart.data.labels = [...analyticsData.throughput.labels];
+    throughputChart.data.datasets[0].data = [...analyticsData.throughput.data];
+    throughputChart.update('none');
+  }
+  
+  if (phaseChart) {
+    phaseChart.data.labels = analyticsData.phaseSegments.map((_, i) => `Cycle ${i}`);
+    phaseChart.update('none');
+  }
+}
+
+function cmdAnalyticsClear() {
+  analyticsData.queueHistory = { labels: [], N: [], S: [], E: [], W: [] };
+  analyticsData.waitBuckets = [0, 0, 0, 0, 0];
+  analyticsData.throughput = { labels: [], data: [] };
+  analyticsData.phaseSegments = [];
+  analyticsData.dataPointCount = 0;
+  document.getElementById('analytics-data-points').textContent = '0';
+  document.getElementById('analytics-records').textContent = '0';
+  if (queueChart) {
+    queueChart.data.labels = [];
+    queueChart.data.datasets.forEach(ds => ds.data = []);
+    queueChart.update();
+  }
+  if (waitChart) {
+    waitChart.data.datasets[0].data = [0, 0, 0, 0, 0];
+    waitChart.update();
+  }
+  if (throughputChart) {
+    throughputChart.data.labels = [];
+    throughputChart.data.datasets[0].data = [];
+    throughputChart.update();
+  }
+  if (phaseChart) {
+    phaseChart.data.labels = [];
+    phaseChart.data.datasets.forEach(ds => ds.data = []);
+    phaseChart.update();
+  }
+}
+
+function cmdExportJSON() {
+  const data = JSON.stringify(analyticsData, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  downloadFile(blob, 'simulation-analytics.json');
+}
+
+function cmdExportCSV() {
+  let csv = 'Time,North,South,East,West\n';
+  for (let i = 0; i < analyticsData.queueHistory.labels.length; i++) {
+    csv += `${analyticsData.queueHistory.labels[i]},${analyticsData.queueHistory.N[i]},${analyticsData.queueHistory.S[i]},${analyticsData.queueHistory.E[i]},${analyticsData.queueHistory.W[i]}\n`;
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  downloadFile(blob, 'simulation-analytics.csv');
+}
+
+function cmdExportPDF() {
+  const element = document.getElementById('analytics-panel');
+  if (!element) return;
+  
+  const opt = {
+    margin: 10,
+    filename: 'simulation-analytics.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+  };
+  
+  if (typeof html2pdf !== 'undefined') {
+    html2pdf().set(opt).from(element).save();
+  } else {
+    alert('PDF export library not available. Please use JSON or CSV export.');
+  }
+}
+
+function downloadFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 // ─── SocketIO ──────────────────────────────────────────────────────
 const socket = io({
@@ -950,201 +1931,270 @@ const socket = io({
   reconnectionDelayMax: 3000,
 });
 
-socket.on('connect',()=>{
-  document.getElementById('hdr-conn').className='pill pill-green';
-  document.getElementById('hdr-conn').textContent='Connected';
-  addLog({msg:'🔌 Connected to simulation server', cls:'green', sim_time:0});
-});
-socket.on('disconnect',()=>{
-  document.getElementById('hdr-conn').className='pill pill-red';
-  document.getElementById('hdr-conn').textContent='Disconnected';
-});
-socket.on('connect_error',()=>{
-  document.getElementById('hdr-conn').className='pill pill-red';
-  document.getElementById('hdr-conn').textContent='Reconnecting';
-});
+function setConnBadge(state) {
+  const el = document.getElementById('hdr-conn');
+  if (state === 'connected')    { el.className = 'pill pill-green'; el.textContent = 'Connected'; }
+  else if (state === 'reconnecting') { el.className = 'pill pill-yellow'; el.textContent = 'Reconnecting'; }
+  else                          { el.className = 'pill pill-red'; el.textContent = 'Disconnected'; }
+}
 
-socket.on('stats', data=>{
-  STATE.stats=data;
+socket.on('connect',       () => { setConnBadge('connected');    addLog({msg:'Connected to simulation server', cls:'green', sim_time:0}); });
+socket.on('disconnect',    () => { setConnBadge('disconnected'); });
+socket.on('connect_error', () => { setConnBadge('reconnecting'); });
+
+socket.on('stats', data => { 
+  STATE.stats = data; 
   updateStatsUI(data);
+  updateAnalyticsUI(data);
 });
 
-socket.on('vehicles_snapshot', list=>{
-  STATE.vehicles={};
-  Object.keys(VIS).forEach(k=>delete VIS[k]);
-  list.forEach(v=>{STATE.vehicles[v.vid]=v});
+socket.on('vehicles_snapshot', list => {
+  STATE.vehicles = {};
+  Object.keys(VIS).forEach(k => delete VIS[k]);
+  list.forEach(v => { STATE.vehicles[v.vid] = v; });
 });
 
-socket.on('vehicle_arrive', v=>{
-  STATE.vehicles[v.vid]=v;
+socket.on('vehicle_arrive', v => { 
+  STATE.vehicles[v.vid] = v;
+  analyticsData.dataPointCount++;
+  document.getElementById('analytics-records').textContent = Object.keys(STATE.vehicles).length;
 });
-socket.on('vehicle_queued', v=>{
-  STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'queued'};
+socket.on('vehicle_queued', v => {
+  STATE.vehicles[v.vid] = { ...(STATE.vehicles[v.vid] || {}), ...v, state: 'queued' };
 });
-socket.on('vehicle_move', v=>{
-  STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}), ...v, state:'moving'};
+socket.on('vehicle_move', v => {
+  STATE.vehicles[v.vid] = { ...(STATE.vehicles[v.vid] || {}), ...v, state: 'moving' };
 });
-socket.on('queue_update', ({direction, ids})=>{
-  ids.forEach((vid, pos)=>{
-    if(STATE.vehicles[vid]){
-      STATE.vehicles[vid].queue_pos = pos;
-    }
-  });
+socket.on('queue_update', ({ direction, ids }) => {
+  ids.forEach((vid, pos) => { if (STATE.vehicles[vid]) STATE.vehicles[vid].queue_pos = pos; });
 });
-socket.on('vehicle_exit', ({vid})=>{
+socket.on('vehicle_exit', ({ vid }) => {
   const v = STATE.vehicles[vid];
-  if(v && v.state === 'moving' && VIS[vid]){
-    v.serverExited = true;
-  } else {
-    delete STATE.vehicles[vid];
-    delete VIS[vid];
-  }
+  if (v && v.state === 'moving' && VIS[vid]) { v.serverExited = true; }
+  else { delete STATE.vehicles[vid]; delete VIS[vid]; }
 });
 
-socket.on('pedestrian_arrive', ped=>{
-  if(!STATE.pedestrians) STATE.pedestrians = {};
+socket.on('pedestrian_arrive', ped => {
+  if (!STATE.pedestrians) STATE.pedestrians = {};
   STATE.pedestrians[ped.pid] = ped;
 });
-
-socket.on('pedestrian_move', ped=>{
-  if(!STATE.pedestrians) STATE.pedestrians = {};
-  STATE.pedestrians[ped.pid] = {...(STATE.pedestrians[ped.pid]||{}), ...ped};
+socket.on('pedestrian_move', ped => {
+  if (!STATE.pedestrians) STATE.pedestrians = {};
+  STATE.pedestrians[ped.pid] = { ...(STATE.pedestrians[ped.pid] || {}), ...ped };
+});
+socket.on('pedestrian_exit', ({ pid }) => {
+  if (STATE.pedestrians && STATE.pedestrians[pid]) delete STATE.pedestrians[pid];
 });
 
-socket.on('pedestrian_exit', ({pid})=>{
-  if(STATE.pedestrians && STATE.pedestrians[pid]){
-    delete STATE.pedestrians[pid];
-  }
-});
-
-socket.on('light_change', data=>{
-  STATE.stats.phase   = data.phase;
-  STATE.stats.ns_light= data.ns;
-  STATE.stats.ew_light= data.ew;
+socket.on('light_change', data => {
+  STATE.stats.phase    = data.phase;
+  STATE.stats.ns_light = data.ns;
+  STATE.stats.ew_light = data.ew;
   STATE.phaseStart = data.sim_time || STATE.stats.sim_time || 0;
-  phaseProgress=0;
+  phaseProgress = 0;
   updatePhaseHeaders(data);
 });
 
-socket.on('log', entry=>{ addLog(entry); });
+socket.on('log', entry => { addLog(entry); });
 
-socket.on('reset', ()=>{
-  STATE.vehicles={}; 
-  STATE.pedestrians={};
-  STATE.stats={...STATE.stats, total_passed:0, avg_wait:0, cycles:0, sim_time:0};
-  Object.keys(VIS).forEach(k=>delete VIS[k]);
+socket.on('reset', () => {
+  STATE.vehicles = {};
+  STATE.pedestrians = {};
+  STATE.stats = { ...STATE.stats, total_passed:0, avg_wait:0, cycles:0, sim_time:0 };
+  Object.keys(VIS).forEach(k => delete VIS[k]);
+  STATE.simRunning = false;
+  STATE.simPaused = false;
+  analyticsData.queueHistory = { labels: [], N: [], S: [], E: [], W: [] };
+  analyticsData.waitBuckets = [0, 0, 0, 0, 0];
+  analyticsData.throughput = { labels: [], data: [] };
+  analyticsData.phaseSegments = [];
+  analyticsData.dataPointCount = 0;
+  analyticsData.sessionId = null;
+  analyticsData.startTime = null;
+  document.getElementById('analytics-session-id').textContent = '--------';
+  document.getElementById('analytics-session-duration').textContent = '0.0s';
+  document.getElementById('analytics-data-points').textContent = '0';
+  document.getElementById('analytics-records').textContent = '0';
+  if (queueChart) {
+    queueChart.data.labels = [];
+    queueChart.data.datasets.forEach(ds => ds.data = []);
+    queueChart.update();
+  }
+  if (waitChart) {
+    waitChart.data.datasets[0].data = [0, 0, 0, 0, 0];
+    waitChart.update();
+  }
+  if (throughputChart) {
+    throughputChart.data.labels = [];
+    throughputChart.data.datasets[0].data = [];
+    throughputChart.update();
+  }
+  if (phaseChart) {
+    phaseChart.data.labels = [];
+    phaseChart.data.datasets.forEach(ds => ds.data = []);
+    phaseChart.update();
+  }
+  updateButtonStates();
   updateStatsUI(STATE.stats);
+  updateAnalyticsUI(STATE.stats);
 });
 
-socket.on('ack', data=>{
-  if(data.action==='start'){
-    document.getElementById('btn-start').classList.add('active-green');
-    document.getElementById('btn-pause').disabled=false;
-    STATE.simRunning=true;
+socket.on('ack', data => {
+  if (data.action === 'start') {
+    STATE.simRunning = true;
+    STATE.simPaused = false;
+    if (!analyticsData.sessionId) {
+      analyticsData.sessionId = `sess-${Math.random().toString(36).slice(2,10)}`;
+      analyticsData.startTime = Date.now();
+      analyticsData.dataPointCount = 0;
+      document.getElementById('analytics-session-id').textContent = analyticsData.sessionId.slice(0, 8);
+      document.getElementById('analytics-data-points').textContent = '0';
+      document.getElementById('analytics-records').textContent = '0';
+    }
+    updateButtonStates();
   }
-  if(data.action==='reset'){
-    document.getElementById('btn-start').classList.remove('active-green');
-    document.getElementById('btn-pause').classList.remove('active-yellow');
-    document.getElementById('btn-pause').textContent='⏸ Pause';
-    document.getElementById('btn-pause').disabled=true;
-    STATE.simRunning=false; STATE.simPaused=false;
+  if (data.action === 'reset') {
+    STATE.simRunning = false;
+    STATE.simPaused = false;
+    analyticsData.sessionId = null;
+    analyticsData.startTime = null;
+    analyticsData.dataPointCount = 0;
+    document.getElementById('analytics-session-id').textContent = '--------';
+    document.getElementById('analytics-session-duration').textContent = '0.0s';
+    document.getElementById('analytics-data-points').textContent = '0';
+    document.getElementById('analytics-records').textContent = '0';
+    updateButtonStates();
   }
-  if('paused' in data){
-    STATE.simPaused=data.paused;
-    const btn=document.getElementById('btn-pause');
-    btn.textContent=data.paused?'▶ Resume':'⏸ Pause';
-    btn.className='btn '+(data.paused?'active-yellow':'');
+  if ('paused' in data) {
+    STATE.simPaused = data.paused;
+    const btn = document.getElementById('btn-pause');
+    btn.textContent = data.paused ? '⏸ Resume' : '⏸ Pause';
+    btn.classList.toggle('active-yellow', data.paused);
   }
 });
 
 // ─── UI Updates ────────────────────────────────────────────────────
-function updateStatsUI(d){
-  document.getElementById('m-passed').textContent=d.total_passed;
-  document.getElementById('m-wait').textContent=(d.avg_wait||0).toFixed(1)+'s';
-  document.getElementById('m-cycles').textContent=d.cycles;
-  document.getElementById('m-active').textContent=d.active_vehicles;
-  document.getElementById('hdr-time').textContent='T = '+Math.round(d.sim_time)+'s';
-  document.getElementById('hdr-cycles').textContent='Cycle '+d.cycles;
+function updateStatsUI(d) {
+  // Header pills
+  document.getElementById('hdr-time').textContent = 'T = ' + Math.round(d.sim_time) + 's';
+  document.getElementById('hdr-cycles').textContent = 'Cycle ' + d.cycles;
 
-  // queues
-  const maxQ=parseInt(document.getElementById('sel-road').value)/2*8;
-  ['N','S','E','W'].forEach(dir=>{
-    const n=d.queues[dir]||0;
-    document.getElementById('qb-'+dir.toLowerCase()).style.width=Math.min(n/maxQ*100,100)+'%';
-    document.getElementById('qn-'+dir.toLowerCase()).textContent=n;
+  // Floating widgets
+  document.getElementById('w-passed').textContent = d.total_passed;
+  document.getElementById('w-wait').textContent   = (d.avg_wait || 0).toFixed(1) + 's';
+  document.getElementById('w-cycles').textContent = d.cycles;
+  document.getElementById('w-active').textContent = d.active_vehicles;
+
+  // Queue bars in widget
+  const maxQ = parseInt(document.getElementById('sel-road').value) / 2 * 8;
+  ['N','S','E','W'].forEach(dir => {
+    const n = d.queues[dir] || 0;
+    const dn = dir.toLowerCase();
+    const el = document.getElementById('wqb-' + dn);
+    if (el) el.style.width = Math.min(n / maxQ * 100, 100) + '%';
+    const cn = document.getElementById('wqn-' + dn);
+    if (cn) cn.textContent = n;
   });
-  const nsQ=(d.queues.N||0)+(d.queues.S||0);
-  const ewQ=(d.queues.E||0)+(d.queues.W||0);
-  document.getElementById('sb-ns-q').textContent=nsQ;
-  document.getElementById('sb-ew-q').textContent=ewQ;
-  document.getElementById('sb-active').textContent=d.active_vehicles;
 
-  // status bar lights
-  const nsL=d.ns_light||'red', ewL=d.ew_light||'red';
-  const nsc=nsL==='green'?'#22c55e':nsL==='yellow'?'#eab308':'#ef4444';
-  const ewc=ewL==='green'?'#22c55e':ewL==='yellow'?'#eab308':'#ef4444';
-  document.getElementById('sb-ns').textContent=nsL.toUpperCase();
-  document.getElementById('sb-ns').style.color=nsc;
-  document.getElementById('sb-ew').textContent=ewL.toUpperCase();
-  document.getElementById('sb-ew').style.color=ewc;
+  // Status bar
+  const nsL = d.ns_light || 'red', ewL = d.ew_light || 'red';
+  const nsc  = nsL==='green' ? '#22c55e' : nsL==='yellow' ? '#eab308' : '#ef4444';
+  const ewc  = ewL==='green' ? '#22c55e' : ewL==='yellow' ? '#eab308' : '#ef4444';
+  document.getElementById('sb-ns').textContent = nsL.toUpperCase();
+  document.getElementById('sb-ns').style.color = nsc;
+  document.getElementById('sb-ew').textContent = ewL.toUpperCase();
+  document.getElementById('sb-ew').style.color = ewc;
+  document.getElementById('sb-active').textContent = d.active_vehicles;
+  document.getElementById('sb-ns-q').textContent = (d.queues.N||0) + (d.queues.S||0);
+  document.getElementById('sb-ew-q').textContent = (d.queues.E||0) + (d.queues.W||0);
 }
 
-function updatePhaseHeaders(data){
-  const{phase,ns,ew}=data;
-  const pc=phase.includes('green')?'pill-green':phase.includes('yellow')?'pill-yellow':'pill-red';
-  const ph=document.getElementById('hdr-phase');
-  ph.className='pill '+pc;
-  ph.textContent=phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
-  document.getElementById('hdr-scenario').textContent=
+function updatePhaseHeaders(data) {
+  const { phase } = data;
+  const pc = phase.includes('green') ? 'pill-green' : phase.includes('yellow') ? 'pill-yellow' : 'pill-red';
+  const ph = document.getElementById('hdr-phase');
+  ph.className = 'pill ' + pc;
+  ph.textContent = phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
+  document.getElementById('hdr-scenario').textContent =
     document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
 }
 
 // ─── Log ──────────────────────────────────────────────────────────
-const MAX_LOGS=80;
-const logScroll=document.getElementById('log-scroll');
-function addLog(entry){
+const MAX_LOGS = 80;
+const logScroll = document.getElementById('log-scroll');
+
+function addLog(entry) {
   STATE.logs.unshift(entry);
-  if(STATE.logs.length>MAX_LOGS) STATE.logs.pop();
+  if (STATE.logs.length > MAX_LOGS) STATE.logs.pop();
   renderLog();
 }
-function renderLog(){
-  logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>`
+function renderLog() {
+  logScroll.innerHTML = STATE.logs.slice(0, 50).map(l => `
     <div class="log-entry">
       <span class="log-time">${(l.sim_time||0).toFixed(1)}s</span>
       <span class="log-msg c-${l.cls||'gray'}">${l.msg}</span>
     </div>`).join('');
 }
 
+// ─── Button State Management ──────────────────────────────────────
+function updateButtonStates() {
+  const startBtn = document.getElementById('btn-start');
+  const pauseBtn = document.getElementById('btn-pause');
+
+  if (STATE.simRunning) {
+    // Simulation is active: Show PAUSE, hide START
+    startBtn.style.display = 'none';
+    pauseBtn.style.display = 'block';
+    pauseBtn.classList.remove('active-yellow');
+  } else {
+    // Simulation is inactive: Show START, hide PAUSE
+    startBtn.style.display = 'block';
+    startBtn.classList.remove('active-green');
+    pauseBtn.style.display = 'none';
+    pauseBtn.classList.remove('active-yellow');
+  }
+}
+
 // ─── Commands ─────────────────────────────────────────────────────
-function getConfig(){
-  return{
-    green:  +document.getElementById('sl-green').value,
-    yellow: +document.getElementById('sl-yellow').value,
-    red:    +document.getElementById('sl-red').value,
-    scenario: document.getElementById('sel-scenario').value,
-    road_type:+document.getElementById('sel-road').value,
+function getConfig() {
+  return {
+    green:     +document.getElementById('sl-green').value,
+    yellow:    +document.getElementById('sl-yellow').value,
+    red:       +document.getElementById('sl-red').value,
+    scenario:  document.getElementById('sel-scenario').value,
+    road_type: +document.getElementById('sel-road').value,
     right_turn: document.getElementById('ck-rturn').checked,
-    speed:  +document.getElementById('sl-speed').value,
-    seed:   +document.getElementById('sl-seed').value,
+    speed:     +document.getElementById('sl-speed').value,
+    seed:      +document.getElementById('sl-seed').value,
   };
 }
-function cmdStart(){ socket.emit('cmd_start', getConfig()); }
-function cmdPause(){ socket.emit('cmd_pause'); }
-function cmdReset(){ socket.emit('cmd_reset', getConfig()); }
-function onCfgChange(){
-  socket.emit('cmd_update_config',{
+
+function cmdStart() {
+  socket.emit('cmd_start', getConfig());
+}
+
+function cmdPause() {
+  socket.emit('cmd_pause');
+}
+
+function cmdReset() {
+  socket.emit('cmd_reset', getConfig());
+}
+
+function onCfgChange() {
+  socket.emit('cmd_update_config', {
     green_duration:  +document.getElementById('sl-green').value,
     yellow_duration: +document.getElementById('sl-yellow').value,
     red_duration:    +document.getElementById('sl-red').value,
-    scenario:  document.getElementById('sel-scenario').value,
-    road_type: +document.getElementById('sel-road').value,
+    scenario:        document.getElementById('sel-scenario').value,
+    road_type:       +document.getElementById('sel-road').value,
     right_turn_free: document.getElementById('ck-rturn').checked,
-    speed_factor: +document.getElementById('sl-speed').value,
-    seed: +document.getElementById('sl-seed').value,
+    speed_factor:    +document.getElementById('sl-speed').value,
+    seed:            +document.getElementById('sl-seed').value,
   });
-  const rt=document.getElementById('ck-rturn').checked;
-  document.getElementById('rt-label').textContent=rt?'Allowed':'Signal only';
-  document.getElementById('hdr-scenario').textContent=
+  const rt = document.getElementById('ck-rturn').checked;
+  document.getElementById('rt-label').textContent = rt ? 'Allowed' : 'Signal only';
+  document.getElementById('hdr-scenario').textContent =
     document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
 }
 </script>
