@@ -394,20 +394,35 @@ document.getElementById('fab-analytics-btn').addEventListener('click', () => tog
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   SECTION 2 — CANVAS + ZOOM
-   MIN_SCALE = 1.0  → default / max zoom-out (cannot go further out)
-   MAX_SCALE = 2.0  → 100% zoom-in
-   Only zoom buttons allowed; all other inputs blocked.
-   ═══════════════════════════════════════════════════════════════════ */
+  SECTION 2 — CANVAS + ZOOM
+  MIN_SCALE = 0.1  → max zoom-out
+  MAX_SCALE = 2.0  → max zoom-in
+  Drag canvas to pan.
+  ═══════════════════════════════════════════════════════════════════ */
 
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const wrap   = document.getElementById('canvas-wrap');
 
-const MIN_SCALE = 0.3;
-const MAX_SCALE = 5.0;
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 2.0;
 
 let CAM = { x:0, y:0, scale:1 };
+
+function clampCam() {
+  const scaledW = canvas.width * CAM.scale;
+  const scaledH = canvas.height * CAM.scale;
+  if (scaledW <= canvas.width) {
+    CAM.x = (canvas.width - scaledW) / 2;
+  } else {
+    CAM.x = Math.min(0, Math.max(canvas.width - scaledW, CAM.x));
+  }
+  if (scaledH <= canvas.height) {
+    CAM.y = (canvas.height - scaledH) / 2;
+  } else {
+    CAM.y = Math.min(0, Math.max(canvas.height - scaledH, CAM.y));
+  }
+}
 
 function resetView() { CAM = { x:0, y:0, scale:1 }; }
 
@@ -415,6 +430,7 @@ function resize() {
   canvas.width  = wrap.clientWidth;
   canvas.height = wrap.clientHeight;
   CAM.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, CAM.scale));
+  clampCam();
 }
 resize();
 window.addEventListener('resize', resize);
@@ -426,6 +442,7 @@ function zoomAt(factor, focusX=canvas.width/2, focusY=canvas.height/2) {
   CAM.x    = focusX - r * (focusX - CAM.x);
   CAM.y    = focusY - r * (focusY - CAM.y);
   CAM.scale = newScale;
+  clampCam();
 }
 
 document.getElementById('btn-zoom-in').addEventListener('click',  () => zoomAt(1.10));
@@ -436,9 +453,36 @@ canvas.addEventListener('wheel', e => {
   const rect = canvas.getBoundingClientRect();
   const focusX = e.clientX - rect.left;
   const focusY = e.clientY - rect.top;
-  const factor = e.deltaY < 0 ? 1.08 : 0.92;
+  const factor = e.deltaY < 0 ? 1.08 : 0.82;
   zoomAt(factor, focusX, focusY);
 }, { passive:false });
+
+let isPanning=false, panStartX=0, panStartY=0, camStartX=0, camStartY=0;
+canvas.style.cursor='grab';
+canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  isPanning=true;
+  panStartX=e.clientX; panStartY=e.clientY;
+  camStartX=CAM.x; camStartY=CAM.y;
+  canvas.setPointerCapture(e.pointerId);
+  canvas.style.cursor='grabbing';
+});
+canvas.addEventListener('pointermove', e => {
+  if (!isPanning) return;
+  e.preventDefault();
+  CAM.x = camStartX + (e.clientX - panStartX);
+  CAM.y = camStartY + (e.clientY - panStartY);
+  clampCam();
+});
+const stopPan = e => {
+  if (!isPanning) return;
+  isPanning=false;
+  canvas.releasePointerCapture(e.pointerId);
+  canvas.style.cursor='grab';
+};
+canvas.addEventListener('pointerup', stopPan);
+canvas.addEventListener('pointercancel', stopPan);
 
 ['touchstart','touchmove','touchend','gesturestart','gesturechange','gestureend'].forEach(evt =>
   canvas.addEventListener(evt, e => e.preventDefault(), { passive:false })
@@ -460,7 +504,9 @@ const VIS = {};
 function geo() {
   const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2;
   const road=parseInt(document.getElementById('sel-road').value), lanes=road/2;
-  const lw=Math.min(26,Math.max(18,(Math.min(W,H)*.06)/lanes));
+  const roadScale=Math.min(1.7, Math.max(1, Math.pow(1 / CAM.scale, 1.25)));
+  const minDim=Math.min(W,H)*roadScale;
+  const lw=Math.min(26,Math.max(18,(minDim*.06)/lanes));
   const rw=lanes*lw*2+8;
   return {W,H,cx,cy,rw,lw,lanes};
 }
@@ -496,8 +542,8 @@ function drawScene() {
   ctx.beginPath();ctx.moveTo(cx,cy+rw/2+50);ctx.lineTo(cx+rw/2,cy+rw/2+50);ctx.stroke();
   ctx.beginPath();ctx.moveTo(cx+rw/2+50,cy-rw/2);ctx.lineTo(cx+rw/2+50,cy);ctx.stroke();
   ctx.beginPath();ctx.moveTo(cx-rw/2-50,cy);ctx.lineTo(cx-rw/2-50,cy+rw/2);ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.86)';
-  const pw=6,pg=6,cwo=40,sc=Math.floor(rw/(pw+pg))+1;
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  const pw=6,pg=6,cwo=40,sc=Math.floor(rw/(pw+pg));
   for(let i=0;i<sc;i++){ctx.fillRect(cx-rw/2+i*(pw+pg),cy-rw/2-cwo-pw,pw,cwo);ctx.fillRect(cx-rw/2+i*(pw+pg),cy+rw/2+4,pw,cwo);}
   for(let i=0;i<sc;i++){ctx.fillRect(cx+rw/2+4,cy-rw/2+i*(pw+pg),cwo,pw);ctx.fillRect(cx-rw/2-cwo-4,cy-rw/2+i*(pw+pg),cwo,pw);}
   drawLights(g); drawQueuedCars(g); drawMovingCars(g); drawPedestrians(g); drawDirLabels(g);
@@ -537,7 +583,7 @@ function angleDelta(f,t){return Math.atan2(Math.sin(t-f),Math.cos(t-f));}
 
 function drawDirLabels(g){const{W,H,cx,cy}=g;[{t:'NORTH',x:cx,y:18,d:'N'},{t:'SOUTH',x:cx,y:H-10,d:'S'},{t:'EAST',x:W-28,y:cy-6,d:'E'},{t:'WEST',x:28,y:cy-6,d:'W'}].forEach(({t,x,y,d})=>{const lc=lightColor(d),c=lc==='green'?'#22c55e':lc==='yellow'?'#eab308':'#ef4444';ctx.fillStyle=c+'cc';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillText(t,x,y);});}
 
-const CAT_SPRITE=new Image();CAT_SPRITE.src='/assets/Cat_nobg.png';let CAT_READY=false;CAT_SPRITE.onload=()=>{CAT_READY=true;};CAT_SPRITE.onerror=()=>{CAT_READY=false;};const CAR_SPRITES=[new Image(),new Image(),new Image()];const CAR_READY=[false,false,false];['/assets/Car_01.png','/assets/Car_02.png','/assets/Car_03.png'].forEach((src,idx)=>{CAR_SPRITES[idx].src=src;CAR_SPRITES[idx].onload=()=>{CAR_READY[idx]=true;};CAR_SPRITES[idx].onerror=()=>{CAR_READY[idx]=false;};});
+const CAT_SPRITE=new Image();CAT_SPRITE.src='/assets/Cat_nobg.png';let CAT_READY=false;CAT_SPRITE.onload=()=>{CAT_READY=true;};CAT_SPRITE.onerror=()=>{CAT_READY=false;};const CAR_SPRITES=[new Image(),new Image(),new Image(),new Image(),new Image(),new Image(),new Image(),new Image()];const CAR_READY=[false,false,false,false,false,false,false,false];['/assets/Car_01.png','/assets/Car_02.png','/assets/Car_03.png','/assets/Car2_Nobg.png','/assets/Car_05.png','/assets/Car_06.png','/assets/Car_07.png','/assets/Car_08.png'].forEach((src,idx)=>{CAR_SPRITES[idx].src=src;CAR_SPRITES[idx].onload=()=>{CAR_READY[idx]=true;};CAR_SPRITES[idx].onerror=()=>{CAR_READY[idx]=false;};});
 function getPedPos(ped,g){const{cx,cy,rw}=g,cwo=40,pp=(ped.cross_pos||0)/100,row=ped.cross_dir==='left'?.25:.72;switch(ped.direction){case'N':return{x:(cx-rw/2)+rw*pp,y:cy-rw/2-cwo+row*cwo};case'S':return{x:(cx-rw/2)+rw*pp,y:cy+rw/2+4+row*cwo};case'E':return{x:cx+rw/2+4+row*cwo,y:(cy-rw/2)+rw*pp};case'W':return{x:cx-rw/2-cwo-4+row*cwo,y:(cy-rw/2)+rw*pp};}return{x:cx,y:cy};}
 function drawPedestrian(x,y,state,direction){const time=(STATE.stats&&STATE.stats.sim_time?STATE.stats.sim_time:0)*5,walking=state==='crossing',bob=walking?Math.sin(time+x*.05)*1.4:0;ctx.save();ctx.translate(x,y);ctx.translate(0,bob);const spriteReady=CAT_READY&&CAT_SPRITE.naturalWidth>0;if(spriteReady){const baseScale=0.3;const spriteH=(walking?52:49)*baseScale;const ratio=CAT_SPRITE.naturalWidth/CAT_SPRITE.naturalHeight||1;const spriteW=spriteH*ratio;const sway=walking?Math.sin(time*1.2+x*.03)*1.2:0;ctx.save();ctx.translate(0,walking?-1:0);ctx.rotate(walking?Math.sin(time*.6)*.02:0);const movingRight=direction==='N'||direction==='S'||direction==='right';if(movingRight)ctx.scale(-1,1);ctx.drawImage(CAT_SPRITE,-spriteW/2,-spriteH*.82+sway,spriteW,spriteH);ctx.restore();}else{ctx.fillStyle='#ffe8c7';ctx.beginPath();ctx.arc(0,-5,11,0,Math.PI*2);ctx.fill();}ctx.restore();}
 function drawPedestrians(g){Object.values(STATE.pedestrians||{}).forEach(ped=>{if(ped.state==='waiting'||ped.state==='crossing'){const p=getPedPos(ped,g);drawPedestrian(p.x,p.y,ped.state,ped.direction);}});}
