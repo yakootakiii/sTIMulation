@@ -16,7 +16,7 @@ def run_bench(sim_time=120.0):
 
     # Start processes but don't use the real-time thread; run env directly
     sim.env.process(sim._signal_controller())
-    sim.env.process(sim._drain_queues_process())   # ← add this line
+    sim.env.process(sim._drain_queues_process()) 
     for d in ["N", "S", "E", "W"]:
         sim.env.process(sim._direction_spawner(d, 0))
 
