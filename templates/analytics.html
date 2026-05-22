@@ -4,9 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sTIMulation - Analytics Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="/assets/vendor/socket.io.min.js"></script>
+<script src="/assets/vendor/chart.umd.min.js"></script>
+<script src="/assets/vendor/html2pdf.bundle.min.js"></script>
+
+<!-- Fallbacks (in case local assets are missing) -->
+<script>
+  (function ensureLib(src, test){
+    try{ if(test()) return; }catch(_){}
+    var s=document.createElement('script');
+    s.src=src; s.defer=false; s.async=false;
+    document.head.appendChild(s);
+  })('https://cdn.jsdelivr.net/npm/socket.io-client@4.7.4/dist/socket.io.min.js', () => typeof window.io !== 'undefined');
+
+  (function ensureLib(src, test){
+    try{ if(test()) return; }catch(_){}
+    var s=document.createElement('script');
+    s.src=src; s.defer=false; s.async=false;
+    document.head.appendChild(s);
+  })('https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js', () => typeof window.Chart !== 'undefined');
+
+  (function ensureLib(src, test){
+    try{ if(test()) return; }catch(_){}
+    var s=document.createElement('script');
+    s.src=src; s.defer=false; s.async=false;
+    document.head.appendChild(s);
+  })('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js', () => typeof window.html2pdf !== 'undefined');
+</script>
+
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -508,6 +533,20 @@ function initCharts() {
       chartsReady.phases = true;
     } catch(e) { console.error('chart-phases init failed:', e); }
   })();
+
+  /* Ensure any buffered/restored data is rendered immediately */
+  try { syncChartsFromLive(); } catch (e) { console.warn('syncChartsFromLive failed', e); }
+
+  /* Diagnostics */
+  try {
+    console.debug('[analytics] chartsReady:', JSON.stringify(chartsReady));
+    console.debug('[analytics] liveState sizes:', {
+      queuePoints: liveState.queueSeries.labels.length,
+      waitBuckets: liveState.waitBuckets,
+      throughputPoints: liveState.throughput.labels.length,
+      phaseSegments: liveState.phaseSegments.length,
+    });
+  } catch (_) {}
 }
 
 /* ═══════════════════════════════════════════════════════════════════
