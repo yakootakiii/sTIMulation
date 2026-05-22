@@ -347,15 +347,15 @@ document.getElementById('fab-analytics-btn').addEventListener('click',()=>toggle
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
 const wrap=document.getElementById('canvas-wrap');
-const MIN_SCALE=0.1, MAX_SCALE=2.0;
-let CAM={x:0,y:0,scale:1};
+const MIN_SCALE=1.0, MAX_SCALE=2.0;
+let CAM={x:0,y:0,scale:MIN_SCALE};
 
 function clampCam(){
   const sw=canvas.width*CAM.scale,sh=canvas.height*CAM.scale;
   CAM.x=sw<=canvas.width ?(canvas.width -sw)/2:Math.min(0,Math.max(canvas.width -sw,CAM.x));
   CAM.y=sh<=canvas.height?(canvas.height-sh)/2:Math.min(0,Math.max(canvas.height-sh,CAM.y));
 }
-function resetView(){CAM={x:0,y:0,scale:1};}
+function resetView(){CAM={x:0,y:0,scale:MIN_SCALE};updateZoomButtons();}
 
 function resize(){
   const w=wrap.offsetWidth||wrap.clientWidth||window.innerWidth;
@@ -364,12 +364,15 @@ function resize(){
   canvas.width=w; canvas.height=h;
   CAM.scale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,CAM.scale));
   clampCam();
+  // Invalidate the grass pattern cache when canvas resizes
+  _grassPatternCache = null;
 }
 window.addEventListener('resize',resize);
 
 function bootCanvas(){
   resize();
   if(canvas.width<10){setTimeout(()=>{resize();},100);}
+  updateZoomButtons();
 }
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(()=>requestAnimationFrame(bootCanvas)));
@@ -377,11 +380,21 @@ if(document.readyState==='loading'){
   requestAnimationFrame(()=>requestAnimationFrame(bootCanvas));
 }
 
+function updateZoomButtons(){
+  const btnIn=document.getElementById('btn-zoom-in');
+  const btnOut=document.getElementById('btn-zoom-out');
+  btnIn.disabled=CAM.scale>=MAX_SCALE;
+  btnOut.disabled=CAM.scale<=MIN_SCALE;
+  btnIn.style.opacity=btnIn.disabled?'0.4':'1';
+  btnOut.style.opacity=btnOut.disabled?'0.4':'1';
+  btnIn.style.cursor=btnIn.disabled?'not-allowed':'pointer';
+  btnOut.style.cursor=btnOut.disabled?'not-allowed':'pointer';
+}
 function zoomAt(factor,focusX=canvas.width/2,focusY=canvas.height/2){
   const ns=Math.min(MAX_SCALE,Math.max(MIN_SCALE,CAM.scale*factor));
   if(ns===CAM.scale)return;
   const r=ns/CAM.scale;
-  CAM.x=focusX-r*(focusX-CAM.x); CAM.y=focusY-r*(focusY-CAM.y); CAM.scale=ns; clampCam();
+  CAM.x=focusX-r*(focusX-CAM.x); CAM.y=focusY-r*(focusY-CAM.y); CAM.scale=ns; clampCam(); updateZoomButtons();
 }
 document.getElementById('btn-zoom-in').addEventListener('click',()=>zoomAt(1.10));
 document.getElementById('btn-zoom-out').addEventListener('click',()=>zoomAt(0.91));
@@ -413,7 +426,7 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
    ═══════════════════════════════════════════════════════════════════ */
 
 /* Load all cozy world assets */
-function loadImg(src){ const i=new Image(); i.src=src; i.ready=false; i.onload=()=>{i.ready=true;}; i.onerror=()=>{i.ready=false;}; return i; }
+function loadImg(src){ const i=new Image(); i.src=src; i.ready=false; i.onload=()=>{i.ready=true; _grassPatternCache=null;}; i.onerror=()=>{i.ready=false;}; return i; }
 
 const ASSETS = {
   grass:    loadImg('/assets/grass_bg.png'),
@@ -445,28 +458,45 @@ function drawSprite(img, x, y, w, h, alpha=1, shadow=false){
   ctx.restore();
 }
 
-/* Draw a tinted grass background with the grass texture */
-function drawGrass(W,H){
-  if(ASSETS.grass.ready){
-    // Tile the grass background
-    const iw=ASSETS.grass.naturalWidth||256, ih=ASSETS.grass.naturalHeight||256;
-    const pat=ctx.createPattern(ASSETS.grass,'repeat');
-    if(pat){
-      ctx.save();
-      ctx.fillStyle=pat;
-      ctx.fillRect(0,0,W,H);
-      ctx.restore();
-    }else{
-      ctx.fillStyle='#c5dfa0'; ctx.fillRect(0,0,W,H);
-    }
-  }else{
-    ctx.fillStyle='#c5dfa0'; ctx.fillRect(0,0,W,H);
+/*
+ * GRASS — tiled pattern, never stretched.
+ * We cache the CanvasPattern so it is only recreated when the
+ * grass image loads or the canvas is resized.
+ * The pattern is drawn in UNTRANSFORMED screen space so the tile
+ * size stays constant regardless of CAM.scale / CAM.x / CAM.y.
+ * We achieve this by saving/restoring the full transform, resetting
+ * to identity, drawing the grass rectangle, then restoring.
+ */
+let _grassPatternCache = null;
+
+function drawGrass(W, H){
+  // Rebuild pattern if needed
+  if (!_grassPatternCache && ASSETS.grass.ready && ASSETS.grass.naturalWidth > 0) {
+    _grassPatternCache = ctx.createPattern(ASSETS.grass, 'repeat');
   }
-  // Soft vignette on grass edges for depth
-  const vgrd=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.8);
-  vgrd.addColorStop(0,'transparent');
-  vgrd.addColorStop(1,'rgba(90,120,60,.08)');
-  ctx.fillStyle=vgrd; ctx.fillRect(0,0,W,H);
+
+  // Save transform, reset to identity for canvas-space drawing
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  
+  if (_grassPatternCache) {
+    // Draw tiled grass pattern
+    ctx.fillStyle = _grassPatternCache;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    // Fallback solid color while texture loads
+    ctx.fillStyle = '#c5dfa0';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Subtle depth vignette in canvas space (ensures full screen coverage)
+  const vgrd = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.85);
+  vgrd.addColorStop(0, 'transparent');
+  vgrd.addColorStop(1, 'rgba(80,110,50,.07)');
+  ctx.fillStyle = vgrd;
+  ctx.fillRect(0, 0, W, H);
+  
+  ctx.restore();
 }
 
 /* Draw decorative world elements based on quadrant */
@@ -498,36 +528,36 @@ function drawQuadrantNW(z){
   plazaGrd.addColorStop(1,'transparent');
   ctx.fillStyle=plazaGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
 
-  // Bakery buildings — two large buildings side by side
-  const bldH=Math.min(h*.72,280), bldW=bldH*(ASSETS.bakery.naturalWidth/Math.max(1,ASSETS.bakery.naturalHeight));
-  const bldX=z.x1+w*.05, bldY=z.y1+h*.12;
-  drawSprite(ASSETS.bakery, bldX, bldY, Math.min(bldW,w*.55), bldH, 1.0, true);
+  // Bakery buildings — large and dominant
+  const bldH=Math.min(h*.88,360), bldW=bldH*(ASSETS.bakery.naturalWidth/Math.max(1,ASSETS.bakery.naturalHeight));
+  const bldX=z.x1+w*.02, bldY=z.y1+h*.04;
+  drawSprite(ASSETS.bakery, bldX, bldY, Math.min(bldW,w*.62), bldH, 1.0, true);
 
   // Second bakery offset
   if(bldW>0){
-    const b2W=bldW*.78, b2H=bldH*.78;
-    drawSprite(ASSETS.bakery, bldX+bldW*.48, bldY+bldH*.18, Math.min(b2W,w*.42), b2H, 0.88, true);
+    const b2W=bldW*.82, b2H=bldH*.82;
+    drawSprite(ASSETS.bakery, bldX+bldW*.50, bldY+bldH*.14, Math.min(b2W,w*.46), b2H, 0.88, true);
   }
 
   // Well as landmark (center-ish of plaza)
-  const wellSz=Math.min(w*.18,80);
-  drawSprite(ASSETS.well, z.x1+w*.52, z.y1+h*.44, wellSz, wellSz*1.2, 1.0, true);
+  const wellSz=Math.min(w*.26,120);
+  drawSprite(ASSETS.well, z.x1+w*.50, z.y1+h*.42, wellSz, wellSz*1.2, 1.0, true);
 
   // Trees near road edge (bottom and right)
-  const trsz=Math.min(w*.22,90);
-  drawSprite(ASSETS.trees1, z.x1+w*.72, z.y1+h*.62, trsz, trsz*1.1, 0.92, true);
-  drawSprite(ASSETS.trees1, z.x1+w*.60, z.y1+h*.72, trsz*.8, trsz*.88, 0.85, false);
+  const trsz=Math.min(w*.32,130);
+  drawSprite(ASSETS.trees1, z.x1+w*.70, z.y1+h*.56, trsz, trsz*1.1, 0.95, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.56, z.y1+h*.68, trsz*.85, trsz*.95, 0.88, false);
 
-  // Bushes along bottom road edge
-  const bsz=Math.min(w*.12,50);
-  drawSprite(ASSETS.bush, z.x1+w*.30, z.y1+h*.84, bsz, bsz*.75, 0.9);
-  drawSprite(ASSETS.bush, z.x1+w*.50, z.y1+h*.88, bsz*.85, bsz*.65, 0.8);
-  drawSprite(ASSETS.bush, z.x1+w*.82, z.y1+h*.80, bsz, bsz*.75, 0.88);
+  // Bushes along bottom road edge — much larger
+  const bsz=Math.min(w*.22,90);
+  drawSprite(ASSETS.bush, z.x1+w*.26, z.y1+h*.80, bsz, bsz*.80, 0.95);
+  drawSprite(ASSETS.bush, z.x1+w*.46, z.y1+h*.85, bsz*.92, bsz*.75, 0.90);
+  drawSprite(ASSETS.bush, z.x1+w*.78, z.y1+h*.76, bsz*1.05, bsz*.82, 0.92);
 
   // Small plants
-  const psz=Math.min(w*.09,36);
-  drawSprite(ASSETS.plant, z.x1+w*.40, z.y1+h*.55, psz, psz*1.1, 0.85);
-  drawSprite(ASSETS.plant, z.x1+w*.18, z.y1+h*.70, psz*.8, psz*.9, 0.8);
+  const psz=Math.min(w*.14,54);
+  drawSprite(ASSETS.plant, z.x1+w*.38, z.y1+h*.52, psz, psz*1.15, 0.88);
+  drawSprite(ASSETS.plant, z.x1+w*.16, z.y1+h*.66, psz*.85, psz*.95, 0.82);
 }
 
 /* NE: Art + Crafts district */
@@ -543,30 +573,30 @@ function drawQuadrantNE(z){
   ctx.fillStyle=pathGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
 
   // Art building (large, upper-left of quadrant)
-  const artH=Math.min(h*.62,230), artW=artH*(ASSETS.art.naturalWidth/Math.max(1,ASSETS.art.naturalHeight));
-  drawSprite(ASSETS.art, z.x1+w*.04, z.y1+h*.06, Math.min(artW,w*.52), artH, 1.0, true);
+  const artH=Math.min(h*.80,300), artW=artH*(ASSETS.art.naturalWidth/Math.max(1,ASSETS.art.naturalHeight));
+  drawSprite(ASSETS.art, z.x1+w*.02, z.y1+h*.03, Math.min(artW,w*.60), artH, 1.0, true);
 
   // Crafts buildings — two stacked on right side
-  const crH=Math.min(h*.40,150), crW=crH*(ASSETS.crafts.naturalWidth/Math.max(1,ASSETS.crafts.naturalHeight));
-  drawSprite(ASSETS.crafts, z.x1+w*.52, z.y1+h*.04, Math.min(crW,w*.46), crH, 1.0, true);
-  drawSprite(ASSETS.crafts, z.x1+w*.52, z.y1+h*.46, Math.min(crW*.88,w*.42), crH*.85, 0.9, true);
+  const crH=Math.min(h*.52,190), crW=crH*(ASSETS.crafts.naturalWidth/Math.max(1,ASSETS.crafts.naturalHeight));
+  drawSprite(ASSETS.crafts, z.x1+w*.50, z.y1+h*.02, Math.min(crW,w*.50), crH, 1.0, true);
+  drawSprite(ASSETS.crafts, z.x1+w*.50, z.y1+h*.50, Math.min(crW*.90,w*.46), crH*.88, 0.92, true);
 
   // Trees in corners
-  const trsz=Math.min(w*.2,80);
-  drawSprite(ASSETS.trees2, z.x1+w*.42, z.y1+h*.18, trsz, trsz*1.2, 0.92, true);
-  drawSprite(ASSETS.trees1, z.x1+w*.88, z.y1+h*.05, trsz*.75, trsz*.9, 0.85, false);
-  drawSprite(ASSETS.trees1, z.x1+w*.82, z.y1+h*.60, trsz*.8, trsz, 0.88, false);
+  const trsz=Math.min(w*.28,112);
+  drawSprite(ASSETS.trees2, z.x1+w*.40, z.y1+h*.14, trsz, trsz*1.25, 0.95, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.86, z.y1+h*.03, trsz*.78, trsz*.95, 0.88, false);
+  drawSprite(ASSETS.trees1, z.x1+w*.80, z.y1+h*.56, trsz*.85, trsz*1.05, 0.90, false);
 
-  // Bushes
-  const bsz=Math.min(w*.10,44);
-  drawSprite(ASSETS.bush, z.x1+w*.04, z.y1+h*.72, bsz, bsz*.7, 0.88);
-  drawSprite(ASSETS.bush, z.x1+w*.24, z.y1+h*.80, bsz*.9, bsz*.68, 0.8);
-  drawSprite(ASSETS.bush, z.x1+w*.62, z.y1+h*.82, bsz, bsz*.7, 0.85);
+  // Bushes — large and visible
+  const bsz=Math.min(w*.20,80);
+  drawSprite(ASSETS.bush, z.x1+w*.02, z.y1+h*.68, bsz*1.1, bsz*.80, 0.92);
+  drawSprite(ASSETS.bush, z.x1+w*.22, z.y1+h*.76, bsz, bsz*.75, 0.86);
+  drawSprite(ASSETS.bush, z.x1+w*.60, z.y1+h*.78, bsz*1.05, bsz*.78, 0.90);
 
   // Plants
-  const psz=Math.min(w*.08,32);
-  drawSprite(ASSETS.plant, z.x1+w*.46, z.y1+h*.52, psz, psz*1.1, 0.82);
-  drawSprite(ASSETS.plant, z.x1+w*.16, z.y1+h*.58, psz*.85, psz*.95, 0.78);
+  const psz=Math.min(w*.12,48);
+  drawSprite(ASSETS.plant, z.x1+w*.44, z.y1+h*.48, psz, psz*1.15, 0.85);
+  drawSprite(ASSETS.plant, z.x1+w*.14, z.y1+h*.54, psz*.88, psz, 0.80);
 }
 
 /* SW: Café district — outdoor seating, cozy feel */
@@ -581,29 +611,29 @@ function drawQuadrantSW(z){
   plazaGrd.addColorStop(1,'transparent');
   ctx.fillStyle=plazaGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
 
-  // Cafe building (center-left)
-  const cafH=Math.min(h*.66,260), cafW=cafH*(ASSETS.cafe.naturalWidth/Math.max(1,ASSETS.cafe.naturalHeight));
-  drawSprite(ASSETS.cafe, z.x1+w*.05, z.y1+h*.10, Math.min(cafW,w*.60), cafH, 1.0, true);
+  // Cafe building (center-left) — large
+  const cafH=Math.min(h*.82,320), cafW=cafH*(ASSETS.cafe.naturalWidth/Math.max(1,ASSETS.cafe.naturalHeight));
+  drawSprite(ASSETS.cafe, z.x1+w*.02, z.y1+h*.06, Math.min(cafW,w*.68), cafH, 1.0, true);
 
-  // Carts nearby
-  const cartsH=Math.min(h*.30,110), cartsW=cartsH*(ASSETS.carts.naturalWidth/Math.max(1,ASSETS.carts.naturalHeight));
-  drawSprite(ASSETS.carts, z.x1+w*.60, z.y1+h*.12, Math.min(cartsW,w*.35), cartsH, 0.92, true);
+  // Carts nearby — bigger
+  const cartsH=Math.min(h*.42,150), cartsW=cartsH*(ASSETS.carts.naturalWidth/Math.max(1,ASSETS.carts.naturalHeight));
+  drawSprite(ASSETS.carts, z.x1+w*.58, z.y1+h*.08, Math.min(cartsW,w*.40), cartsH, 0.95, true);
 
-  // Trees — fewer, framing the café
-  const trsz=Math.min(w*.18,74);
-  drawSprite(ASSETS.trees2, z.x1+w*.66, z.y1+h*.38, trsz*.9, trsz*1.1, 0.88, true);
-  drawSprite(ASSETS.trees1, z.x1+w*.80, z.y1+h*.60, trsz*.75, trsz*.9, 0.82, false);
+  // Trees — framing the café
+  const trsz=Math.min(w*.26,104);
+  drawSprite(ASSETS.trees2, z.x1+w*.64, z.y1+h*.34, trsz*.95, trsz*1.15, 0.90, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.78, z.y1+h*.58, trsz*.80, trsz*.96, 0.85, false);
 
-  // Bushes and plants (dense near bottom-right — road edge)
-  const bsz=Math.min(w*.11,48);
-  drawSprite(ASSETS.bush, z.x1+w*.12, z.y1+h*.82, bsz, bsz*.72, 0.88);
-  drawSprite(ASSETS.bush, z.x1+w*.32, z.y1+h*.86, bsz*.9, bsz*.68, 0.82);
-  drawSprite(ASSETS.bush, z.x1+w*.70, z.y1+h*.78, bsz, bsz*.7, 0.86);
-  drawSprite(ASSETS.bush, z.x1+w*.88, z.y1+h*.84, bsz*.8, bsz*.65, 0.78);
+  // Bushes — large and clustered near road edge
+  const bsz=Math.min(w*.22,88);
+  drawSprite(ASSETS.bush, z.x1+w*.08, z.y1+h*.78, bsz*1.1, bsz*.82, 0.94);
+  drawSprite(ASSETS.bush, z.x1+w*.28, z.y1+h*.82, bsz, bsz*.76, 0.88);
+  drawSprite(ASSETS.bush, z.x1+w*.66, z.y1+h*.74, bsz*1.05, bsz*.80, 0.90);
+  drawSprite(ASSETS.bush, z.x1+w*.85, z.y1+h*.80, bsz*.90, bsz*.72, 0.84);
 
-  const psz=Math.min(w*.09,36);
-  drawSprite(ASSETS.plant, z.x1+w*.52, z.y1+h*.56, psz, psz*1.1, 0.82);
-  drawSprite(ASSETS.plant, z.x1+w*.42, z.y1+h*.72, psz*.8, psz*.9, 0.75);
+  const psz=Math.min(w*.13,52);
+  drawSprite(ASSETS.plant, z.x1+w*.50, z.y1+h*.52, psz, psz*1.15, 0.85);
+  drawSprite(ASSETS.plant, z.x1+w*.40, z.y1+h*.68, psz*.85, psz*.95, 0.78);
 }
 
 /* SE: Nature park — trees, pond, gazebo feel */
@@ -619,37 +649,37 @@ function drawQuadrantSE(z){
   pathGrd.addColorStop(1,'transparent');
   ctx.fillStyle=pathGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
 
-  // Pond (lower-right, near road)
-  const pondW=Math.min(w*.42,170), pondH=pondW*.65;
-  drawSprite(ASSETS.pond, z.x1+w*.54, z.y1+h*.58, pondW, pondH, 0.92, true);
+  // Pond — prominent and large
+  const pondW=Math.min(w*.56,230), pondH=pondW*.68;
+  drawSprite(ASSETS.pond, z.x1+w*.44, z.y1+h*.54, pondW, pondH, 0.95, true);
 
   // Dense tree cluster (upper-left to center of quadrant)
-  const tr2sz=Math.min(w*.24,96);
-  drawSprite(ASSETS.trees2, z.x1+w*.06, z.y1+h*.08, tr2sz*1.1, tr2sz*1.35, 0.92, true);
-  drawSprite(ASSETS.trees2, z.x1+w*.28, z.y1+h*.04, tr2sz, tr2sz*1.25, 0.88, true);
-  drawSprite(ASSETS.trees2, z.x1+w*.18, z.y1+h*.32, tr2sz*.9, tr2sz*1.1, 0.85, false);
+  const tr2sz=Math.min(w*.32,128);
+  drawSprite(ASSETS.trees2, z.x1+w*.04, z.y1+h*.04, tr2sz*1.15, tr2sz*1.40, 0.95, true);
+  drawSprite(ASSETS.trees2, z.x1+w*.26, z.y1+h*.02, tr2sz*1.05, tr2sz*1.30, 0.90, true);
+  drawSprite(ASSETS.trees2, z.x1+w*.16, z.y1+h*.28, tr2sz*.95, tr2sz*1.15, 0.87, false);
 
-  const tr1sz=Math.min(w*.20,80);
-  drawSprite(ASSETS.trees1, z.x1+w*.48, z.y1+h*.10, tr1sz, tr1sz*1.2, 0.90, true);
-  drawSprite(ASSETS.trees1, z.x1+w*.38, z.y1+h*.44, tr1sz*.85, tr1sz*1.0, 0.82, false);
-  drawSprite(ASSETS.trees1, z.x1+w*.06, z.y1+h*.56, tr1sz*.8, tr1sz*.96, 0.80, false);
+  const tr1sz=Math.min(w*.28,110);
+  drawSprite(ASSETS.trees1, z.x1+w*.46, z.y1+h*.06, tr1sz*1.05, tr1sz*1.25, 0.92, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.36, z.y1+h*.40, tr1sz*.90, tr1sz*1.05, 0.85, false);
+  drawSprite(ASSETS.trees1, z.x1+w*.04, z.y1+h*.52, tr1sz*.85, tr1sz, 0.82, false);
 
-  // Well near center as park landmark
-  const wellSz=Math.min(w*.15,66);
-  drawSprite(ASSETS.well, z.x1+w*.60, z.y1+h*.18, wellSz, wellSz*1.2, 0.92, true);
+  // Well near center as park landmark — larger
+  const wellSz=Math.min(w*.22,96);
+  drawSprite(ASSETS.well, z.x1+w*.58, z.y1+h*.14, wellSz, wellSz*1.25, 0.95, true);
 
-  // Bushes along all edges
-  const bsz=Math.min(w*.10,44);
-  drawSprite(ASSETS.bush, z.x1+w*.04, z.y1+h*.80, bsz, bsz*.72, 0.88);
-  drawSprite(ASSETS.bush, z.x1+w*.22, z.y1+h*.74, bsz*.9, bsz*.68, 0.82);
-  drawSprite(ASSETS.bush, z.x1+w*.82, z.y1+h*.44, bsz, bsz*.72, 0.85);
-  drawSprite(ASSETS.bush, z.x1+w*.90, z.y1+h*.08, bsz*.8, bsz*.6, 0.78);
+  // Bushes along all edges — much larger
+  const bsz=Math.min(w*.20,80);
+  drawSprite(ASSETS.bush, z.x1+w*.02, z.y1+h*.76, bsz*1.1, bsz*.82, 0.92);
+  drawSprite(ASSETS.bush, z.x1+w*.20, z.y1+h*.70, bsz, bsz*.76, 0.86);
+  drawSprite(ASSETS.bush, z.x1+w*.80, z.y1+h*.40, bsz*1.05, bsz*.80, 0.88);
+  drawSprite(ASSETS.bush, z.x1+w*.88, z.y1+h*.04, bsz*.92, bsz*.70, 0.82);
 
   // Plants for texture
-  const psz=Math.min(w*.08,32);
-  drawSprite(ASSETS.plant, z.x1+w*.50, z.y1+h*.52, psz, psz*1.1, 0.80);
-  drawSprite(ASSETS.plant, z.x1+w*.70, z.y1+h*.38, psz*.9, psz, 0.78);
-  drawSprite(ASSETS.plant, z.x1+w*.86, z.y1+h*.70, psz*.8, psz*.9, 0.75);
+  const psz=Math.min(w*.12,48);
+  drawSprite(ASSETS.plant, z.x1+w*.48, z.y1+h*.48, psz*1.1, psz*1.2, 0.84);
+  drawSprite(ASSETS.plant, z.x1+w*.68, z.y1+h*.34, psz*.95, psz*1.05, 0.80);
+  drawSprite(ASSETS.plant, z.x1+w*.84, z.y1+h*.66, psz*.85, psz*.95, 0.78);
 }
 
 /* Draw soft sidewalk / pavement border around roads */
@@ -671,7 +701,7 @@ function drawSidewalk(g){
   ctx.fillRect(cx+rw/2,cy+rw/2,sw,sw);
 }
 
-/* Draw road with cozy pastel styling */
+/* Draw road — NO outlines/strokes on road edges */
 function drawRoads(g){
   const{W,H,cx,cy,rw,lw,lanes,cw_stripe,cw_gap,cw_depth,cw_setback}=g;
 
@@ -692,14 +722,7 @@ function drawRoads(g){
   }
   ctx.restore();
 
-  // Road edges — warm brown borders
-  ctx.strokeStyle='#8a7a6a'; ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.moveTo(cx-rw/2,0);ctx.lineTo(cx-rw/2,H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+rw/2,0);ctx.lineTo(cx+rw/2,H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(0,cy-rw/2);ctx.lineTo(W,cy-rw/2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(0,cy+rw/2);ctx.lineTo(W,cy+rw/2);ctx.stroke();
-
-  // Intersection box
+  // Intersection box — slightly different shade for visual interest
   ctx.fillStyle='#cac7be';
   ctx.fillRect(cx-rw/2,cy-rw/2,rw,rw);
 
@@ -712,9 +735,7 @@ function drawRoads(g){
   }
   ctx.restore();
 
-  // Intersection border
-  ctx.strokeStyle='#8a7a6a'; ctx.lineWidth=2;
-  ctx.strokeRect(cx-rw/2,cy-rw/2,rw,rw);
+  // NOTE: Road edge strokes REMOVED — roads flow cleanly into environment
 
   // Lane dividers — dashed warm white
   ctx.setLineDash([18,14]); ctx.lineWidth=1.6; ctx.strokeStyle='rgba(240,235,220,.55)'; ctx.lineDashOffset=-8;
@@ -731,7 +752,7 @@ function drawRoads(g){
   }
   ctx.setLineDash([]); ctx.lineDashOffset=0;
 
-  // Center lines (solid)
+  // Center lines (solid, subtle)
   ctx.strokeStyle='rgba(240,230,210,.6)'; ctx.lineWidth=1.5;
   [-1,1].forEach(d=>{
     ctx.globalAlpha=0.45;
@@ -786,31 +807,30 @@ function geo(){
 function drawScene(){
   const g=geo();
   const{W,H,cx,cy,rw,lw,lanes,cw_stripe,cw_gap,cw_depth,cw_setback}=g;
-  ctx.clearRect(0,0,W,H);
 
-  // 1. Grass background (tiled)
-  drawGrass(W,H);
+  // Note: Grass is drawn in canvas space BEFORE camera transform in frame() function
+  // This ensures full screen coverage regardless of camera position/zoom
 
-  // 2. World decorations (buildings, trees, etc.) — behind roads
+  // 1. World decorations (buildings, trees, etc.) — behind roads
   drawWorld(g);
 
-  // 3. Sidewalks
+  // 2. Sidewalks
   drawSidewalk(g);
 
-  // 4. Roads
+  // 3. Roads (no outlines)
   drawRoads(g);
 
-  // 5. Traffic lights
+  // 4. Traffic lights
   drawLights(g);
 
-  // 6. Vehicles
+  // 5. Vehicles
   drawQueuedCars(g);
   drawMovingCars(g);
 
-  // 7. Pedestrians
+  // 6. Pedestrians
   drawPedestrians(g);
 
-  // 8. Direction labels
+  // 7. Direction labels
   drawDirLabels(g);
 }
 
@@ -988,6 +1008,14 @@ function frame(now){
   FRAME_DT=Math.min((now-LAST_FRAME)/1000,.05);LAST_FRAME=now;
   if(canvas.width<10||canvas.height<10){resize();}
   if(canvas.width>=10&&canvas.height>=10){
+    // 1. Clear canvas
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    
+    // 2. Draw grass background in canvas space (unfransformed)
+    // This ensures grass fills entire visible screen regardless of camera zoom/pan
+    drawGrass(canvas.width,canvas.height);
+    
+    // 3. Apply camera transform and draw world content
     ctx.save();ctx.translate(CAM.x,CAM.y);ctx.scale(CAM.scale,CAM.scale);
     drawScene();ctx.restore();
   }
