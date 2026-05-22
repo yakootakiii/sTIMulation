@@ -185,12 +185,12 @@ class TestConfigPostEndpoint:
         assert resp.status_code == 200
         assert resp.get_json()["config"]["right_turn_free"] is False
 
-    def test_unknown_keys_ignored(self, client):
-        """Unknown keys should not cause a 500 error."""
+    def test_unknown_keys_rejected(self, client):
+        """Unknown keys should be rejected at the API boundary."""
         resp = client.post("/api/config",
                            data=json.dumps({"green_duration": 25.0, "bogus_key": "x"}),
                            content_type="application/json")
-        assert resp.status_code == 200
+        assert resp.status_code == 400
 
 
 # ══════════════════════════════════════════════════════════════════════════════

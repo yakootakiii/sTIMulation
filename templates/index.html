@@ -912,7 +912,7 @@ function updatePhaseHeaders(data){
 
 const MAX_LOGS=80,logScroll=document.getElementById('log-scroll');
 function addLog(entry){STATE.logs.unshift(entry);if(STATE.logs.length>MAX_LOGS)STATE.logs.pop();renderLog();}
-function renderLog(){logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>`<div class="log-entry"><span class="log-time">${(l.sim_time||0).toFixed(1)}s</span><span class="log-msg c-${l.cls||'gray'}">${l.msg}</span></div>`).join('');}
+	function renderLog(){logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>{const cls=['green','yellow','red','blue','gray'].includes(l.cls)?l.cls:'gray';return `<div class="log-entry"><span class="log-time">${anEsc((l.sim_time||0).toFixed(1))}s</span><span class="log-msg c-${cls}">${anEsc(l.msg)}</span></div>`;}).join('');}
 
 function applyConfigToUI(cfg){
   if(!cfg)return;

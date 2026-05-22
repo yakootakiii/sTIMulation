@@ -3,6 +3,8 @@ Cache Configuration
 Separates cache rules from business logic.
 """
 
+import os
+
 # Cache TTL (Time-To-Live) expiration rules in seconds — must be whole integers
 CACHE_RULES = {
     "vehicles":  1,    # was 0.5 — Redis requires integers
@@ -14,7 +16,7 @@ CACHE_RULES = {
 # Redis connection config
 CACHE_CONFIG = {
     "CACHE_TYPE":            "RedisCache",
-    "CACHE_REDIS_URL":       "redis://redis:6379",
+    "CACHE_REDIS_URL":       os.environ.get("REDIS_URL", "redis://redis:6379"),
     "CACHE_DEFAULT_TIMEOUT":  5,
     "CACHE_KEY_PREFIX":      "stim_",
 }
