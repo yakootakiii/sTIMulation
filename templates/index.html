@@ -221,7 +221,7 @@ select option { background:var(--bg2); }
         </div>
         <div class="p-section">
           <div class="sec-title" data-drag-handle="panel-controls">Scenario &amp; Configuration</div>
-          <div class="ctrl"><span class="ctrl-label">Scenario</span><select id="sel-scenario" onchange="onCfgChange()"><option value="normal">Normal Traffic</option><option value="rush">Rush Hour</option><option value="low">Low Traffic</option></select></div>
+          <div class="ctrl"><span class="ctrl-label">Scenario</span><select id="sel-scenario" onchange="onCfgChange()"><option value="normal">Normal Traffic</option><option value="rush">Rush Hour</option><option value="low">Low Traffic</option><option value="emergency">Emergency Mode</option></select></div>
           <div class="ctrl"><span class="ctrl-label">Road Type</span><select id="sel-road" onchange="onCfgChange()"><option value="2">2-lane (1 per dir)</option><option value="4" selected>4-lane (2 per dir)</option><option value="6">6-lane (3 per dir)</option></select></div>
           <div class="ctrl"><span class="ctrl-label">Speed</span><input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4" oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()"><span class="ctrl-val" id="v-speed">4×</span></div>
           <div class="ctrl"><span class="ctrl-label">Random Seed</span><input type="number" id="sl-seed" value="42" onchange="onCfgChange()"></div>
@@ -792,6 +792,12 @@ let STATE={
   logs:[], phaseStart:0,
 };
 const VIS={};
+const VIS_PEDS={};
+let PED_ANIM_CLOCK=0;
+
+function getSystemSpeed(){
+  return Math.max(0.5, +document.getElementById('sl-speed').value || 1);
+}
 
 function geo(){
   const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
@@ -900,15 +906,15 @@ function drawVehicle(x,y,angle,color,state,alpha=1,vid){
   ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,y);ctx.rotate(angle-Math.PI/2);
   const si=vid%CAR_SPRITES.length,cs=CAR_SPRITES[si],cr=CAR_READY[si];
   if(cr&&cs.naturalWidth>0){
-    const sh=24,ratio=cs.naturalWidth/cs.naturalHeight||1,sw=sh*ratio;
+    const sh=30,ratio=cs.naturalWidth/cs.naturalHeight||1,sw=sh*ratio;
     ctx.drawImage(cs,-sw/2,-sh/2,sw,sh);
   }else{
-    ctx.fillStyle=color; roundRect(-9,-5.5,18,11,3);ctx.fill();
-    ctx.fillStyle=color+'cc'; roundRect(-5,-4,9,8,2);ctx.fill();
-    ctx.fillStyle='rgba(220,240,255,.45)'; roundRect(-5,-3.5,7,7,1.5);ctx.fill();
-    ctx.fillStyle='rgba(220,240,255,.25)'; roundRect(4,-3,3.5,6,1);ctx.fill();
-    if(state==='moving'){ctx.fillStyle='rgba(255,240,200,.80)';roundRect(-9.5,-4,3,2.5,1);ctx.fill();roundRect(-9.5,1.5,3,2.5,1);ctx.fill();}
-    else{ctx.fillStyle='rgba(255,160,160,.75)';roundRect(7,-4,2.5,2.5,.8);ctx.fill();roundRect(7,1.5,2.5,2.5,.8);ctx.fill();}
+    ctx.fillStyle=color; roundRect(-11,-6.8,22,13.6,4);ctx.fill();
+    ctx.fillStyle=color+'cc'; roundRect(-6,-5,11,10,2.5);ctx.fill();
+    ctx.fillStyle='rgba(220,240,255,.45)'; roundRect(-6,-4.2,8.5,8.2,2);ctx.fill();
+    ctx.fillStyle='rgba(220,240,255,.25)'; roundRect(5.5,-3.5,4.2,7,1.2);ctx.fill();
+    if(state==='moving'){ctx.fillStyle='rgba(255,240,200,.80)';roundRect(-11.5,-4.8,3.5,3,1.2);ctx.fill();roundRect(-11.5,1.8,3.5,3,1.2);ctx.fill();}
+    else{ctx.fillStyle='rgba(255,160,160,.75)';roundRect(8.6,-4.8,3,3,1);ctx.fill();roundRect(8.6,1.8,3,3,1);ctx.fill();}
   }
   ctx.restore();
 }
@@ -947,8 +953,20 @@ function drawMovingCars(g){
 }
 function angleDelta(f,t){return Math.atan2(Math.sin(t-f),Math.cos(t-f));}
 
-const CAT_SPRITE=new Image();CAT_SPRITE.src='/assets/Cat_nobg.png';
-let CAT_READY=false;CAT_SPRITE.onload=()=>{CAT_READY=true;};CAT_SPRITE.onerror=()=>{CAT_READY=false;};
+const CAT_SPRITES=Array.from({length:10},(_,i)=>new Image());
+const CAT_READY=Array(10).fill(false);
+CAT_SPRITES.forEach((img,idx)=>{
+  img.src=`/assets/cat${idx+1}.png`;
+  img.onload=()=>{CAT_READY[idx]=true;};
+  img.onerror=()=>{CAT_READY[idx]=false;};
+});
+
+function normalizePedSpriteIndex(ped){
+  if(!ped) return 0;
+  const idx = Number.isFinite(+ped.sprite_idx) ? Math.abs(Math.trunc(+ped.sprite_idx)) % CAT_SPRITES.length : Math.floor(Math.random() * CAT_SPRITES.length);
+  ped.sprite_idx = idx;
+  return idx;
+}
 
 function getPedPos(ped,g){
   const{cx,cy,rw,cw_depth,cw_setback}=g;
@@ -963,28 +981,39 @@ function getPedPos(ped,g){
   }
   return{x:cx,y:cy};
 }
-function drawPedestrian(x,y,state,direction){
-  const time=(STATE.stats&&STATE.stats.sim_time?STATE.stats.sim_time:0)*5;
-  const walking=state==='crossing';
-  const bob=walking?Math.sin(time+x*.05)*1.4:0;
+function drawPedestrian(x,y,ped){
+  const time=PED_ANIM_CLOCK;
+  const walking=ped?.state==='crossing';
+  const phase = ((ped && ped.pid) ? (ped.pid * 0.13) : 0);
+  const bob=walking?Math.sin(time + phase)*1.4:0;
   ctx.save();ctx.translate(x,y);ctx.translate(0,bob);
-  if(CAT_READY&&CAT_SPRITE.naturalWidth>0){
-    const bsc=0.3,sph=(walking?52:49)*bsc,ratio=CAT_SPRITE.naturalWidth/CAT_SPRITE.naturalHeight||1,spw=sph*ratio;
-    const sway=walking?Math.sin(time*1.2+x*.03)*1.2:0;
-    ctx.save();ctx.translate(0,walking?-1:0);ctx.rotate(walking?Math.sin(time*.6)*.02:0);
-    if(direction==='N'||direction==='S'||direction==='right')ctx.scale(-1,1);
-    ctx.drawImage(CAT_SPRITE,-spw/2,-sph*.82+sway,spw,sph);
+  const catIdx=normalizePedSpriteIndex(ped);
+  const catImg=CAT_SPRITES[catIdx];
+  if(CAT_READY[catIdx]&&catImg&&catImg.naturalWidth>0){
+    const bsc=0.36,sph=(walking?56:52)*bsc,ratio=catImg.naturalWidth/catImg.naturalHeight||1,spw=sph*ratio;
+    const sway=walking?Math.sin(time*1.2 + phase)*1.2:0;
+    ctx.save();ctx.translate(0,walking?-1:0);ctx.rotate(walking?Math.sin(time*.6 + phase)*.02:0);
+    if(ped?.direction==='N'||ped?.direction==='S'||ped?.direction==='right')ctx.scale(-1,1);
+    ctx.drawImage(catImg,-spw/2,-sph*.82+sway,spw,sph);
     ctx.restore();
   }else{
-    ctx.fillStyle='#ffe8c7';ctx.beginPath();ctx.arc(0,-5,11,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffe8c7';ctx.beginPath();ctx.arc(0,-5,14,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
 function drawPedestrians(g){
+  const speed=getSystemSpeed();
   Object.values(STATE.pedestrians||{}).forEach(ped=>{
     if(ped.state==='waiting'||ped.state==='crossing'){
-      const p=getPedPos(ped,g);
-      drawPedestrian(p.x,p.y,ped.state,ped.direction);
+      const tgt=getPedPos(ped,g);
+      if(!VIS_PEDS[ped.pid]) VIS_PEDS[ped.pid]={x:tgt.x,y:tgt.y,a:0,alpha:1};
+      const vis=VIS_PEDS[ped.pid];
+      const lerp=Math.min(1, FRAME_DT * Math.max(1, speed) * 6);
+      vis.x += (tgt.x - vis.x) * lerp;
+      vis.y += (tgt.y - vis.y) * lerp;
+      drawPedestrian(vis.x, vis.y, ped);
+    }else{
+      if(VIS_PEDS[ped.pid]){ delete VIS_PEDS[ped.pid]; }
     }
   });
 }
@@ -1006,6 +1035,7 @@ function drawDirLabels(g){
 let FRAME_DT=1/60, LAST_FRAME=performance.now();
 function frame(now){
   FRAME_DT=Math.min((now-LAST_FRAME)/1000,.05);LAST_FRAME=now;
+  PED_ANIM_CLOCK += FRAME_DT * getSystemSpeed() * 0.75;
   if(canvas.width<10||canvas.height<10){resize();}
   if(canvas.width>=10&&canvas.height>=10){
     // 1. Clear canvas
@@ -1099,8 +1129,8 @@ socket.on('vehicle_queued', v=>{STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]
 socket.on('vehicle_move',   v=>{STATE.vehicles[v.vid]={...(STATE.vehicles[v.vid]||{}),...v,state:'moving'};anHandleVehicleMove(v);});
 socket.on('queue_update',({direction,ids})=>{ids.forEach((vid,pos)=>{if(STATE.vehicles[vid])STATE.vehicles[vid].queue_pos=pos;});});
 socket.on('vehicle_exit',({vid})=>{const v=STATE.vehicles[vid];if(v&&v.state==='moving'&&VIS[vid]){v.serverExited=true;}else{delete STATE.vehicles[vid];delete VIS[vid];}});
-socket.on('pedestrian_arrive',ped=>{if(!STATE.pedestrians)STATE.pedestrians={};STATE.pedestrians[ped.pid]=ped;});
-socket.on('pedestrian_move',  ped=>{if(!STATE.pedestrians)STATE.pedestrians={};STATE.pedestrians[ped.pid]={...(STATE.pedestrians[ped.pid]||{}),...ped};});
+socket.on('pedestrian_arrive',ped=>{if(!STATE.pedestrians)STATE.pedestrians={};STATE.pedestrians[ped.pid]={...ped,sprite_idx:Number.isFinite(+ped.sprite_idx)?Math.abs(Math.trunc(+ped.sprite_idx))%CAT_SPRITES.length:Math.floor(Math.random()*CAT_SPRITES.length)};});
+socket.on('pedestrian_move',  ped=>{if(!STATE.pedestrians)STATE.pedestrians={};STATE.pedestrians[ped.pid]={...(STATE.pedestrians[ped.pid]||{}),...ped};if(!Number.isFinite(+STATE.pedestrians[ped.pid].sprite_idx))STATE.pedestrians[ped.pid].sprite_idx=Math.floor(Math.random()*CAT_SPRITES.length);});
 socket.on('pedestrian_exit',  ({pid})=>{if(STATE.pedestrians?.[pid])delete STATE.pedestrians[pid];});
 socket.on('light_change',data=>{STATE.stats.phase=data.phase;STATE.stats.ns_light=data.ns;STATE.stats.ew_light=data.ew;STATE.phaseStart=data.sim_time||STATE.stats.sim_time||0;updatePhaseHeaders(data);anHandleLightChange(data);});
 socket.on('log',entry=>addLog(entry));
@@ -1157,10 +1187,10 @@ function updateStatsUI(d){
 }
 function updatePhaseHeaders(data){
   const{phase}=data;
-  const pc=phase.includes('green')?'pill-green':phase.includes('yellow')?'pill-yellow':'pill-red';
+  const pc=phase.includes('walk')||phase.includes('green')?'pill-green':phase.includes('left')?'pill-blue':phase.includes('yellow')?'pill-yellow':'pill-red';
   const ph=document.getElementById('hdr-phase');
   ph.className='pill '+pc;
-  ph.textContent=phase.replace('_',' ').replace('ns','N-S').replace('ew','E-W').toUpperCase();
+  ph.textContent=phase.replace(/_/g,' ').replace('ns','N-S').replace('ew','E-W').replace('ped','Ped').toUpperCase();
   document.getElementById('hdr-scenario').textContent=document.getElementById('sel-scenario').options[document.getElementById('sel-scenario').selectedIndex].text;
 }
 

@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sTIMulation - Analytics Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="/assets/vendor/socket.io.min.js"></script>
+<script src="/assets/vendor/chart.umd.min.js"></script>
+<script src="/assets/vendor/html2pdf.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -817,6 +817,10 @@ function pushCycleCount() {
 }
 
 function recordPhaseSegment(phase, simTime) {
+  const normalized = String(phase)
+    .replace('ns_left', 'ns_green')
+    .replace('ew_left', 'ew_green')
+    .replace('ped_walk', 'ns_red');
   if (liveState.lastPhase !== null && liveState.lastPhaseTime !== null) {
     const duration = Math.max(0, simTime - liveState.lastPhaseTime);
     liveState.phaseSegments.push({
@@ -826,7 +830,7 @@ function recordPhaseSegment(phase, simTime) {
     });
     if (liveState.phaseSegments.length > 200) liveState.phaseSegments.shift();
   }
-  liveState.lastPhase     = phase;
+  liveState.lastPhase     = normalized;
   liveState.lastPhaseTime = simTime;
   schedulePersist();
 }
@@ -864,7 +868,7 @@ function handleLightChange(data) {
   const simTime = data.sim_time || 0;
   session.phaseEvents.push({ phase:data.phase, sim_time:simTime });
   recordPhaseSegment(data.phase, simTime);
-  if (data.phase === 'ns_green') pushCycleCount();
+  if (data.phase === 'ns_green' || data.phase === 'ew_green') pushCycleCount();
   rebuildPhaseChart();
 }
 

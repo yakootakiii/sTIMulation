@@ -27,11 +27,14 @@ class Turn(str, Enum):
 
 class Phase(str, Enum):
     NS_GREEN  = "ns_green"
+    NS_LEFT   = "ns_left"
     NS_YELLOW = "ns_yellow"
     NS_RED    = "ns_red"
     EW_GREEN  = "ew_green"
+    EW_LEFT   = "ew_left"
     EW_YELLOW = "ew_yellow"
     EW_RED    = "ew_red"
+    PED_WALK  = "ped_walk"
     
 
 class LightColor(str, Enum):
@@ -166,6 +169,7 @@ SCENARIOS = {
     "normal": {"arrival_base": 4.0,  "label": "Normal Traffic"},
     "rush":   {"arrival_base": 1.4,  "label": "Rush Hour"},
     "low":    {"arrival_base": 9.0,  "label": "Low Traffic"},
+    "emergency": {"arrival_base": 0.7, "label": "Emergency Mode"},
 }
 
 # ─── Data Classes ─────────────────────────────────────────────────────────────
@@ -180,6 +184,8 @@ class SimConfig:
     right_turn_free: bool  = True
     speed_factor:    float = 1.0
     seed:            int   = 42
+    adaptive_control: bool = True
+    pedestrian_scramble: bool = True
 
 @dataclass
 class Vehicle:
@@ -201,6 +207,7 @@ class Vehicle:
     lane_idx:    int   = 0
     spawn_offset: float = 0.0
     releasing:   bool  = False
+    vehicle_type: str = "car"
 
     def wait_time(self) -> float:
         if self.wait_end > 0:
@@ -211,6 +218,7 @@ class Vehicle:
         return {
             "vid": self.vid, "direction": self.direction,
             "turn": self.turn, "color": self.color,
+            "vehicle_type": self.vehicle_type,
             "arrive_time": round(self.arrive_time, 2),
             "wait_time": self.wait_time(),
             "state": self.state,
@@ -226,6 +234,7 @@ class Pedestrian:
     direction:  str      # N, S, E, or W (direction of crosswalk)
     cross_dir:  str      # direction crossing (perpendicular to direction)
     arrive_time: float
+    sprite_idx: int   = 0
     state:      str   = "waiting"  # waiting | crossing | exited
     cross_pos:  float = 0.0        # 0-100, position along crosswalk
     
@@ -233,6 +242,7 @@ class Pedestrian:
         return {
             "pid": self.pid, "direction": self.direction,
             "cross_dir": self.cross_dir, "arrive_time": round(self.arrive_time, 2),
+            "sprite_idx": self.sprite_idx,
             "state": self.state, "cross_pos": round(self.cross_pos, 2),
         }
 
@@ -300,6 +310,24 @@ class TrafficSimulation:
             for d in ["N", "S", "E", "W"]
         }
 
+        # Realistic lane discharge timing: vehicles leave a lane with a small headway.
+        self._lane_next_release: Dict[str, List[float]] = {
+            d: [0.0 for _ in range(lanes)]
+            for d in ["N", "S", "E", "W"]
+        }
+        self._service_lane_index: Dict[str, int] = {
+            d: -1 for d in ["N", "S", "E", "W"]
+        }
+        self._discharge_headway = 1.6 if self.config.scenario == "rush" else 1.2
+        self._moving_vehicle_count = 0
+        self._active_approach: Optional[str] = None
+        self._phase_mode: str = "through"
+        self._pedestrian_walk_active = False
+        self._phase_ends_at: float = 0.0
+        self._current_vehicle_type: str = "car"
+        self._last_served_approach: Optional[str] = None
+        self._served_approach_runs: int = 0
+
         self.phase    = Phase.NS_GREEN
         self._next_vid = 1
         self._next_pid = 1  # Pedestrian ID counter
@@ -335,34 +363,199 @@ class TrafficSimulation:
     def _max_queue(self) -> int:
         return self._lanes_per_dir() * 8
 
-    def _arrival_rate(self) -> float:
-        base = SCENARIOS[self.config.scenario]["arrival_base"]
-        return base * (0.5 + self.random.random() * 0.9)
+    def _arrival_rate(self, direction: str) -> float:
+        scenario = self.config.scenario
+        if scenario == "rush":
+            if direction in ("E", "W"):
+                return self.random.uniform(0.4, 1.0)
+            return self.random.uniform(1.0, 2.2)
+        if scenario == "normal":
+            return self.random.uniform(1.6, 4.4)
+        if scenario == "low":
+            return self.random.uniform(5.5, 10.5)
+        if scenario == "emergency":
+            return self.random.uniform(0.25, 0.7)
+        base = SCENARIOS[scenario]["arrival_base"]
+        return base * (0.35 + self.random.random() * 0.75)
 
     def _light_for(self, direction: str) -> str:
         ns = direction in ("N", "S")
-        if self.phase == Phase.NS_GREEN:
+        if self.phase in (Phase.NS_GREEN, Phase.NS_LEFT):
             return LightColor.GREEN if ns else LightColor.RED
         if self.phase == Phase.NS_YELLOW:
             return LightColor.YELLOW if ns else LightColor.RED
         if self.phase == Phase.NS_RED:
             return LightColor.RED
-        if self.phase == Phase.EW_GREEN:
+        if self.phase in (Phase.EW_GREEN, Phase.EW_LEFT):
             return LightColor.RED if ns else LightColor.GREEN
         if self.phase == Phase.EW_YELLOW:
             return LightColor.RED if ns else LightColor.YELLOW
         if self.phase == Phase.EW_RED:
             return LightColor.RED
+        if self.phase == Phase.PED_WALK:
+            return LightColor.RED
         return LightColor.RED
 
     def _can_go(self, direction: str, turn: str) -> bool:
+        if getattr(self, "_current_vehicle_type", "car") == "emergency" and not self._pedestrian_walk_active:
+            return self._moving_vehicle_count == 0
         lc = self._light_for(direction)
         if lc == LightColor.GREEN:
+            if self._phase_mode == "left":
+                return turn == Turn.LEFT.value
+            if self._phase_mode == "through":
+                return turn in (Turn.STRAIGHT.value, Turn.RIGHT.value)
             return True
-        # Right-turn-on-red: specifically restricted to RED (not yellow)
-        if turn == Turn.RIGHT.value and self.config.right_turn_free and lc == LightColor.RED:
-            return True
+        # Right-turn-on-red: allow only when the intersection is otherwise clear.
+        if turn == Turn.RIGHT.value and self.config.right_turn_free and lc == LightColor.RED and not self._pedestrian_walk_active:
+            return self._moving_vehicle_count == 0
         return False
+
+    def _headway_for(self, turn: str) -> float:
+        if turn == Turn.LEFT.value:
+            return 1.6
+        if turn == Turn.RIGHT.value:
+            return 1.0
+        return self._discharge_headway
+
+    def _travel_duration_for(self, turn: str, vehicle_type: str = "car") -> float:
+        base = 2.1 + self.random.uniform(0.3, 0.7)
+        if turn == Turn.LEFT.value:
+            base = 3.0 + self.random.uniform(0.2, 0.5)
+        elif turn == Turn.RIGHT.value:
+            base = 1.5 + self.random.uniform(0.2, 0.4)
+
+        type_multiplier = {
+            "motorcycle": 0.75,
+            "car": 1.0,
+            "bus": 1.2,
+            "truck": 1.28,
+            "emergency": 0.7,
+        }.get(vehicle_type, 1.0)
+        return base * type_multiplier
+
+    def _vehicle_profile(self, vehicle_type: str) -> dict:
+        profiles = {
+            "motorcycle": {"length": 2.2, "width": 0.8, "speed": 1.15},
+            "car": {"length": 4.5, "width": 1.8, "speed": 1.0},
+            "bus": {"length": 12.0, "width": 2.5, "speed": 0.85},
+            "truck": {"length": 10.5, "width": 2.4, "speed": 0.82},
+            "emergency": {"length": 4.8, "width": 1.9, "speed": 1.35},
+        }
+        return profiles.get(vehicle_type, profiles["car"])
+
+    def _recompute_queue_positions(self, direction: str):
+        all_ids = []
+        for lane_q in self.queues[direction]:
+            all_ids.extend(list(lane_q))
+        self._emit("queue_update", {"direction": direction, "ids": all_ids})
+
+    def _lane_role(self, lane_idx: int) -> str:
+        lanes = self._lanes_per_dir()
+        if lanes <= 1:
+            return "shared"
+        if lanes == 2:
+            return "through" if lane_idx == 0 else "left"
+        if lane_idx == 0:
+            return "left"
+        if lane_idx == 1:
+            return "through"
+        return "right"
+
+    def _select_lane_for_vehicle(self, turn: str) -> int:
+        lanes = self._lanes_per_dir()
+        if lanes <= 1:
+            return 0
+        if lanes == 2:
+            return 1 if turn == Turn.LEFT.value else 0
+        if turn == Turn.LEFT.value:
+            return 0
+        if turn == Turn.RIGHT.value:
+            return 2
+        return 1
+
+    def _choose_group_order(self) -> List[str]:
+        ns_pressure = self._approach_pressure("N") + self._approach_pressure("S")
+        ew_pressure = self._approach_pressure("E") + self._approach_pressure("W")
+        if ns_pressure > ew_pressure:
+            return ["NS", "EW"]
+        if ew_pressure > ns_pressure:
+            return ["EW", "NS"]
+        return ["NS", "EW"] if self.stats.cycles % 2 == 0 else ["EW", "NS"]
+
+    def _approach_pressure(self, direction: str) -> float:
+        queue_pressure = sum(len(q) for q in self.queues[direction])
+        left_pressure = sum(1 for q in self.vehicles.values() if q.direction == direction and q.turn == Turn.LEFT.value and q.state == "queued")
+        return queue_pressure + left_pressure * 1.5
+
+    def _group_pressure(self, group: str) -> float:
+        dirs = ["N", "S"] if group == "NS" else ["E", "W"]
+        return sum(self._approach_pressure(d) for d in dirs)
+
+    def _choose_active_approach(self, group: str) -> Optional[str]:
+        dirs = ["N", "S"] if group == "NS" else ["E", "W"]
+        ranked = sorted(dirs, key=lambda d: (self._approach_pressure(d), len(self.queues[d][0]) if self.queues[d] else 0), reverse=True)
+        if not ranked or self._approach_pressure(ranked[0]) <= 0:
+            return None
+        chosen = ranked[0]
+        if chosen == self._last_served_approach and self._served_approach_runs >= 2 and len(ranked) > 1 and self._approach_pressure(ranked[1]) > 0:
+            chosen = ranked[1]
+        return chosen
+
+    def _choose_service_lane(self, direction: str, mode: str) -> int:
+        lanes = self._lanes_per_dir()
+        if lanes <= 1:
+            return 0
+        if lanes == 2:
+            return 1 if mode == "left" else 0
+        if mode == "left":
+            return 0
+        if mode == "right":
+            return 2
+        return 1
+
+    def _phase_duration(self, base: float, pressure: float, minimum: float, maximum: float) -> float:
+        boosted = base + min(pressure * 0.35, base)
+        if self.config.scenario == "low":
+            boosted *= 0.75
+        elif self.config.scenario == "rush":
+            boosted *= 1.25
+        return max(minimum, min(boosted, maximum))
+
+    def _pedestrian_duration(self) -> float:
+        max_walk = 0.0
+        for ped in self.pedestrians.values():
+            if ped.state == "waiting":
+                if self._lanes_per_dir() <= 1:
+                    walk = self.random.uniform(4.0, 5.0)
+                elif self._lanes_per_dir() == 2:
+                    walk = self.random.uniform(4.5, 5.8)
+                else:
+                    walk = self.random.uniform(5.2, 7.0)
+                max_walk = max(max_walk, walk)
+        return max(4.0, max_walk + 0.4)
+
+    def _can_release_lane(self, direction: str, lane_idx: int) -> bool:
+        return lane_idx == self._service_lane_index[direction] and self.env.now >= self._lane_next_release[direction][lane_idx]
+
+    def _rotate_service_lane(self, direction: str):
+        lanes = self._lanes_per_dir()
+        if lanes <= 0:
+            self._service_lane_index[direction] = 0
+            return
+        self._service_lane_index[direction] = (self._service_lane_index[direction] + 1) % lanes
+
+    def _dispatch_vehicle(self, v: Vehicle, lane_idx: int):
+        v.state = "moving"
+        v.fsm_state = VehicleState.DRIVING if v.turn == Turn.STRAIGHT.value else (
+            VehicleState.TURNING_LEFT if v.turn == Turn.LEFT.value else VehicleState.TURNING_RIGHT)
+        v.queue_pos = -1
+        v.releasing = False
+        v.wait_end = self.env.now
+        self._moving_vehicle_count += 1
+        self._lane_next_release[v.direction][lane_idx] = self.env.now + self._headway_for(v.turn)
+        # Emit move without relying on wait_time here; analytics uses the exit event.
+        self._emit("vehicle_move", v.to_dict())
 
     def _emit(self, etype: str, data: dict):
         if self.event_cb:
@@ -372,50 +565,107 @@ class TrafficSimulation:
     # ── SimPy Processes ───────────────────────────────────────────────────────
 
     def _signal_controller(self):
-        """Main traffic light state machine."""
+        """Adaptive, phase-based traffic controller."""
         cfg = self.config
         while True:
-            # NS Green
-            self.phase = Phase.NS_GREEN
-            self._update_lights()
-            self._emit("light_change", {"phase": self.phase, "ns": "green", "ew": "red"})
-            self._log(f"🟢 N-S GREEN ({cfg.green_duration}s)", "green")
-            yield from self._wait_phase(lambda: cfg.green_duration)
+            vehicle_demand = any(self._group_pressure(group) > 0 for group in ("NS", "EW"))
+            pedestrian_demand = any(p.state == "waiting" for p in self.pedestrians.values())
 
-            # NS Yellow
-            self.phase = Phase.NS_YELLOW
-            self._update_lights()
-            self._emit("light_change", {"phase": self.phase, "ns": "yellow", "ew": "red"})
-            self._log(f"🟡 N-S YELLOW ({cfg.yellow_duration}s)", "yellow")
-            yield from self._wait_phase(lambda: cfg.yellow_duration)
+            if not vehicle_demand and not pedestrian_demand:
+                yield self.env.timeout(0.2)
+                continue
 
-            # All-red clearance
-            self.phase = Phase.NS_RED
-            self._update_lights()
-            self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
-            self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
-            yield from self._wait_phase(lambda: cfg.red_duration)
+            served_cycle = False
+            for group in self._choose_group_order():
+                if self._group_pressure(group) <= 0 and not pedestrian_demand:
+                    continue
 
-            # EW Green
-            self.phase = Phase.EW_GREEN
-            self._update_lights()
-            self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "green"})
-            self._log(f"🟢 E-W GREEN ({cfg.green_duration}s)", "green")
-            yield from self._wait_phase(lambda: cfg.green_duration)
+                active = self._choose_active_approach(group)
+                if active is None:
+                    continue
+                served_cycle = True
 
-            # EW Yellow
-            self.phase = Phase.EW_YELLOW
-            self._update_lights()
-            self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "yellow"})
-            self._log(f"🟡 E-W YELLOW ({cfg.yellow_duration}s)", "yellow")
-            yield from self._wait_phase(lambda: cfg.yellow_duration)
+                # Through / straight service
+                self._active_approach = active
+                if self._last_served_approach == active:
+                    self._served_approach_runs += 1
+                else:
+                    self._last_served_approach = active
+                    self._served_approach_runs = 1
+                self._phase_mode = "through"
+                self._service_lane_index[active] = self._choose_service_lane(active, "through")
+                self.phase = Phase.NS_GREEN if group == "NS" else Phase.EW_GREEN
+                self._update_lights()
+                max_green = 28.0 if self.config.scenario == "rush" else 45.0
+                green_duration = self._phase_duration(cfg.green_duration, self._approach_pressure(active), 4.0, max_green)
+                self._emit("light_change", {"phase": self.phase, "ns": self.stats.ns_light.value, "ew": self.stats.ew_light.value, "active_approach": active, "mode": "through"})
+                self._log(f"🟢 {active} THROUGH GREEN ({green_duration:.1f}s)", "green")
+                self._phase_ends_at = self.env.now + green_duration
+                yield from self._wait_phase(lambda: green_duration)
 
-            # All-red clearance
-            self.phase = Phase.EW_RED
-            self._update_lights()
-            self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red"})
-            self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
-            yield from self._wait_phase(lambda: cfg.red_duration)
+                # Protected left-turn phase if there is left demand on the active approach
+                left_lane = self._choose_service_lane(active, "left")
+                left_demand = any(v.direction == active and v.turn == Turn.LEFT.value and v.state == "queued" for v in self.vehicles.values())
+                if left_demand and self._lanes_per_dir() > 1:
+                    self._phase_mode = "left"
+                    self._service_lane_index[active] = left_lane
+                    self.phase = Phase.NS_LEFT if group == "NS" else Phase.EW_LEFT
+                    self._update_lights()
+                    left_duration = self._phase_duration(max(cfg.yellow_duration, 3.0), self._approach_pressure(active) * 0.6, 3.0, 12.0)
+                    self._emit("light_change", {"phase": self.phase, "ns": self.stats.ns_light.value, "ew": self.stats.ew_light.value, "active_approach": active, "mode": "left"})
+                    self._log(f"⬅️ {active} LEFT ARROW ({left_duration:.1f}s)", "blue")
+                    self._phase_ends_at = self.env.now + left_duration
+                    yield from self._wait_phase(lambda: left_duration)
+
+                # Yellow transition and all-red clearance
+                self.phase = Phase.NS_YELLOW if group == "NS" else Phase.EW_YELLOW
+                self._phase_mode = "yellow"
+                self._update_lights()
+                self._emit("light_change", {"phase": self.phase, "ns": self.stats.ns_light.value, "ew": self.stats.ew_light.value, "active_approach": active, "mode": "yellow"})
+                self._log(f"🟡 {active} YELLOW ({cfg.yellow_duration}s)", "yellow")
+                self._phase_ends_at = self.env.now + cfg.yellow_duration
+                yield from self._wait_phase(lambda: cfg.yellow_duration)
+
+                self.phase = Phase.NS_RED if group == "NS" else Phase.EW_RED
+                self._phase_mode = "all_red"
+                self._update_lights()
+                self._emit("light_change", {"phase": self.phase, "ns": self.stats.ns_light.value, "ew": self.stats.ew_light.value, "active_approach": active, "mode": "all_red"})
+                self._log(f"🔴 ALL RED ({cfg.red_duration}s)", "red")
+                self._phase_ends_at = self.env.now + cfg.red_duration
+                yield from self._wait_phase(lambda: cfg.red_duration)
+                self._service_lane_index[active] = -1
+
+                # Pedestrian scramble / walk phase if anyone is waiting
+                if self.config.pedestrian_scramble and any(p.state == "waiting" for p in self.pedestrians.values()):
+                    self.phase = Phase.PED_WALK
+                    self._phase_mode = "ped"
+                    self._pedestrian_walk_active = True
+                    self._active_approach = None
+                    self._update_lights()
+                    ped_duration = self._pedestrian_duration()
+                    self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red", "mode": "ped"})
+                    self._log(f"🚶 PEDESTRIAN WALK ({ped_duration:.1f}s)", "green")
+                    self._phase_ends_at = self.env.now + ped_duration
+                    # Release all waiting pedestrians to start crossing simultaneously
+                    self._release_all_pedestrians()
+                    yield from self._wait_phase(lambda: ped_duration)
+                    self._pedestrian_walk_active = False
+                    self._phase_mode = "through"
+
+            if not served_cycle and pedestrian_demand and self.config.pedestrian_scramble:
+                self.phase = Phase.PED_WALK
+                self._phase_mode = "ped"
+                self._pedestrian_walk_active = True
+                self._active_approach = None
+                self._update_lights()
+                ped_duration = self._pedestrian_duration()
+                self._emit("light_change", {"phase": self.phase, "ns": "red", "ew": "red", "mode": "ped"})
+                self._log(f"🚶 PEDESTRIAN WALK ({ped_duration:.1f}s)", "green")
+                self._phase_ends_at = self.env.now + ped_duration
+                self._release_all_pedestrians()
+                yield from self._wait_phase(lambda: ped_duration)
+                self._pedestrian_walk_active = False
+                self._phase_mode = "through"
 
             self.stats.cycles += 1
 
@@ -432,6 +682,43 @@ class TrafficSimulation:
         self.stats.ns_light = self._light_for("N")
         self.stats.ew_light = self._light_for("E")
 
+    def _time_until_direction_green(self, direction: str) -> float:
+        """Estimate the time until the next green begins for a given direction."""
+        if self.phase in (Phase.PED_WALK,):
+            return max(0.0, self._phase_ends_at - self.env.now)
+
+        cfg = self.config
+        phase_order = [Phase.NS_GREEN, Phase.NS_LEFT, Phase.NS_YELLOW, Phase.NS_RED, Phase.EW_GREEN, Phase.EW_LEFT, Phase.EW_YELLOW, Phase.EW_RED]
+        phase_durations = {
+            Phase.NS_GREEN: cfg.green_duration,
+            Phase.NS_LEFT: max(3.0, cfg.yellow_duration),
+            Phase.NS_YELLOW: cfg.yellow_duration,
+            Phase.NS_RED: cfg.red_duration,
+            Phase.EW_GREEN: cfg.green_duration,
+            Phase.EW_LEFT: max(3.0, cfg.yellow_duration),
+            Phase.EW_YELLOW: cfg.yellow_duration,
+            Phase.EW_RED: cfg.red_duration,
+        }
+
+        target_green = Phase.NS_GREEN if direction in ("N", "S") else Phase.EW_GREEN
+        if self.phase in (target_green, Phase.NS_LEFT, Phase.EW_LEFT):
+            return max(0.0, self._phase_ends_at - self.env.now)
+
+        elapsed = 0.0
+        try:
+            current_idx = phase_order.index(self.phase)
+        except ValueError:
+            return cfg.red_duration
+
+        idx = current_idx
+        for _ in range(len(phase_order) + 1):
+            current_phase = phase_order[idx]
+            elapsed += phase_durations[current_phase]
+            idx = (idx + 1) % len(phase_order)
+            if phase_order[idx] == target_green:
+                break
+        return elapsed
+
     def _drain_queues_process(self):
         """Continuously attempts to release vehicles from queues when light is green or RTOR is possible."""
         while True:
@@ -439,66 +726,66 @@ class TrafficSimulation:
                 # Check if ANY vehicle in this direction can move (either Green or RTOR)
                 # Note: We call this regardless of light color because RTOR depends on individual vehicle turn.
                 self._release_from_queue(d)
-            yield self.env.timeout(0.2)
+            yield self.env.timeout(0.05)
 
     def _release_from_queue(self, direction: str):
         """Identifies vehicles that can start moving and starts their movement process."""
         self._metrics["release_calls"] += 1
         with self._lock:
-            # Short-circuit: if the entire direction is red and RTOR is off, skip
-            # (Actually RTOR depends on individual vehicle turn, but if all lights are RED and RTOR is off, nothing can move)
-            if not self.config.right_turn_free and self._light_for(direction) == LightColor.RED:
+            if self._active_approach != direction or self._phase_mode == "ped":
                 return
 
-            lane_deques = self.queues[direction]
-            
-            # Scan only the front of each lane deque
-            for lane_idx, q in enumerate(lane_deques):
-                if not q:
-                    continue
-                
-                vid = q[0]
-                v = self.vehicles.get(vid)
-                if not v or v.releasing:
-                    continue
-                
-                # Check if this specific vehicle can go (Green or RTOR)
-                self._metrics["can_go_checks"] += 1
-                if self._can_go(v.direction, v.turn):
-                    # compute intended path and attempt reservation
-                    path = self.pathfinder.route_nodes(v.direction, v.turn, lane_idx)
-                    if not self.collision.predict_no_collision(v, path):
-                        continue
-                    # Try to reserve the path; if successful, start movement
-                    if self.intersection.reserve_path(v.vid, path):
-                        v.releasing = True
-                        v.fsm_state = VehicleState.DRIVING
-                        self.env.process(self._move_vehicle(v, path))
-                    else:
-                        # cannot reserve yet, remain queued
-                        continue
+            lane_idx = self._service_lane_index.get(direction, -1)
+            if lane_idx < 0 or lane_idx >= len(self.queues[direction]):
+                return
+
+            q = self.queues[direction][lane_idx]
+            if not q:
+                return
+
+            vid = q[0]
+            v = self.vehicles.get(vid)
+            if not v or v.releasing:
+                return
+            if not self._can_release_lane(direction, lane_idx):
+                return
+
+            self._current_vehicle_type = v.vehicle_type
+            self._metrics["can_go_checks"] += 1
+            if self._can_go(v.direction, v.turn):
+                q.popleft()
+                for pos, qvid in enumerate(q):
+                    if qvid in self.vehicles:
+                        self.vehicles[qvid].queue_pos = pos
+                self._recompute_queue_positions(direction)
+
+                self._dispatch_vehicle(v, lane_idx)
+                self.env.process(self._move_vehicle(v, lane_idx))
 
     def _vehicle_process(self, direction: str):
         """Spawns vehicles for a given direction continuously with lane assignment discipline."""
         while True:
-            iat = self._arrival_rate()
+            iat = self._arrival_rate(direction)
             yield self.env.timeout(iat)
 
             with self._lock:
                 vid  = self._next_vid; self._next_vid += 1
                 turn = self.random.choice(list(Turn))
                 color = self.random.choice(VEHICLE_COLORS)
+                vehicle_type = self.random.choices(
+                    ["car", "bus", "truck", "motorcycle", "emergency"],
+                    weights=[70, 8, 7, 5, 1] if self.config.scenario == "low" else ([70, 10, 10, 9, 1] if self.config.scenario == "rush" else ([68, 8, 8, 6, 10] if self.config.scenario == "emergency" else [78, 8, 7, 6, 1])),
+                    k=1,
+                )[0]
+                profile = self._vehicle_profile(vehicle_type)
                 lanes = self._lanes_per_dir()
                 
-                # Enforce outer lane discipline for right turns
-                if turn == Turn.RIGHT:
-                    lane_idx = lanes - 1  # Always assign to the rightmost / outer lane
-                else:
-                    # Straight and left-turning vehicles distribute among the remaining inner lanes
-                    if lanes > 1:
-                        lane_idx = self._lane_counters[direction] % (lanes - 1)
-                    else:
-                        lane_idx = 0
+                # Lane selection follows turn behavior and road configuration.
+                lane_idx = self._select_lane_for_vehicle(turn.value)
+                if lanes == 2 and turn == Turn.LEFT.value:
+                    lane_idx = 1
+                if lanes == 2 and turn != Turn.LEFT.value:
+                    lane_idx = 0
                 
                 self._lane_counters[direction] += 1
 
@@ -515,7 +802,7 @@ class TrafficSimulation:
 
                 # Global spawn throttling if congestion is high
                 total_queued = sum(sum(len(lq) for lq in self.queues[d]) for d in self.queues)
-                if total_queued > (self._max_queue() * 2):
+                if total_queued > (self._max_queue() * 3):
                     # skip spawning to reduce congestion
                     continue
 
@@ -524,8 +811,11 @@ class TrafficSimulation:
                     color=color, arrive_time=self.env.now,
                     wait_start=self.env.now, lane_idx=lane_idx,
                     queue_pos=len(q),
-                    speed=0.0,
-                    spawn_offset=offset
+                    speed=profile["speed"],
+                    spawn_offset=offset,
+                    length=profile["length"],
+                    width=profile["width"],
+                    vehicle_type=vehicle_type,
                 )
 
                 self.vehicles[vid] = v
@@ -540,110 +830,34 @@ class TrafficSimulation:
                     all_ids.extend(list(lane_q))
                 self._emit("queue_update", {"direction": direction, "ids": all_ids})
 
-    def _move_vehicle(self, v: Vehicle, path: Optional[List[str]] = None):
-        """Process: vehicle waits for resource and moves through intersection.
+    def _move_vehicle(self, v: Vehicle, lane_idx: int):
+        """Process: vehicle leaves the queue, traverses the intersection, and exits."""
+        wait = v.wait_time()
+        self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) departs after waiting {wait:.1f}s", "blue")
 
-        `path` is a list of reservation node names already reserved for `v`.
-        """
-        if path is None:
-            path = self.pathfinder.route_nodes(v.direction, v.turn, v.lane_idx)
+        travel = self._travel_duration_for(v.turn, v.vehicle_type)
+        yield self.env.timeout(travel)
 
-        res = self._lane_resources[v.direction][v.lane_idx]
+        exit_travel = 0.8 + self.random.uniform(0.1, 0.3)
+        yield self.env.timeout(exit_travel)
 
-        # 1. Wait for lane resource (physical space at the stop line)
-        with res.request() as req:
-            yield req
-
-            # 2. Strict signal compliance: verify light is still legal
-            if not self._can_go(v.direction, v.turn):
-                # release reservation on fail
-                self.intersection.release_path(v.vid, path)
-                v.releasing = False
-                return
-            # 3. Wait until intersection axis aligns (avoid cross-traffic)
-            my_axis = 'NS' if v.direction in ('N', 'S') else 'EW'
-            perpendicular_axis = 'EW' if my_axis == 'NS' else 'NS'
-
-            while True:
-                with self._lock:
-                    current_axis = self._intersection_axis
-
-                # If the intersection is free, or it matches our axis, we can proceed
-                if current_axis is None or current_axis == my_axis:
-                    break
-
-                # SPECIAL SAFETY FOR RIGHT TURNS ON RED:
-                # Allow RTOR only if there are no vehicles actively traveling on the perpendicular axis.
-                if v.turn == Turn.RIGHT.value and self._light_for(v.direction) == LightColor.RED:
-                    if current_axis == perpendicular_axis:
-                        yield self.env.timeout(0.05)
-                        if not self._can_go(v.direction, v.turn):
-                            self.intersection.release_path(v.vid, path)
-                            v.releasing = False
-                            return
-                        continue
-
-                # Otherwise wait a short time and re-check
-                yield self.env.timeout(0.05)
-                if not self._can_go(v.direction, v.turn):
-                    self.intersection.release_path(v.vid, path)
-                    v.releasing = False
-                    return
-            # 4. Remove from queue and set moving state
-            with self._lock:
-                q = self.queues[v.direction][v.lane_idx]
-                if q and q[0] == v.vid:
-                    q.popleft()
-                    for pos, qvid in enumerate(q):
-                        if qvid in self.vehicles:
-                            self.vehicles[qvid].queue_pos = pos
-                    all_ids = []
-                    for lane_q in self.queues[v.direction]:
-                        all_ids.extend(list(lane_q))
-                    self._emit("queue_update", {"direction": v.direction, "ids": all_ids})
-
-                v.state = "moving"
-                v.fsm_state = VehicleState.DRIVING if v.turn == Turn.STRAIGHT.value else (
-                    VehicleState.TURNING_LEFT if v.turn == Turn.LEFT.value else VehicleState.TURNING_RIGHT)
-                v.queue_pos = -1
-                v.releasing = False
-                v.wait_end = self.env.now
-                wait = v.wait_time()
-                self.stats.total_wait += wait
-                self.stats.total_passed += 1
-
-                # Right turns in the outer lane shouldn't steal the axis lock unless the axis is free
-                if self._intersection_axis is None:
-                    self._intersection_axis = my_axis
-                self._emit("vehicle_move", v.to_dict())
-
-            self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears via outer lane — waited {wait:.1f}s", "blue")
-
-            # Travel through intersection (time scaled)
-            travel = 2.0 + self.random.uniform(0.5, 1.5)
-            yield self.env.timeout(travel)
-
-            # Exit corridor: ensure vehicle is visually clear before removal
-            exit_travel = 1.0 + self.random.uniform(0.2, 0.4)
-            yield self.env.timeout(exit_travel)
-
-            # release reservations and cleanup
-            with self._lock:
-                v.state = "exited"
-                v.fsm_state = VehicleState.EXITING
-                self.intersection.release_path(v.vid, path)
-                # Only clear intersection if no other vehicles are crossing
-                self._check_intersection_clear()
-                self._emit("vehicle_exit", {"vid": v.vid})
-                if v.vid in self.vehicles:
-                    del self.vehicles[v.vid]
+        with self._lock:
+            v.state = "exited"
+            v.fsm_state = VehicleState.EXITING
+            self._moving_vehicle_count = max(0, self._moving_vehicle_count - 1)
+            self.stats.total_wait += wait
+            self.stats.total_passed += 1
+            # Re-emit vehicle_move with accurate wait_time for analytics
+            payload = v.to_dict()
+            payload["wait_time"] = wait
+            self._emit("vehicle_move", payload)
+            self._emit("vehicle_exit", {"vid": v.vid})
+            if v.vid in self.vehicles:
+                del self.vehicles[v.vid]
 
     def _check_intersection_clear(self):
         """Check if any vehicles are still crossing; clear intersection if not."""
-        # Count moving vehicles
-        moving_count = sum(1 for v in self.vehicles.values() if v.state == 'moving')
-        if moving_count == 0:
-            self._intersection_axis = None
+        return self._moving_vehicle_count == 0
     
     def _pedestrian_process(self, direction: str):
         """Spawns pedestrians for a given crosswalk direction."""
@@ -669,6 +883,7 @@ class TrafficSimulation:
                     direction=direction,
                     cross_dir=cross_dir,
                     arrive_time=self.env.now,
+                    sprite_idx=self.random.randrange(10),
                     state="waiting"
                 )
                 
@@ -676,8 +891,8 @@ class TrafficSimulation:
                 self._log(f"👤 Pedestrian #{pid} arrives at {direction} crosswalk", "gray")
                 self._emit("pedestrian_arrive", ped.to_dict())
                 
-                # Start crossing process for this pedestrian
-                self.env.process(self._cross_pedestrian(ped))
+                # Do not start an individual waiting process; controller will release pedestrians
+                # when the pedestrian walk phase begins.
 
     def _cross_pedestrian(self, ped: Pedestrian):
         """
@@ -694,54 +909,66 @@ class TrafficSimulation:
         }
         
         required_dirs = traffic_lights_to_check.get(ped.direction, ("N", "S"))
-        
-    
-        conflicting_vehicle_axis = "NS" if ped.direction in ("N", "S") else "EW"
-        
-        # Wait until it's safe to cross
-        while True:
-            if not self.running:
-                return
+        crossing_time = self.random.uniform(4.2, 5.8)
+        safety_buffer = 0.5
+        # This method is kept for backward compatibility but in the new flow the
+        # controller will call `_perform_pedestrian_crossing` directly when the
+        # pedestrian walk phase begins. We delegate to that implementation here.
+        yield from self._perform_pedestrian_crossing(ped)
 
-            # Pedestrians cross when the conflicting (perpendicular) directions are RED
-            light_safe = all(self._light_for(d) == LightColor.RED for d in required_dirs)
-            if light_safe:
-                # try to acquire crosswalk reservation
-                cw = self.pathfinder.crosswalk_nodes(ped.direction)
-                if self.intersection.reserve_crosswalk(ped.pid, cw):
-                    break
-                # otherwise wait a bit and retry
-            yield self.env.timeout(0.2)  # Check every 0.2 seconds
-        # Start crossing safely
+    def _perform_pedestrian_crossing(self, ped: Pedestrian):
+        """Advance a pedestrian across the crosswalk (no waiting)."""
+        crossing_time = self.random.uniform(4.2, 5.8)
+        safety_buffer = 0.5
+
         with self._lock:
-            ped.state = "crossing"
-            self._emit("pedestrian_move", ped.to_dict())
-        
+            if ped.state != "crossing":
+                ped.state = "crossing"
+                self._emit("pedestrian_move", ped.to_dict())
+
         self._log(f"👤 Pedestrian #{ped.pid} crossing {ped.direction} crosswalk safely", "blue")
-        
-        # Crossing takes 4-6 seconds
-        cross_time = self.random.uniform(4.0, 6.0)
-        num_steps = int(cross_time / 0.1)
-        
+
+        num_steps = max(1, int(crossing_time / 0.1))
         start_pos = 0.0 if ped.cross_dir == "left" else 100.0
-        end_pos   = 100.0 if ped.cross_dir == "left" else 0.0
+        end_pos = 100.0 if ped.cross_dir == "left" else 0.0
         for i in range(num_steps):
             yield self.env.timeout(0.1)
             with self._lock:
+                # If the pedestrian record was removed (e.g., reset/restart), abort.
+                if ped.pid not in self.pedestrians:
+                    return
                 progress = (i + 1) / num_steps
                 ped.cross_pos = start_pos + (end_pos - start_pos) * progress
-                if ped.pid in self.pedestrians:
-                    self._emit("pedestrian_move", ped.to_dict())
-        
-        # Pedestrian exits
+                self._emit("pedestrian_move", ped.to_dict())
+
         with self._lock:
             ped.state = "exited"
             self._emit("pedestrian_exit", {"pid": ped.pid})
-            # release crosswalk reservation
-            cw = self.pathfinder.crosswalk_nodes(ped.direction)
-            self.intersection.release_crosswalk(ped.pid, cw)
+            # release crosswalk reservation if held and remove pedestrian record
+            try:
+                cw = self.pathfinder.crosswalk_nodes(ped.direction)
+                self.intersection.release_crosswalk(ped.pid, cw)
+            except Exception:
+                pass
             if ped.pid in self.pedestrians:
                 del self.pedestrians[ped.pid]
+
+    def _release_all_pedestrians(self):
+        """Start crossing for all waiting pedestrians at once."""
+        with self._lock:
+            waiting = [p for p in list(self.pedestrians.values()) if p.state == "waiting"]
+        for ped in waiting:
+            # attempt to reserve crosswalk (best-effort)
+            try:
+                cw = self.pathfinder.crosswalk_nodes(ped.direction)
+                _ = self.intersection.reserve_crosswalk(ped.pid, cw)
+            except Exception:
+                pass
+            # mark as crossing and start the crossing worker
+            with self._lock:
+                ped.state = "crossing"
+                self._emit("pedestrian_move", ped.to_dict())
+            self.env.process(self._perform_pedestrian_crossing(ped))
 
     def _stats_reporter(self):
         """Emits stats snapshot every 0.5 sim-seconds."""
@@ -776,7 +1003,7 @@ class TrafficSimulation:
         self.env.process(self._stats_reporter())
         self.env.process(self._drain_queues_process())
         for d in ["N", "S", "E", "W"]:
-            offset = self.random.uniform(0, 1.5)
+            offset = self.random.uniform(0, 0.4)
             self.env.process(self._direction_spawner(d, offset))
             # Pedestrian crossing process for each direction
             self.env.process(self._pedestrian_process(d))
