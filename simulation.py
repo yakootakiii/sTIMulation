@@ -38,6 +38,123 @@ class LightColor(str, Enum):
     YELLOW = "yellow"
     RED    = "red"
 
+
+# Vehicle finite-state machine
+class VehicleState(str, Enum):
+    SPAWNING = "spawning"
+    DRIVING = "driving"
+    FOLLOWING = "following"
+    BRAKING = "braking"
+    STOPPED_AT_LIGHT = "stopped_at_light"
+    YIELDING_TO_PEDESTRIAN = "yielding_to_pedestrian"
+    TURNING_LEFT = "turning_left"
+    TURNING_RIGHT = "turning_right"
+    MERGING = "merging"
+    EMERGENCY_STOP = "emergency_stop"
+    EXITING = "exiting"
+
+
+# --- Simple modular managers for deterministic intersection control ---
+class IntersectionManager:
+    """Simple reservation-based intersection manager.
+
+    Vehicles reserve a sequence of intersection nodes before entering.
+    Reservations are exclusive and prevent overlapping paths.
+    """
+    def __init__(self):
+        # node -> vid
+        self._reserved: Dict[str, int] = {}
+        # crosswalk occupancy
+        self._crosswalks: Dict[str, int] = {}
+
+    def reserve_path(self, vid: int, nodes: List[str]) -> bool:
+        # atomic check + reserve
+        for n in nodes:
+            if n in self._reserved:
+                return False
+            if n in self._crosswalks:
+                return False
+        for n in nodes:
+            self._reserved[n] = vid
+        return True
+
+    def release_path(self, vid: int, nodes: List[str]):
+        for n in nodes:
+            if self._reserved.get(n) == vid:
+                del self._reserved[n]
+
+    def reserve_crosswalk(self, pid: int, cw_nodes: List[str]) -> bool:
+        for n in cw_nodes:
+            if n in self._reserved or n in self._crosswalks:
+                return False
+        for n in cw_nodes:
+            self._crosswalks[n] = pid
+        return True
+
+    def release_crosswalk(self, pid: int, cw_nodes: List[str]):
+        for n in cw_nodes:
+            if self._crosswalks.get(n) == pid:
+                del self._crosswalks[n]
+
+    def is_path_clear(self, nodes: List[str]) -> bool:
+        return all(n not in self._reserved and n not in self._crosswalks for n in nodes)
+
+
+class PathfindingManager:
+    """Provides abstracted path node lists for simple intersection movements.
+
+    This is intentionally lightweight: nodes are strings representing
+    intermediate tiles or entry/exit positions. It enables reservation
+    semantics without precise physics.
+    """
+    def __init__(self, lanes_per_dir: int = 2):
+        self.lanes = lanes_per_dir
+
+    def route_nodes(self, direction: str, turn: str, lane_idx: int) -> List[str]:
+        # Basic node naming to represent path through intersection
+        # Example nodes: 'entry_N_0', 'center_NS', 'exit_S_0'
+        nodes = []
+        nodes.append(f"entry_{direction}_{lane_idx}")
+        # include center tiles depending on movement
+        if turn == Turn.STRAIGHT.value:
+            nodes.append(f"center_{'NS' if direction in ('N','S') else 'EW'}")
+        elif turn == Turn.LEFT.value:
+            nodes.append(f"center_left_{direction}")
+        else:
+            nodes.append(f"center_right_{direction}")
+        # exit node based on destination direction
+        dest = self._dest_direction(direction, turn)
+        nodes.append(f"exit_{dest}_{lane_idx}")
+        return nodes
+
+    def crosswalk_nodes(self, direction: str) -> List[str]:
+        # crosswalk node naming
+        return [f"cross_{direction}_a", f"cross_{direction}_b"]
+
+    def _dest_direction(self, direction: str, turn: str) -> str:
+        if turn == Turn.STRAIGHT.value:
+            return direction
+        if turn == Turn.LEFT.value:
+            # map left turn
+            return {"N":"W","S":"E","E":"N","W":"S"}[direction]
+        # right turn
+        return {"N":"E","S":"W","E":"S","W":"N"}[direction]
+
+
+class CollisionManager:
+    """Predictive, reservation-based collision checker.
+
+    Because movement is tile/reservation-driven, collisions are prevented
+    by denying overlapping reservations. This manager supplements that
+    with simple time-to-collision heuristics for queued vehicles.
+    """
+    def __init__(self, sim: 'TrafficSimulation'):
+        self.sim = sim
+
+    def predict_no_collision(self, v: 'Vehicle', path: List[str]) -> bool:
+        # If any node in path is already reserved by another vehicle, reject
+        return self.sim.intersection.is_path_clear(path)
+
 VEHICLE_COLORS = [
     "#E24B4A","#378ADD","#639922","#EF9F27","#D4537E",
     "#7F77DD","#1D9E75","#D85A30","#BA7517","#533AB7",
@@ -73,6 +190,12 @@ class Vehicle:
     wait_start:  float = 0.0
     wait_end:    float = 0.0
     state:       str   = "queued"   # queued | moving | exited
+    # Finite state machine state (internal)
+    fsm_state:   VehicleState = VehicleState.SPAWNING
+    # Kinematic/physical approximations (meters, m/s)
+    speed:       float = 0.0
+    length:      float = 4.5
+    width:       float = 1.8
     queue_pos:   int   = 0
     lane_idx:    int   = 0
     spawn_offset: float = 0.0
@@ -90,6 +213,7 @@ class Vehicle:
             "arrive_time": round(self.arrive_time, 2),
             "wait_time": self.wait_time(),
             "state": self.state,
+            "fsm_state": self.fsm_state.value,
             "queue_pos": self.queue_pos,
             "lane_idx": self.lane_idx,
             "spawn_offset": self.spawn_offset,
@@ -188,6 +312,11 @@ class TrafficSimulation:
         
         # Intersection occupancy tracking: track which axis is in use (None, 'NS', or 'EW')
         self._intersection_axis = None  # None='free', 'NS'='N/S crossing', 'EW'='E/W crossing'
+
+        # Managers: pathfinding, intersection reservations, collision predictor
+        self.intersection = IntersectionManager()
+        self.pathfinder = PathfindingManager(lanes)
+        self.collision = CollisionManager(self)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -335,8 +464,18 @@ class TrafficSimulation:
                 # Check if this specific vehicle can go (Green or RTOR)
                 self._metrics["can_go_checks"] += 1
                 if self._can_go(v.direction, v.turn):
-                    v.releasing = True
-                    self.env.process(self._move_vehicle(v))
+                    # compute intended path and attempt reservation
+                    path = self.pathfinder.route_nodes(v.direction, v.turn, lane_idx)
+                    if not self.collision.predict_no_collision(v, path):
+                        continue
+                    # Try to reserve the path; if successful, start movement
+                    if self.intersection.reserve_path(v.vid, path):
+                        v.releasing = True
+                        v.fsm_state = VehicleState.DRIVING
+                        self.env.process(self._move_vehicle(v, path))
+                    else:
+                        # cannot reserve yet, remain queued
+                        continue
 
     def _vehicle_process(self, direction: str):
         """Spawns vehicles for a given direction continuously."""
@@ -365,11 +504,18 @@ class TrafficSimulation:
                     self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
                     continue
 
+                # Global spawn throttling if congestion is high
+                total_queued = sum(sum(len(lq) for lq in self.queues[d]) for d in self.queues)
+                if total_queued > (self._max_queue() * 2):
+                    # skip spawning to reduce congestion
+                    continue
+
                 v = Vehicle(
                     vid=vid, direction=direction, turn=turn.value,
                     color=color, arrive_time=self.env.now,
                     wait_start=self.env.now, lane_idx=lane_idx,
                     queue_pos=len(q),
+                    speed=0.0,
                     spawn_offset=offset
                 )
 
@@ -386,57 +532,65 @@ class TrafficSimulation:
                     all_ids.extend(list(lane_q))
                 self._emit("queue_update", {"direction": direction, "ids": all_ids})
 
-    def _move_vehicle(self, v: Vehicle):
-        """Process: vehicle waits for resource and moves through intersection."""
+    def _move_vehicle(self, v: Vehicle, path: Optional[List[str]] = None):
+        """Process: vehicle waits for resource and moves through intersection.
+
+        `path` is a list of reservation node names already reserved for `v`.
+        """
+        if path is None:
+            path = self.pathfinder.route_nodes(v.direction, v.turn, v.lane_idx)
+
         res = self._lane_resources[v.direction][v.lane_idx]
-        
+
         # 1. Wait for lane resource (physical space at the stop line)
         with res.request() as req:
             yield req
 
             # 2. Strict signal compliance: verify light is still legal
             if not self._can_go(v.direction, v.turn):
+                # release reservation on fail
+                self.intersection.release_path(v.vid, path)
                 v.releasing = False
                 return
-            
-            # 3. Wait until intersection is clear of cross-traffic
+
+            # 3. Wait until intersection axis aligns (avoid cross-traffic)
             my_axis = 'NS' if v.direction in ('N', 'S') else 'EW'
             while self._intersection_axis is not None and self._intersection_axis != my_axis:
-                yield self.env.timeout(0.05)  # Check every 0.05 sim-seconds
-                # Re-check light in case it changed while waiting
+                yield self.env.timeout(0.05)
                 if not self._can_go(v.direction, v.turn):
+                    self.intersection.release_path(v.vid, path)
                     v.releasing = False
                     return
 
-            # 4. Transition to moving state and remove from queue
+            # 4. Remove from queue and set moving state
             with self._lock:
                 q = self.queues[v.direction][v.lane_idx]
                 if q and q[0] == v.vid:
                     q.popleft()
-                    # Recalculate queue positions only for the affected lane
                     for pos, qvid in enumerate(q):
                         if qvid in self.vehicles:
                             self.vehicles[qvid].queue_pos = pos
-                    
-                    # Emit flattened list of IDs for the entire direction to keep frontend in sync
+
                     all_ids = []
                     for lane_q in self.queues[v.direction]:
                         all_ids.extend(list(lane_q))
                     self._emit("queue_update", {"direction": v.direction, "ids": all_ids})
 
-                v.state    = "moving"
+                v.state = "moving"
+                v.fsm_state = VehicleState.DRIVING if v.turn == Turn.STRAIGHT.value else (
+                    VehicleState.TURNING_LEFT if v.turn == Turn.LEFT.value else VehicleState.TURNING_RIGHT)
                 v.queue_pos = -1
                 v.releasing = False
                 v.wait_end = self.env.now
-                wait       = v.wait_time()
-                self.stats.total_wait  += wait
+                wait = v.wait_time()
+                self.stats.total_wait += wait
                 self.stats.total_passed += 1
-                self._intersection_axis = my_axis  # Mark intersection as occupied by this axis
+                self._intersection_axis = my_axis
                 self._emit("vehicle_move", v.to_dict())
 
             self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
 
-            # Travel through intersection
+            # Travel through intersection (time scaled)
             travel = 2.0 + self.random.uniform(0.5, 1.5)
             yield self.env.timeout(travel)
 
@@ -444,8 +598,11 @@ class TrafficSimulation:
             exit_travel = 1.0 + self.random.uniform(0.2, 0.4)
             yield self.env.timeout(exit_travel)
 
+            # release reservations and cleanup
             with self._lock:
                 v.state = "exited"
+                v.fsm_state = VehicleState.EXITING
+                self.intersection.release_path(v.vid, path)
                 # Only clear intersection if no other vehicles are crossing
                 self._check_intersection_clear()
                 self._emit("vehicle_exit", {"vid": v.vid})
@@ -467,6 +624,11 @@ class TrafficSimulation:
             yield self.env.timeout(iat)
 
             with self._lock:
+                # Throttle spawning if too many pedestrians for this crosswalk
+                existing = sum(1 for p in self.pedestrians.values() if p.direction == direction)
+                if existing >= 6:
+                    continue
+
                 pid = self._next_pid
                 self._next_pid += 1
                 
@@ -505,7 +667,11 @@ class TrafficSimulation:
         while True:
             light_safe = all(self._light_for(d) == LightColor.RED for d in required_dirs)
             if light_safe:
-                break
+                # try to acquire crosswalk reservation
+                cw = self.pathfinder.crosswalk_nodes(ped.direction)
+                if self.intersection.reserve_crosswalk(ped.pid, cw):
+                    break
+                # otherwise wait a bit and retry
             yield self.env.timeout(0.2)  # Check every 0.2 seconds
         
         # Start crossing
@@ -530,6 +696,9 @@ class TrafficSimulation:
         with self._lock:
             ped.state = "exited"
             self._emit("pedestrian_exit", {"pid": ped.pid})
+            # release crosswalk reservation
+            cw = self.pathfinder.crosswalk_nodes(ped.direction)
+            self.intersection.release_crosswalk(ped.pid, cw)
             if ped.pid in self.pedestrians:
                 del self.pedestrians[ped.pid]
 
