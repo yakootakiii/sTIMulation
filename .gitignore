@@ -41,7 +41,10 @@ docker-compose.override.yml
 node_modules/
 
 # Reports and caches
-00 Reports/
+# 00 Reports/ - Allow paper tracking
+!00 Reports/
+00 Reports/*
+!00 Reports/sTIMulation_paper.md
 
 # Misc
 __pycache__/
