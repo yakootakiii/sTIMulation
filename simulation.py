@@ -164,10 +164,17 @@ VEHICLE_COLORS = [
     "#7F77DD","#1D9E75","#D85A30","#BA7517","#533AB7",
     "#20B2AA","#FF6347","#4169E1","#32CD32","#FF8C00",
 ]
-
+ 
 SCENARIOS = {
-    "normal": {"arrival_base": 4.0,  "label": "Normal Traffic"},
-    "rush":   {"arrival_base": 1.4,  "label": "Rush Hour"},
+    # Increased spawn rate: apply half of the rush-hour increase.
+    # Rush-hour base changed from 1.4 -> 1.263 (≈ +10.85% spawn rate).
+    # Apply half that increase to normal by reducing its base by ~5.43%: 4.0 * (1 - 0.0543) ≈ 3.783.
+    "normal": {"arrival_base": 3.783,  "label": "Normal Traffic"},
+    # Tuned so expected total input rate across 4 directions ≈ 12,000 veh/hr.
+    # _arrival_rate() uses base * U where U ~ Uniform(0.5, 1.4), so E[U] = 0.95.
+    # Expected total rate = 4 * 3600 / (base * 0.95). Solve for base:
+    # base = 4 * 3600 / (12000 * 0.95) ≈ 1.263.
+    "rush":   {"arrival_base": 1.263,  "label": "Rush Hour"},
     "low":    {"arrival_base": 9.0,  "label": "Low Traffic"},
     "emergency": {"arrival_base": 0.7, "label": "Emergency Mode"},
 }
