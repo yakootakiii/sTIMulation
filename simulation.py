@@ -374,14 +374,14 @@ class TrafficSimulation:
         scenario = self.config.scenario
         if scenario == "rush":
             if direction in ("E", "W"):
-                return self.random.uniform(0.4, 1.0)
-            return self.random.uniform(1.0, 2.2)
+                return self.random.uniform(0.25, 0.6)  # Increased spawn rate (was 0.4-1.0)
+            return self.random.uniform(0.5, 1.5)  # Increased spawn rate (was 1.0-2.2)
         if scenario == "normal":
             return self.random.uniform(1.6, 4.4)
         if scenario == "low":
             return self.random.uniform(5.5, 10.5)
         if scenario == "emergency":
-            return self.random.uniform(0.25, 0.7)
+            return self.random.uniform(0.1, 0.35)  # Increased spawn rate (was 0.25-0.7)
         base = SCENARIOS[scenario]["arrival_base"]
         return base * (0.35 + self.random.random() * 0.75)
 

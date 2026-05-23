@@ -1135,16 +1135,21 @@ async function refreshSimulatorContext(){
     syncRuntimeState(status);
   }catch(e){console.warn('Failed to refresh context',e);}
 }
+
+// Restore cached config immediately on page show
+window.addEventListener('pageshow',()=>{
+  const cached=getCachedConfig();
+  if(cached){applyConfigToUI(cached);}
+  refreshSimulatorContext();
+});
 function restoreCachedConfig(){const cached=getCachedConfig();if(cached)applyConfigToUI(cached);}
 
 socket.on('connect',()=>{
   setConnBadge('connected');
   addLog({msg:'Connected to sTIMulation! 🌿',cls:'green',sim_time:0});
-  refreshSimulatorContext();
 });
 socket.on('disconnect',()=>setConnBadge('disconnected'));
 socket.on('connect_error',()=>setConnBadge('reconnecting'));
-window.addEventListener('pageshow',()=>{refreshSimulatorContext();});
 
 socket.on('stats',data=>{STATE.stats={...STATE.stats,...data};syncRuntimeState(data);anHandleStats(data);});
 socket.on('vehicles_snapshot',list=>{STATE.vehicles={};Object.keys(VIS).forEach(k=>delete VIS[k]);list.forEach(v=>{STATE.vehicles[v.vid]=v;});});
