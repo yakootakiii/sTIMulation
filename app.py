@@ -19,6 +19,8 @@ from cache_config import CACHE_CONFIG, FALLBACK_CONFIG, CACHE_RULES
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.urandom(32)
+app.config.setdefault("TEMPLATES_AUTO_RELOAD", True)
+app.jinja_env.auto_reload = True
 
 _origins = os.environ.get(
     "SOCKETIO_ALLOWED_ORIGINS",
@@ -64,6 +66,9 @@ def add_security_headers(response):
         "connect-src 'self' ws: wss:; "
         "frame-ancestors 'none'",
     )
+    if response.mimetype == "text/html":
+        response.headers.setdefault("Cache-Control", "no-store, max-age=0")
+        response.headers.setdefault("Pragma", "no-cache")
     return response
 
 @app.route("/assets/<path:filename>")

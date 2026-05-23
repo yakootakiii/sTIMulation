@@ -7,20 +7,49 @@
 <script src="/assets/vendor/socket.io.min.js"></script>
 <script src="/assets/vendor/chart.umd.min.js"></script>
 <script src="/assets/vendor/html2pdf.bundle.min.js"></script>
+
+<!-- Fallbacks (in case local assets are missing) -->
+<script>
+  (function ensureLib(src, test){
+    try{ if(test()) return; }catch(_){}
+    var s=document.createElement('script');
+    s.src=src; s.defer=false; s.async=false;
+    document.head.appendChild(s);
+  })('https://cdn.jsdelivr.net/npm/socket.io-client@4.7.4/dist/socket.io.min.js', () => typeof window.io !== 'undefined');
+
+  (function ensureLib(src, test){
+    try{ if(test()) return; }catch(_){}
+    var s=document.createElement('script');
+    s.src=src; s.defer=false; s.async=false;
+    document.head.appendChild(s);
+  })('https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js', () => typeof window.Chart !== 'undefined');
+
+  (function ensureLib(src, test){
+    try{ if(test()) return; }catch(_){}
+    var s=document.createElement('script');
+    s.src=src; s.defer=false; s.async=false;
+    document.head.appendChild(s);
+  })('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js', () => typeof window.html2pdf !== 'undefined');
+</script>
+
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:#1b1d36; --bg2:#20223a; --bg3:#252844; --bg4:#2c2f52;
-  --pink:#fca6d1; --pink-dim:#c4718f; --pink-bg:rgba(252,166,209,.10); --pink-border:rgba(252,166,209,.30);
-  --cyan:#99d7ea; --cyan-dim:#5fa8c0; --cyan-bg:rgba(153,215,234,.10); --cyan-border:rgba(153,215,234,.28);
-  --red:#f87171; --red-bg:rgba(248,113,113,.12); --red-border:rgba(248,113,113,.30);
-  --border:rgba(153,215,234,.15); --border2:rgba(153,215,234,.25);
-  --text:#e1e7ed; --text2:#a8b8cc; --text3:#6a7f96;
-  --radius:14px; --radius-sm:9px; --radius-xs:6px;
-  --glass-bg:rgba(22,24,46,.90); --glass-blur:blur(20px); --glass-border:rgba(153,215,234,.18);
-  --shadow:0 8px 32px rgba(0,0,0,.55);
-  --header-h:52px; --status-h:32px;
+  --bg:#fdf6f0; --bg2:#fef0e8; --bg3:#fde8dc; --bg4:#fcddd0;
+  --pink:#f9a8c9; --pink-dim:#e8859a; --pink-bg:rgba(249,168,201,.15); --pink-border:rgba(249,168,201,.45);
+  --cyan:#a8d8ea; --cyan-dim:#7bbdce; --cyan-bg:rgba(168,216,234,.15); --cyan-border:rgba(168,216,234,.50);
+  --mint:#b8e0cc; --mint-bg:rgba(184,224,204,.15); --mint-border:rgba(184,224,204,.45);
+  --lavender:#c9b8e8; --lavender-bg:rgba(201,184,232,.15); --lavender-border:rgba(201,184,232,.45);
+  --peach:#f7c4a0; --peach-bg:rgba(247,196,160,.15); --peach-border:rgba(247,196,160,.45);
+  --yellow:#f9e4a0; --yellow-bg:rgba(249,228,160,.15);
+  --red:#f4a0a0; --red-bg:rgba(244,160,160,.15); --red-border:rgba(244,160,160,.45);
+  --border:rgba(168,216,234,.35); --border2:rgba(168,216,234,.55);
+  --text:#4b3b60; --text2:#6f5f86; --text3:#9c8db4;
+  --radius:16px; --radius-sm:10px; --radius-xs:7px;
+  --glass-bg:rgba(253,246,240,.98); --glass-blur:blur(20px); --glass-border:rgba(249,168,201,.40);
+  --shadow:0 8px 32px rgba(200,160,180,.18);
+  --header-h:54px; --status-h:34px;
   font-family:'JetBrains Mono',monospace;
 }
 body {
@@ -29,8 +58,12 @@ body {
 }
 header {
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 20px; background:rgba(27,29,54,.98); backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--border); z-index:100; position:relative; height:var(--header-h);
+  padding:0 20px;
+  background:linear-gradient(135deg,rgba(253,246,240,.98) 0%,rgba(254,240,232,.98) 100%);
+  backdrop-filter:blur(14px);
+  border-bottom:2px solid rgba(249,168,201,.25);
+  z-index:100; position:relative; height:var(--header-h);
+  box-shadow:0 2px 16px rgba(200,160,180,.12);
 }
 .header-logo {
   display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700;
@@ -97,9 +130,9 @@ header {
 .chart-box {
   position:relative;
   height:160px;
-  background:rgba(153,215,234,.03);
+  background:rgba(253,246,240,.75);
   border-radius:var(--radius-sm);
-  border:1px solid var(--border);
+  border:1px solid var(--border2);
   /* overflow visible so Chart.js tooltip isn't clipped */
   overflow:visible;
 }
@@ -112,12 +145,12 @@ header {
 
 .kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
 .kpi-card {
-  background:rgba(153,215,234,.05); border:1px solid var(--border); border-radius:var(--radius-sm);
+  background:rgba(253,246,240,.75); border:1px solid var(--border2); border-radius:var(--radius-sm);
   padding:10px 12px; transition:all .22s cubic-bezier(.34,1.56,.64,1); cursor:default;
 }
 .kpi-card:hover {
-  background:rgba(153,215,234,.09); border-color:var(--cyan-border);
-  transform:translateY(-2px); box-shadow:0 4px 16px rgba(153,215,234,.08);
+  background:rgba(253,246,240,.88); border-color:var(--cyan-border);
+  transform:translateY(-2px); box-shadow:0 4px 16px rgba(153,215,234,.10);
 }
 .kpi-label { font-size:9px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--text3); }
 .kpi-val   { font-size:22px; font-weight:700; line-height:1.15; margin-top:4px; }
@@ -508,6 +541,20 @@ function initCharts() {
       chartsReady.phases = true;
     } catch(e) { console.error('chart-phases init failed:', e); }
   })();
+
+  /* Ensure any buffered/restored data is rendered immediately */
+  try { syncChartsFromLive(); } catch (e) { console.warn('syncChartsFromLive failed', e); }
+
+  /* Diagnostics */
+  try {
+    console.debug('[analytics] chartsReady:', JSON.stringify(chartsReady));
+    console.debug('[analytics] liveState sizes:', {
+      queuePoints: liveState.queueSeries.labels.length,
+      waitBuckets: liveState.waitBuckets,
+      throughputPoints: liveState.throughput.labels.length,
+      phaseSegments: liveState.phaseSegments.length,
+    });
+  } catch (_) {}
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -817,10 +864,6 @@ function pushCycleCount() {
 }
 
 function recordPhaseSegment(phase, simTime) {
-  const normalized = String(phase)
-    .replace('ns_left', 'ns_green')
-    .replace('ew_left', 'ew_green')
-    .replace('ped_walk', 'ns_red');
   if (liveState.lastPhase !== null && liveState.lastPhaseTime !== null) {
     const duration = Math.max(0, simTime - liveState.lastPhaseTime);
     liveState.phaseSegments.push({
@@ -830,7 +873,7 @@ function recordPhaseSegment(phase, simTime) {
     });
     if (liveState.phaseSegments.length > 200) liveState.phaseSegments.shift();
   }
-  liveState.lastPhase     = normalized;
+  liveState.lastPhase     = phase;
   liveState.lastPhaseTime = simTime;
   schedulePersist();
 }
@@ -868,7 +911,7 @@ function handleLightChange(data) {
   const simTime = data.sim_time || 0;
   session.phaseEvents.push({ phase:data.phase, sim_time:simTime });
   recordPhaseSegment(data.phase, simTime);
-  if (data.phase === 'ns_green' || data.phase === 'ew_green') pushCycleCount();
+  if (data.phase === 'ns_green') pushCycleCount();
   rebuildPhaseChart();
 }
 
@@ -943,19 +986,14 @@ function addLog(entry) {
   if (logs.length > MAX_LOGS) logs.pop();
   renderLog();
 }
-function escLog(v) {
-  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
 function renderLog() {
   if (!logs.length) {
     logScroll.innerHTML = '<div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>';
     return;
   }
-  logScroll.innerHTML = logs.map(l => {
-    const cls = ['green','yellow','red','blue','gray'].includes(l.cls) ? l.cls : 'gray';
-    return `<div class="log-entry"><span class="log-time">${escLog((l.sim_time||0).toFixed(1))}s</span><span class="log-msg c-${cls}">${escLog(l.msg)}</span></div>`;
-  }).join('');
+  logScroll.innerHTML = logs.map(l =>
+    `<div class="log-entry"><span class="log-time">${(l.sim_time||0).toFixed(1)}s</span><span class="log-msg c-${l.cls||'gray'}">${l.msg}</span></div>`
+  ).join('');
   logScroll.scrollTop = 0;
 }
 

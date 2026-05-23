@@ -1102,16 +1102,40 @@ function setConnBadge(s){
   else{el.className='pill pill-red';el.textContent='Disconnected';}
 }
 
+function getCachedConfig(){
+  try{
+    const raw=localStorage.getItem('stimulation:lastConfig');
+    return raw?JSON.parse(raw):null;
+  }catch(e){return null;}
+}
+function setCachedConfig(cfg){
+  try{if(cfg)localStorage.setItem('stimulation:lastConfig',JSON.stringify(cfg));}catch(e){}
+}
+
 async function refreshSimulatorContext(){
   try{
-    const[sr,cr]=await Promise.all([fetch('/api/status'),fetch('/api/config')]);
-    if(!sr.ok||!cr.ok)return;
-    const[status,config]=await Promise.all([sr.json(),cr.json()]);
-    applyConfigToUI(config);
+    const sr=await fetch('/api/status');
+    if(!sr.ok)return;
+    const status=await sr.json();
+    const cached=getCachedConfig();
+
+    if(cached && !status.running){
+      applyConfigToUI(cached);
+      syncRuntimeState(status);
+      return;
+    }
+
+    const cr=await fetch('/api/config');
+    if(cr.ok){
+      const config=await cr.json();
+      const merged=cached?{...cached,...config}:config;
+      applyConfigToUI(merged);
+      setCachedConfig(merged);
+    }
     syncRuntimeState(status);
   }catch(e){console.warn('Failed to refresh context',e);}
 }
-function restoreCachedConfig(){try{const c=localStorage.getItem('stimulation:lastConfig');if(c)applyConfigToUI(JSON.parse(c));}catch(e){}}
+function restoreCachedConfig(){const cached=getCachedConfig();if(cached)applyConfigToUI(cached);}
 
 socket.on('connect',()=>{
   setConnBadge('connected');
@@ -1120,7 +1144,7 @@ socket.on('connect',()=>{
 });
 socket.on('disconnect',()=>setConnBadge('disconnected'));
 socket.on('connect_error',()=>setConnBadge('reconnecting'));
-window.addEventListener('pageshow',()=>{restoreCachedConfig();refreshSimulatorContext();});
+window.addEventListener('pageshow',()=>{refreshSimulatorContext();});
 
 socket.on('stats',data=>{STATE.stats={...STATE.stats,...data};syncRuntimeState(data);anHandleStats(data);});
 socket.on('vehicles_snapshot',list=>{STATE.vehicles={};Object.keys(VIS).forEach(k=>delete VIS[k]);list.forEach(v=>{STATE.vehicles[v.vid]=v;});});
