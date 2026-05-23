@@ -4,52 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sTIMulation - Analytics Dashboard</title>
-<script src="/assets/vendor/socket.io.min.js"></script>
-<script src="/assets/vendor/chart.umd.min.js"></script>
-<script src="/assets/vendor/html2pdf.bundle.min.js"></script>
-
-<!-- Fallbacks (in case local assets are missing) -->
-<script>
-  (function ensureLib(src, test){
-    try{ if(test()) return; }catch(_){}
-    var s=document.createElement('script');
-    s.src=src; s.defer=false; s.async=false;
-    document.head.appendChild(s);
-  })('https://cdn.jsdelivr.net/npm/socket.io-client@4.7.4/dist/socket.io.min.js', () => typeof window.io !== 'undefined');
-
-  (function ensureLib(src, test){
-    try{ if(test()) return; }catch(_){}
-    var s=document.createElement('script');
-    s.src=src; s.defer=false; s.async=false;
-    document.head.appendChild(s);
-  })('https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js', () => typeof window.Chart !== 'undefined');
-
-  (function ensureLib(src, test){
-    try{ if(test()) return; }catch(_){}
-    var s=document.createElement('script');
-    s.src=src; s.defer=false; s.async=false;
-    document.head.appendChild(s);
-  })('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js', () => typeof window.html2pdf !== 'undefined');
-</script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:#fdf6f0; --bg2:#fef0e8; --bg3:#fde8dc; --bg4:#fcddd0;
-  --pink:#f9a8c9; --pink-dim:#e8859a; --pink-bg:rgba(249,168,201,.15); --pink-border:rgba(249,168,201,.45);
-  --cyan:#a8d8ea; --cyan-dim:#7bbdce; --cyan-bg:rgba(168,216,234,.15); --cyan-border:rgba(168,216,234,.50);
-  --mint:#b8e0cc; --mint-bg:rgba(184,224,204,.15); --mint-border:rgba(184,224,204,.45);
-  --lavender:#c9b8e8; --lavender-bg:rgba(201,184,232,.15); --lavender-border:rgba(201,184,232,.45);
-  --peach:#f7c4a0; --peach-bg:rgba(247,196,160,.15); --peach-border:rgba(247,196,160,.45);
-  --yellow:#f9e4a0; --yellow-bg:rgba(249,228,160,.15);
-  --red:#f4a0a0; --red-bg:rgba(244,160,160,.15); --red-border:rgba(244,160,160,.45);
-  --border:rgba(168,216,234,.35); --border2:rgba(168,216,234,.55);
-  --text:#4b3b60; --text2:#6f5f86; --text3:#9c8db4;
-  --radius:16px; --radius-sm:10px; --radius-xs:7px;
-  --glass-bg:rgba(253,246,240,.98); --glass-blur:blur(20px); --glass-border:rgba(249,168,201,.40);
-  --shadow:0 8px 32px rgba(200,160,180,.18);
-  --header-h:54px; --status-h:34px;
+  --bg:#1b1d36; --bg2:#20223a; --bg3:#252844; --bg4:#2c2f52;
+  --pink:#fca6d1; --pink-dim:#c4718f; --pink-bg:rgba(252,166,209,.10); --pink-border:rgba(252,166,209,.30);
+  --cyan:#99d7ea; --cyan-dim:#5fa8c0; --cyan-bg:rgba(153,215,234,.10); --cyan-border:rgba(153,215,234,.28);
+  --red:#f87171; --red-bg:rgba(248,113,113,.12); --red-border:rgba(248,113,113,.30);
+  --border:rgba(153,215,234,.15); --border2:rgba(153,215,234,.25);
+  --text:#e1e7ed; --text2:#a8b8cc; --text3:#6a7f96;
+  --radius:14px; --radius-sm:9px; --radius-xs:6px;
+  --glass-bg:rgba(22,24,46,.90); --glass-blur:blur(20px); --glass-border:rgba(153,215,234,.18);
+  --shadow:0 8px 32px rgba(0,0,0,.55);
+  --header-h:52px; --status-h:32px;
   font-family:'JetBrains Mono',monospace;
 }
 body {
@@ -58,12 +29,8 @@ body {
 }
 header {
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 20px;
-  background:linear-gradient(135deg,rgba(253,246,240,.98) 0%,rgba(254,240,232,.98) 100%);
-  backdrop-filter:blur(14px);
-  border-bottom:2px solid rgba(249,168,201,.25);
-  z-index:100; position:relative; height:var(--header-h);
-  box-shadow:0 2px 16px rgba(200,160,180,.12);
+  padding:0 20px; background:rgba(27,29,54,.98); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border); z-index:100; position:relative; height:var(--header-h);
 }
 .header-logo {
   display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700;
@@ -130,9 +97,9 @@ header {
 .chart-box {
   position:relative;
   height:160px;
-  background:rgba(253,246,240,.75);
+  background:rgba(153,215,234,.03);
   border-radius:var(--radius-sm);
-  border:1px solid var(--border2);
+  border:1px solid var(--border);
   /* overflow visible so Chart.js tooltip isn't clipped */
   overflow:visible;
 }
@@ -145,12 +112,12 @@ header {
 
 .kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
 .kpi-card {
-  background:rgba(253,246,240,.75); border:1px solid var(--border2); border-radius:var(--radius-sm);
+  background:rgba(153,215,234,.05); border:1px solid var(--border); border-radius:var(--radius-sm);
   padding:10px 12px; transition:all .22s cubic-bezier(.34,1.56,.64,1); cursor:default;
 }
 .kpi-card:hover {
-  background:rgba(253,246,240,.88); border-color:var(--cyan-border);
-  transform:translateY(-2px); box-shadow:0 4px 16px rgba(153,215,234,.10);
+  background:rgba(153,215,234,.09); border-color:var(--cyan-border);
+  transform:translateY(-2px); box-shadow:0 4px 16px rgba(153,215,234,.08);
 }
 .kpi-label { font-size:9px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--text3); }
 .kpi-val   { font-size:22px; font-weight:700; line-height:1.15; margin-top:4px; }
@@ -541,20 +508,6 @@ function initCharts() {
       chartsReady.phases = true;
     } catch(e) { console.error('chart-phases init failed:', e); }
   })();
-
-  /* Ensure any buffered/restored data is rendered immediately */
-  try { syncChartsFromLive(); } catch (e) { console.warn('syncChartsFromLive failed', e); }
-
-  /* Diagnostics */
-  try {
-    console.debug('[analytics] chartsReady:', JSON.stringify(chartsReady));
-    console.debug('[analytics] liveState sizes:', {
-      queuePoints: liveState.queueSeries.labels.length,
-      waitBuckets: liveState.waitBuckets,
-      throughputPoints: liveState.throughput.labels.length,
-      phaseSegments: liveState.phaseSegments.length,
-    });
-  } catch (_) {}
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -986,14 +939,19 @@ function addLog(entry) {
   if (logs.length > MAX_LOGS) logs.pop();
   renderLog();
 }
+function escLog(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function renderLog() {
   if (!logs.length) {
     logScroll.innerHTML = '<div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>';
     return;
   }
-  logScroll.innerHTML = logs.map(l =>
-    `<div class="log-entry"><span class="log-time">${(l.sim_time||0).toFixed(1)}s</span><span class="log-msg c-${l.cls||'gray'}">${l.msg}</span></div>`
-  ).join('');
+  logScroll.innerHTML = logs.map(l => {
+    const cls = ['green','yellow','red','blue','gray'].includes(l.cls) ? l.cls : 'gray';
+    return `<div class="log-entry"><span class="log-time">${escLog((l.sim_time||0).toFixed(1))}s</span><span class="log-msg c-${cls}">${escLog(l.msg)}</span></div>`;
+  }).join('');
   logScroll.scrollTop = 0;
 }
 
@@ -1005,168 +963,12 @@ function escHtml(v) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function percentile(sorted, p) {
-  if (!sorted.length) return 0;
-  const idx = (sorted.length - 1) * p;
-  const lo = Math.floor(idx);
-  const hi = Math.ceil(idx);
-  if (lo === hi) return sorted[lo];
-  const w = idx - lo;
-  return sorted[lo] * (1 - w) + sorted[hi] * w;
-}
-
-function computeSessionTables() {
-  const s = session?.statsSummary || {};
-  const queues = session?.queueSnapshots || [];
-  const veh = session?.vehicleEvents || [];
-
-  const simTime = Number(s.sim_time ?? 0) || 0; // seconds
-  const cycles = Number(s.cycles ?? 0) || 0;
-  const totalPassed = Number(s.total_passed ?? 0) || veh.length || 0;
-  const avgWait = Number(s.avg_wait ?? 0) || 0;
-  const throughputVph = simTime > 0 ? (totalPassed / simTime) * 3600 : 0;
-
-  // wait samples
-  const waitSamples = veh
-    .map(v => Number(v.wait_time))
-    .filter(v => Number.isFinite(v) && v >= 0)
-    .sort((a,b) => a-b);
-
-  const medianWait = percentile(waitSamples, 0.5);
-  const p90Wait = percentile(waitSamples, 0.9);
-  const maxWait = waitSamples.length ? waitSamples[waitSamples.length - 1] : 0;
-  const avgWaitSample = waitSamples.length ? (waitSamples.reduce((a,b)=>a+b,0) / waitSamples.length) : 0;
-
-  // queue snapshots
-  const totals = queues.map(q => (q.N||0) + (q.S||0) + (q.E||0) + (q.W||0));
-  const maxQueue = totals.length ? Math.max(...totals) : 0;
-  const avgQueue = totals.length ? (totals.reduce((a,b)=>a+b,0) / totals.length) : 0;
-
-  const resultsTable = [{
-    scenario: (session?.config?.scenario ?? 'session'),
-    total_passed: totalPassed,
-    avg_wait_s: avgWait,
-    cycles,
-    throughput_veh_hr: throughputVph,
-    wait_samples: waitSamples.length,
-    avg_wait_sample_s: avgWaitSample,
-  }];
-
-  const queueWaitSummaryTable = [{
-    scenario: (session?.config?.scenario ?? 'session'),
-    max_queue: maxQueue,
-    avg_queue: avgQueue,
-    median_wait_s: medianWait,
-    p90_wait_s: p90Wait,
-    max_wait_s: maxWait,
-  }];
-
-  return { resultsTable, queueWaitSummaryTable };
-}
-
-function toFixedOr0(n, d=2) {
-  const v = Number(n);
-  return Number.isFinite(v) ? v.toFixed(d) : (0).toFixed(d);
-}
-
-function tablesToCsv(tables) {
-  const { resultsTable, queueWaitSummaryTable } = tables;
-  const lines = [];
-
-  lines.push('Results Table');
-  lines.push('Scenario,Total Passed,Avg Wait (s),Cycles,Throughput (veh/hr),Wait Samples,Avg Wait (sample)');
-  resultsTable.forEach(r => {
-    lines.push([
-      r.scenario,
-      r.total_passed,
-      toFixedOr0(r.avg_wait_s, 2),
-      r.cycles,
-      toFixedOr0(r.throughput_veh_hr, 2),
-      r.wait_samples,
-      toFixedOr0(r.avg_wait_sample_s, 4),
-    ].join(','));
-  });
-
-  lines.push('');
-  lines.push('Queue and Wait Summary');
-  lines.push('Scenario,Max Queue,Avg Queue,Median Wait (s),90th Percentile Wait (s),Max Wait (s)');
-  queueWaitSummaryTable.forEach(r => {
-    lines.push([
-      r.scenario,
-      r.max_queue,
-      toFixedOr0(r.avg_queue, 2),
-      toFixedOr0(r.median_wait_s, 2),
-      toFixedOr0(r.p90_wait_s, 2),
-      toFixedOr0(r.max_wait_s, 2),
-    ].join(','));
-  });
-
-  return lines.join('\n');
-}
-
-function tablesToHtml(tables) {
-  const { resultsTable, queueWaitSummaryTable } = tables;
-  const esc = escHtml;
-
-  const resultsRows = resultsTable.map(r => `
-    <tr>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(r.scenario)}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(r.total_passed)}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(toFixedOr0(r.avg_wait_s,2))}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(r.cycles)}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(toFixedOr0(r.throughput_veh_hr,2))}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(r.wait_samples)}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(toFixedOr0(r.avg_wait_sample_s,4))}</td>
-    </tr>`).join('');
-
-  const queueRows = queueWaitSummaryTable.map(r => `
-    <tr>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(r.scenario)}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(r.max_queue)}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(toFixedOr0(r.avg_queue,2))}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(toFixedOr0(r.median_wait_s,2))}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(toFixedOr0(r.p90_wait_s,2))}</td>
-      <td style="border:1px solid #cbd5e1;padding:6px 8px">${esc(toFixedOr0(r.max_wait_s,2))}</td>
-    </tr>`).join('');
-
-  return `
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Results Table</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:11px">
-      <tr>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Scenario</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Total Passed</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Avg Wait (s)</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Cycles</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Throughput (veh/hr)</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Wait Samples</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Avg Wait (sample)</th>
-      </tr>
-      ${resultsRows || ''}
-    </table>
-
-    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Queue and Wait Summary</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:11px">
-      <tr>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Scenario</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Max Queue</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Avg Queue</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Median Wait (s)</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">90th Percentile Wait (s)</th>
-        <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Max Wait (s)</th>
-      </tr>
-      ${queueRows || ''}
-    </table>`;
-}
-
 function exportJson() {
-  const tables = computeSessionTables();
   dl(new Blob([JSON.stringify({
     session_id:     session.id,
     exported_at:    new Date().toISOString(),
     config:         session.config || {},
     summary:        session.statsSummary || {},
-    results_table:  tables.resultsTable,
-    queue_wait_summary: tables.queueWaitSummaryTable,
     queue_history:  session.queueSnapshots || [],
     phase_events:   session.phaseEvents || [],
     vehicle_events: session.vehicleEvents || [],
@@ -1174,14 +976,14 @@ function exportJson() {
 }
 
 function exportCsv() {
-  const tables = computeSessionTables();
-  dl(new Blob([tablesToCsv(tables)], { type:'text/csv' }), `stimulation_summary_${Date.now()}.csv`);
+  const rows = ['sim_time,queue_N,queue_S,queue_E,queue_W'];
+  (session.queueSnapshots||[]).forEach(r => rows.push(`${r.sim_time},${r.N},${r.S},${r.E},${r.W}`));
+  dl(new Blob([rows.join('\n')], { type:'text/csv' }), `stimulation_queues_${Date.now()}.csv`);
 }
 
 function exportPdf() {
   const s   = session.statsSummary || {};
   const cfg = session.config || {};
-  const tables = computeSessionTables();
   const imgs = {
     queues:     chartsReady.queues     ? charts.queues.toBase64Image()     : null,
     waits:      chartsReady.waits      ? charts.waits.toBase64Image()      : null,
@@ -1192,30 +994,27 @@ function exportPdf() {
     ? `<div><div style="font-size:12px;color:#475569;margin-bottom:6px">${label}</div><img src="${imgs[key]}" style="width:100%;border:1px solid #e2e8f0;border-radius:6px"/></div>`
     : '';
   const report = document.createElement('div');
-  report.style.cssText = "font-family:'JetBrains Mono',monospace;color:#1b1d36;padding:16px";
+  report.style.cssText = "font-family:'JetBrains Mono',monospace;color:#1b1d36;padding:24px";
   report.innerHTML = `
-    <h1 style="margin:0 0 4px;font-size:16px">sTIMulation Session Report</h1>
-    <div style="font-size:10px;color:#64748b;margin-bottom:8px">
+    <h1 style="margin:0 0 6px;font-size:20px">sTIMulation Session Report</h1>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px">
       Session ID: <strong>${escHtml(session.id)}</strong> · Exported: ${escHtml(new Date().toISOString())}
     </div>
-    <h2 style="font-size:12px;margin:10px 0 4px;color:#334155">Summary</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px">
-      <div style="border:1px solid #e2e8f0;padding:6px;border-radius:6px;background:#f8fafc">Total Passed: <b>${escHtml(s.total_passed??0)}</b></div>
-      <div style="border:1px solid #e2e8f0;padding:6px;border-radius:6px;background:#f8fafc">Avg Wait: <b>${escHtml((s.avg_wait??0).toFixed(2))}</b>s</div>
-      <div style="border:1px solid #e2e8f0;padding:6px;border-radius:6px;background:#f8fafc">Cycles: <b>${escHtml(s.cycles??0)}</b></div>
-      <div style="border:1px solid #e2e8f0;padding:6px;border-radius:6px;background:#f8fafc">Sim Time: <b>${escHtml(s.sim_time??0)}</b>s</div>
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Summary</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Total Passed: <b>${escHtml(s.total_passed??0)}</b></div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Avg Wait: <b>${escHtml((s.avg_wait??0).toFixed(2))}</b>s</div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Cycles: <b>${escHtml(s.cycles??0)}</b></div>
+      <div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px;background:#f8fafc">Sim Time: <b>${escHtml(s.sim_time??0)}</b>s</div>
     </div>
-    <h2 style="font-size:12px;margin:10px 0 4px;color:#334155">Configuration</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:10px">
-      <tr><th style="text-align:left;border:1px solid #cbd5e1;padding:4px 6px;background:#f1f5f9">Key</th>
-          <th style="text-align:left;border:1px solid #cbd5e1;padding:4px 6px;background:#f1f5f9">Value</th></tr>
-      ${Object.keys(cfg).map(k=>`<tr><td style="border:1px solid #cbd5e1;padding:4px 6px">${escHtml(k)}</td><td style="border:1px solid #cbd5e1;padding:4px 6px">${escHtml(cfg[k])}</td></tr>`).join('')||'<tr><td colspan="2" style="border:1px solid #cbd5e1;padding:4px 6px">No config data</td></tr>'}
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Configuration</h2>
+    <table style="border-collapse:collapse;width:100%;font-size:12px">
+      <tr><th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Key</th>
+          <th style="text-align:left;border:1px solid #cbd5e1;padding:6px 8px;background:#f1f5f9">Value</th></tr>
+      ${Object.keys(cfg).map(k=>`<tr><td style="border:1px solid #cbd5e1;padding:6px 8px">${escHtml(k)}</td><td style="border:1px solid #cbd5e1;padding:6px 8px">${escHtml(cfg[k])}</td></tr>`).join('')||'<tr><td colspan="2" style="border:1px solid #cbd5e1;padding:6px 8px">No config data</td></tr>'}
     </table>
-
-    ${tablesToHtml(tables)}
-
-    <h2 style="font-size:12px;margin:10px 0 4px;color:#334155">Charts</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <h2 style="font-size:14px;margin:18px 0 6px;color:#334155">Charts</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       ${img('queues','Queue Lengths Over Time')}
       ${img('waits','Wait Distribution')}
       ${img('throughput','Vehicles Per Cycle')}

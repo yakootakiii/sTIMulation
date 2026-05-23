@@ -32,6 +32,7 @@ class Phase(str, Enum):
     EW_GREEN  = "ew_green"
     EW_YELLOW = "ew_yellow"
     EW_RED    = "ew_red"
+    
 
 class LightColor(str, Enum):
     GREEN  = "green"
@@ -478,19 +479,27 @@ class TrafficSimulation:
                         continue
 
     def _vehicle_process(self, direction: str):
-        """Spawns vehicles for a given direction continuously."""
+        """Spawns vehicles for a given direction continuously with lane assignment discipline."""
         while True:
             iat = self._arrival_rate()
             yield self.env.timeout(iat)
 
             with self._lock:
-                # All state updates must be atomic to ensure arrival order == queue order
                 vid  = self._next_vid; self._next_vid += 1
                 turn = self.random.choice(list(Turn))
                 color = self.random.choice(VEHICLE_COLORS)
                 lanes = self._lanes_per_dir()
                 
-                lane_idx = self._lane_counters[direction] % lanes
+                # Enforce outer lane discipline for right turns
+                if turn == Turn.RIGHT:
+                    lane_idx = lanes - 1  # Always assign to the rightmost / outer lane
+                else:
+                    # Straight and left-turning vehicles distribute among the remaining inner lanes
+                    if lanes > 1:
+                        lane_idx = self._lane_counters[direction] % (lanes - 1)
+                    else:
+                        lane_idx = 0
+                
                 self._lane_counters[direction] += 1
 
                 # Calculate spawn offset (e.g., -250 for N/W, +250 for S/E)
@@ -498,7 +507,7 @@ class TrafficSimulation:
 
                 q = self.queues[direction][lane_idx]
                 
-                # Check lane capacity
+                # Check lane capacity for this specific lane
                 if len(q) >= (self._max_queue() // lanes):
                     self._log(f"🚫 Car #{vid} diverted — {direction} lane {lane_idx} full", "red")
                     self._emit("vehicle_diverted", {"vid": vid, "direction": direction})
@@ -522,11 +531,10 @@ class TrafficSimulation:
                 self.vehicles[vid] = v
                 q.append(vid)
                 
-                self._log(f"🚗 Car #{vid} arrives {direction}→{turn.value}", "gray")
+                self._log(f"🚗 Car #{vid} arrives {direction}→{turn.value} assigned to Lane {lane_idx}", "gray")
                 self._emit("vehicle_arrive", v.to_dict())
                 self._emit("vehicle_queued", v.to_dict())
                 
-                # Emit flattened list of IDs for the entire direction to keep frontend in sync
                 all_ids = []
                 for lane_q in self.queues[direction]:
                     all_ids.extend(list(lane_q))
@@ -552,16 +560,35 @@ class TrafficSimulation:
                 self.intersection.release_path(v.vid, path)
                 v.releasing = False
                 return
-
             # 3. Wait until intersection axis aligns (avoid cross-traffic)
             my_axis = 'NS' if v.direction in ('N', 'S') else 'EW'
-            while self._intersection_axis is not None and self._intersection_axis != my_axis:
+            perpendicular_axis = 'EW' if my_axis == 'NS' else 'NS'
+
+            while True:
+                with self._lock:
+                    current_axis = self._intersection_axis
+
+                # If the intersection is free, or it matches our axis, we can proceed
+                if current_axis is None or current_axis == my_axis:
+                    break
+
+                # SPECIAL SAFETY FOR RIGHT TURNS ON RED:
+                # Allow RTOR only if there are no vehicles actively traveling on the perpendicular axis.
+                if v.turn == Turn.RIGHT.value and self._light_for(v.direction) == LightColor.RED:
+                    if current_axis == perpendicular_axis:
+                        yield self.env.timeout(0.05)
+                        if not self._can_go(v.direction, v.turn):
+                            self.intersection.release_path(v.vid, path)
+                            v.releasing = False
+                            return
+                        continue
+
+                # Otherwise wait a short time and re-check
                 yield self.env.timeout(0.05)
                 if not self._can_go(v.direction, v.turn):
                     self.intersection.release_path(v.vid, path)
                     v.releasing = False
                     return
-
             # 4. Remove from queue and set moving state
             with self._lock:
                 q = self.queues[v.direction][v.lane_idx]
@@ -570,7 +597,6 @@ class TrafficSimulation:
                     for pos, qvid in enumerate(q):
                         if qvid in self.vehicles:
                             self.vehicles[qvid].queue_pos = pos
-
                     all_ids = []
                     for lane_q in self.queues[v.direction]:
                         all_ids.extend(list(lane_q))
@@ -585,10 +611,13 @@ class TrafficSimulation:
                 wait = v.wait_time()
                 self.stats.total_wait += wait
                 self.stats.total_passed += 1
-                self._intersection_axis = my_axis
+
+                # Right turns in the outer lane shouldn't steal the axis lock unless the axis is free
+                if self._intersection_axis is None:
+                    self._intersection_axis = my_axis
                 self._emit("vehicle_move", v.to_dict())
 
-            self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears — waited {wait:.1f}s", "blue")
+            self._log(f"✅ Car #{v.vid} ({v.direction}→{v.turn}) clears via outer lane — waited {wait:.1f}s", "blue")
 
             # Travel through intersection (time scaled)
             travel = 2.0 + self.random.uniform(0.5, 1.5)
@@ -651,20 +680,30 @@ class TrafficSimulation:
                 self.env.process(self._cross_pedestrian(ped))
 
     def _cross_pedestrian(self, ped: Pedestrian):
-        """Pedestrian crossing logic: wait for safe crossing (perpendicular traffic light red)."""
-        # Determine which light the pedestrian needs to cross
-        # N/S crosswalks cross when E/W traffic is red, E/W crosswalks cross when N/S traffic is red
-        can_cross_directions = {
-            "N": ("E", "W"),  # N/S crosswalk: cross when E/W red
-            "S": ("E", "W"),
-            "E": ("N", "S"),  # E/W crosswalk: cross when N/S red
-            "W": ("N", "S"),
+        """
+        Pedestrian crossing logic: Wait until their parallel traffic light is green 
+        AND no conflicting vehicles from the perpendicular axis are blocking the box.
+        """
+        # CORRECTED MAPPING: 
+        # Pedestrians walking along the E/W crosswalks move WITH E/W traffic.
+        traffic_lights_to_check = {
+            "N": ("E", "W"),  # E crosswalk obeys E/W lights
+            "S": ("E", "W"),  # W crosswalk obeys E/W lights
+            "E": ("N", "S"),  # N crosswalk obeys N/S lights
+            "W": ("N", "S"),  # S crosswalk obeys N/S lights
         }
         
-        required_dirs = can_cross_directions.get(ped.direction, ("N", "S"))
+        required_dirs = traffic_lights_to_check.get(ped.direction, ("N", "S"))
+        
+    
+        conflicting_vehicle_axis = "NS" if ped.direction in ("N", "S") else "EW"
         
         # Wait until it's safe to cross
         while True:
+            if not self.running:
+                return
+
+            # Pedestrians cross when the conflicting (perpendicular) directions are RED
             light_safe = all(self._light_for(d) == LightColor.RED for d in required_dirs)
             if light_safe:
                 # try to acquire crosswalk reservation
@@ -673,22 +712,24 @@ class TrafficSimulation:
                     break
                 # otherwise wait a bit and retry
             yield self.env.timeout(0.2)  # Check every 0.2 seconds
-        
-        # Start crossing
+        # Start crossing safely
         with self._lock:
             ped.state = "crossing"
             self._emit("pedestrian_move", ped.to_dict())
         
-        self._log(f"👤 Pedestrian #{ped.pid} crossing {ped.direction} crosswalk", "blue")
+        self._log(f"👤 Pedestrian #{ped.pid} crossing {ped.direction} crosswalk safely", "blue")
         
         # Crossing takes 4-6 seconds
         cross_time = self.random.uniform(4.0, 6.0)
         num_steps = int(cross_time / 0.1)
         
+        start_pos = 0.0 if ped.cross_dir == "left" else 100.0
+        end_pos   = 100.0 if ped.cross_dir == "left" else 0.0
         for i in range(num_steps):
             yield self.env.timeout(0.1)
             with self._lock:
-                ped.cross_pos = (i + 1) / num_steps * 100.0
+                progress = (i + 1) / num_steps
+                ped.cross_pos = start_pos + (end_pos - start_pos) * progress
                 if ped.pid in self.pedestrians:
                     self._emit("pedestrian_move", ped.to_dict())
         

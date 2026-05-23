@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>sTIMulation - Cozy Traffic Simulator</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sTIMulation - Cozy Traffic Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg:#fdf6f0; --bg2:#fef0e8; --bg3:#fde8dc; --bg4:#fcddd0;
@@ -48,7 +48,7 @@ header {
 .pill-red    { color:#d47878; border-color:var(--red-border);     background:var(--red-bg); }
 .pill-blue   { color:var(--cyan-dim); border-color:var(--cyan-border); background:var(--cyan-bg); }
 .pill-gray   { color:var(--text2); border-color:var(--border2); background:rgba(168,216,234,.08); }
-#canvas-wrap { position:relative; background:#cbe4c2; overflow:hidden; width:100%; height:100%; min-height:0; }
+#canvas-wrap { position:relative; overflow:hidden; width:100%; height:100%; min-height:0; }
 canvas#c { display:block; position:absolute; top:0; left:0; }
 #status-bar {
   position:absolute; bottom:0; left:0; right:0; height:var(--status-h);
@@ -136,155 +136,152 @@ select option { background:var(--bg2); }
 .sess-label { font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
 .sess-val { font-size:12px; font-weight:700; color:var(--lavender); margin-top:3px; word-break:break-all; }
 @media(max-width:700px) { :root{--panel-w:calc(100vw - 32px)} .header-center{display:none} }
-</style>
-</head>
-<body>
+    </style>
+  </head>
+  <body>
 
-<header>
-  <div class="header-logo">
-    <svg viewBox="0 0 26 26" fill="none">
-      <rect x="10" y="0" width="6" height="26" rx="2" fill="rgba(168,216,234,.30)"/>
-      <rect x="0" y="10" width="26" height="6" rx="2" fill="rgba(168,216,234,.30)"/>
-      <rect x="10" y="0" width="6" height="10" rx="2" fill="#a8d8ea" opacity=".9"/>
-      <rect x="16" y="10" width="10" height="6" rx="2" fill="#f9a8c9" opacity=".9"/>
-      <rect x="10" y="16" width="6" height="10" rx="2" fill="#f9a8c9" opacity=".9"/>
-      <rect x="0"  y="10" width="10" height="6" rx="2" fill="#a8d8ea" opacity=".9"/>
-      <circle cx="13" cy="13" r="3.5" fill="#fdf6f0"/>
-    </svg>
-    sTIMulation
-  </div>
-  <div class="header-center">4-way Intersection Traffic Simulation</div>
-  <div class="header-right">
-    <span id="hdr-scenario" class="pill pill-blue">Normal</span>
-    <span id="hdr-phase"    class="pill pill-green">N-S Green</span>
-    <span id="hdr-cycles"   class="pill pill-gray">Cycle 0</span>
-    <span id="hdr-time"     class="pill pill-gray">T = 0.0s</span>
-    <span id="hdr-conn"     class="pill pill-red">Disconnected</span>
-  </div>
-</header>
-
-<div id="canvas-wrap">
-  <canvas id="c"></canvas>
-
-  <div id="status-bar">
-    <div class="sb-item"><div class="sb-dot" style="background:#6abf8a"></div>N-S: <span id="sb-ns" style="color:#6abf8a;font-weight:700">GREEN</span></div>
-    <div class="sb-item"><div class="sb-dot" style="background:#d47878"></div>E-W: <span id="sb-ew" style="color:#d47878;font-weight:700">RED</span></div>
-    <div class="sb-item">Active: <b id="sb-active" style="color:var(--text)">0</b></div>
-    <div class="sb-item">N+S: <b id="sb-ns-q" style="color:var(--cyan-dim)">0</b></div>
-    <div class="sb-item">E+W: <b id="sb-ew-q" style="color:var(--pink-dim)">0</b></div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      Phase:
-      <div style="width:110px;height:4px;background:rgba(168,216,234,.20);border-radius:2px;overflow:hidden">
-        <div id="phase-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#6abf8a,#a8d8ea);transition:width .3s;border-radius:2px"></div>
+    <header>
+      <div class="header-logo">
+        <svg viewBox="0 0 26 26" fill="none">
+          <rect x="10" y="0" width="6" height="26" rx="2" fill="rgba(168,216,234,.30)"/>
+          <rect x="0" y="10" width="26" height="6" rx="2" fill="rgba(168,216,234,.30)"/>
+          <rect x="10" y="0" width="6" height="10" rx="2" fill="#a8d8ea" opacity=".9"/>
+          <rect x="16" y="10" width="10" height="6" rx="2" fill="#f9a8c9" opacity=".9"/>
+          <rect x="10" y="16" width="6" height="10" rx="2" fill="#f9a8c9" opacity=".9"/>
+          <rect x="0"  y="10" width="10" height="6" rx="2" fill="#a8d8ea" opacity=".9"/>
+          <circle cx="13" cy="13" r="3.5" fill="#fdf6f0"/>
+        </svg>
+        sTIMulation
       </div>
-      <span id="phase-label" style="color:var(--text3);font-size:10px">NS GREEN</span>
-    </div>
-    <button onclick="resetView()"
-      style="padding:2px 10px;font-size:10px;background:rgba(168,216,234,.12);color:var(--text2);border:1.5px solid var(--border2);border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .18s;margin-left:8px"
-      onmouseover="this.style.color='var(--cyan-dim)';this.style.borderColor='var(--cyan-border)'"
-      onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">Reset View</button>
-  </div>
+      <div class="header-center">4-way Intersection Traffic Simulation</div>
+      <div class="header-right">
+        <span id="hdr-scenario" class="pill pill-blue">Normal</span>
+        <span id="hdr-phase"    class="pill pill-green">N-S Green</span>
+        <span id="hdr-cycles"   class="pill pill-gray">Cycle 0</span>
+        <span id="hdr-time"     class="pill pill-gray">T = 0.0s</span>
+        <span id="hdr-conn"     class="pill pill-red">Disconnected</span>
+      </div>
+    </header>
 
-  <div id="zoom-group">
-    <button class="fab fab-zoom" title="Zoom Out" id="btn-zoom-out">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-    </button>
-    <button class="fab fab-zoom" title="Zoom In" id="btn-zoom-in">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-    </button>
-  </div>
+    <div id="canvas-wrap">
+      <canvas id="c"></canvas>
 
-  <div id="fab-group">
-    <button class="fab fab-analytics" id="fab-analytics-btn" title="Analytics Panel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    </button>
-    <button class="fab fab-controls" id="fab-controls-btn" title="Simulation Controls">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><circle cx="7" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
-    </button>
-  </div>
+      <div id="status-bar">
+        <div class="sb-item"><div class="sb-dot" style="background:#6abf8a"></div>N-S: <span id="sb-ns" style="color:#6abf8a;font-weight:700">GREEN</span></div>
+        <div class="sb-item"><div class="sb-dot" style="background:#d47878"></div>E-W: <span id="sb-ew" style="color:#d47878;font-weight:700">RED</span></div>
+        <div class="sb-item">Active: <b id="sb-active" style="color:var(--text)">0</b></div>
+        <div class="sb-item">N+S: <b id="sb-ns-q" style="color:var(--cyan-dim)">0</b></div>
+        <div class="sb-item">E+W: <b id="sb-ew-q" style="color:var(--pink-dim)">0</b></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          Phase:
+          <div style="width:110px;height:4px;background:rgba(168,216,234,.20);border-radius:2px;overflow:hidden">
+            <div id="phase-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#6abf8a,#a8d8ea);transition:width .3s;border-radius:2px"></div>
+          </div>
+          <span id="phase-label" style="color:var(--text3);font-size:10px">NS GREEN</span>
+        </div>
+        <button onclick="resetView()"
+          style="padding:2px 10px;font-size:10px;background:rgba(168,216,234,.12);color:var(--text2);border:1.5px solid var(--border2);border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .18s;margin-left:8px"
+          onmouseover="this.style.color='var(--cyan-dim)';this.style.borderColor='var(--cyan-border)'"
+          onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">Reset View</button>
+      </div>
 
-  <!-- CONTROLS PANEL -->
-  <div id="panel-controls" class="float-panel">
-    <div class="p-section">
-      <div class="sec-title" data-drag-handle="panel-controls">Simulation Controls <span class="sec-drag-hint">drag to move</span></div>
-      <div class="btn-row">
-        <!-- START: visible when stopped -->
-        <button type="button" class="btn" id="btn-start" onclick="cmdStart()">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><polygon points="2,1 9,5 2,9"/></svg>Start
+      <div id="zoom-group">
+        <button class="fab fab-zoom" title="Zoom Out" id="btn-zoom-out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
         </button>
-        <!-- PAUSE/RESUME: visible when running or paused, hidden when stopped -->
-        <button type="button" class="btn" id="btn-pause" onclick="cmdPause()" style="display:none">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><rect x="2" y="1" width="2.5" height="8"/><rect x="5.5" y="1" width="2.5" height="8"/></svg>Pause
-        </button>
-        <!-- RESET: always visible -->
-        <button type="button" class="btn" id="btn-reset" onclick="cmdReset()">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:4px;vertical-align:middle"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.87"/></svg>Reset
+        <button class="fab fab-zoom" title="Zoom In" id="btn-zoom-in">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
         </button>
       </div>
-    </div>
-    <div class="p-section">
-      <div class="sec-title" data-drag-handle="panel-controls">Scenario &amp; Configuration</div>
-      <div class="ctrl"><span class="ctrl-label">Scenario</span><select id="sel-scenario" onchange="onCfgChange()"><option value="normal">Normal Traffic</option><option value="rush">Rush Hour</option><option value="low">Low Traffic</option></select></div>
-      <div class="ctrl"><span class="ctrl-label">Road Type</span><select id="sel-road" onchange="onCfgChange()"><option value="2">2-lane (1 per dir)</option><option value="4" selected>4-lane (2 per dir)</option><option value="6">6-lane (3 per dir)</option></select></div>
-      <div class="ctrl"><span class="ctrl-label">Speed</span><input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4" oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()"><span class="ctrl-val" id="v-speed">4×</span></div>
-      <div class="ctrl"><span class="ctrl-label">Random Seed</span><input type="number" id="sl-seed" value="42" onchange="onCfgChange()"></div>
-      <div class="ctrl" style="margin-top:4px"><span class="ctrl-label">Right-on-Red</span><label class="toggle"><input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()"><span class="toggle-slider"></span></label><span style="font-size:10px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span></div>
-    </div>
-    <div class="p-section">
-      <div class="sec-title" data-drag-handle="panel-controls">⏱ Signal Timing</div>
-      <div class="ctrl"><span class="ctrl-label">Green (s)</span><input type="range" id="sl-green" min="5" max="60" value="20" oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-green">20</span></div>
-      <div class="ctrl"><span class="ctrl-label">Yellow (s)</span><input type="range" id="sl-yellow" min="2" max="10" value="4" oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-yellow">4</span></div>
-      <div class="ctrl"><span class="ctrl-label">All-Red (s)</span><input type="range" id="sl-red" min="0" max="5" step="0.5" value="1" oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-red">1</span></div>
-    </div>
-    <div class="p-section">
-      <div class="sec-title" data-drag-handle="panel-controls">Live Log</div>
-      <div class="log-scroll" id="log-scroll">
-        <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ANALYTICS PANEL -->
-  <div id="panel-analytics" class="float-panel">
-    <div class="p-section">
-      <div class="sec-title" data-drag-handle="panel-analytics">Analytics Summary <span class="sec-drag-hint">drag to move</span></div>
-      <div class="an-summary-grid">
-        <div class="an-summary-item"><div class="an-summary-label">Cars Passed</div><div class="an-summary-val" id="an-passed">0</div></div>
-        <div class="an-summary-item"><div class="an-summary-label">Avg Wait</div><div class="an-summary-val pink" id="an-wait">0.0s</div></div>
-        <div class="an-summary-item"><div class="an-summary-label">Signal Cycles</div><div class="an-summary-val" id="an-cycles">0</div></div>
-        <div class="an-summary-item"><div class="an-summary-label">Active Vehicles</div><div class="an-summary-val pink" id="an-active">0</div></div>
-        <div class="an-summary-item"><div class="an-summary-label">N+S Queue</div><div class="an-summary-val" id="an-ns-q">0</div></div>
-        <div class="an-summary-item"><div class="an-summary-label">E+W Queue</div><div class="an-summary-val red" id="an-ew-q">0</div></div>
+      <div id="fab-group">
+        <button class="fab fab-analytics" id="fab-analytics-btn" title="Analytics Panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </button>
+        <button class="fab fab-controls" id="fab-controls-btn" title="Simulation Controls">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><circle cx="7" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+        </button>
       </div>
-    </div>
-    <div class="p-section">
-      <div class="sec-title" data-drag-handle="panel-analytics">Session Recording</div>
-      <div class="sess-grid">
-        <div class="sess-item"><div class="sess-label">Session ID</div><div class="sess-val" id="an-session-id">--------</div></div>
-        <div class="sess-item"><div class="sess-label">Duration</div><div class="sess-val" id="an-session-duration">0.0s</div></div>
-        <div class="sess-item"><div class="sess-label">Data Points</div><div class="sess-val" id="an-session-points">0</div></div>
-        <div class="sess-item"><div class="sess-label">Vehicles Tracked</div><div class="sess-val" id="an-session-vehicles">0</div></div>
-      </div>
-      <div id="an-session-hint" style="font-size:11px;color:var(--text3);margin-bottom:8px">Start the simulation to see data.</div>
-      <div class="btn-row"><button class="btn active-red" onclick="anClearSession()">Clear Session</button></div>
-    </div>
-    <div class="p-section">
-      <div class="sec-title" data-drag-handle="panel-analytics">Export</div>
-      <div style="display:flex;flex-direction:column;gap:5px">
-        <button class="btn active-blue" onclick="anExportJson()" style="width:100%">Export JSON</button>
-        <button class="btn active-blue" onclick="anExportCsv()"  style="width:100%">Export CSV</button>
-        <button class="btn active-blue" onclick="anExportPdf()"  style="width:100%">Export PDF Report</button>
-        <button onclick="window.location.href='/analytics'"
-           style="display:block;width:100%;text-align:center;padding:8px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:rgba(168,216,234,.06);color:var(--text2);transition:all .18s;margin-top:2px;cursor:pointer;font-family:'JetBrains Mono',monospace"
-           onmouseover="this.style.color='var(--cyan-dim)';this.style.borderColor='var(--cyan-border)'"
-           onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">Open Full Analytics Dashboard →</button>
-      </div>
-    </div>
-  </div>
 
-</div><!-- /canvas-wrap -->
+      <!-- CONTROLS PANEL -->
+      <div id="panel-controls" class="float-panel">
+        <div class="p-section">
+          <div class="sec-title" data-drag-handle="panel-controls">Simulation Controls <span class="sec-drag-hint">drag to move</span></div>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btn-start" onclick="cmdStart()">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><polygon points="2,1 9,5 2,9"/></svg>Start
+            </button>
+            <button type="button" class="btn" id="btn-pause" onclick="cmdPause()" style="display:none">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><rect x="2" y="1" width="2.5" height="8"/><rect x="5.5" y="1" width="2.5" height="8"/></svg>Pause
+            </button>
+            <button type="button" class="btn" id="btn-reset" onclick="cmdReset()">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:4px;vertical-align:middle"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.87"/></svg>Reset
+            </button>
+          </div>
+        </div>
+        <div class="p-section">
+          <div class="sec-title" data-drag-handle="panel-controls">Scenario &amp; Configuration</div>
+          <div class="ctrl"><span class="ctrl-label">Scenario</span><select id="sel-scenario" onchange="onCfgChange()"><option value="normal">Normal Traffic</option><option value="rush">Rush Hour</option><option value="low">Low Traffic</option></select></div>
+          <div class="ctrl"><span class="ctrl-label">Road Type</span><select id="sel-road" onchange="onCfgChange()"><option value="2">2-lane (1 per dir)</option><option value="4" selected>4-lane (2 per dir)</option><option value="6">6-lane (3 per dir)</option></select></div>
+          <div class="ctrl"><span class="ctrl-label">Speed</span><input type="range" id="sl-speed" min="0.5" max="15" step="0.5" value="4" oninput="document.getElementById('v-speed').textContent=this.value+'×';onCfgChange()"><span class="ctrl-val" id="v-speed">4×</span></div>
+          <div class="ctrl"><span class="ctrl-label">Random Seed</span><input type="number" id="sl-seed" value="42" onchange="onCfgChange()"></div>
+          <div class="ctrl" style="margin-top:4px"><span class="ctrl-label">Right-on-Red</span><label class="toggle"><input type="checkbox" id="ck-rturn" checked onchange="onCfgChange()"><span class="toggle-slider"></span></label><span style="font-size:10px;color:var(--text2);margin-left:4px" id="rt-label">Allowed</span></div>
+        </div>
+        <div class="p-section">
+          <div class="sec-title" data-drag-handle="panel-controls">⏱ Signal Timing</div>
+          <div class="ctrl"><span class="ctrl-label">Green (s)</span><input type="range" id="sl-green" min="5" max="60" value="20" oninput="document.getElementById('v-green').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-green">20</span></div>
+          <div class="ctrl"><span class="ctrl-label">Yellow (s)</span><input type="range" id="sl-yellow" min="2" max="10" value="4" oninput="document.getElementById('v-yellow').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-yellow">4</span></div>
+          <div class="ctrl"><span class="ctrl-label">All-Red (s)</span><input type="range" id="sl-red" min="0" max="5" step="0.5" value="1" oninput="document.getElementById('v-red').textContent=this.value;onCfgChange()"><span class="ctrl-val" id="v-red">1</span></div>
+        </div>
+        <div class="p-section">
+          <div class="sec-title" data-drag-handle="panel-controls">Live Log</div>
+          <div class="log-scroll" id="log-scroll">
+            <div class="log-entry"><span class="log-time">-</span><span class="log-msg c-gray">Waiting for simulation to start…</span></div>
+          </div>
+        </div>
+      </div>
 
-<script>
+      <!-- ANALYTICS PANEL -->
+      <div id="panel-analytics" class="float-panel">
+        <div class="p-section">
+          <div class="sec-title" data-drag-handle="panel-analytics">Analytics Summary <span class="sec-drag-hint">drag to move</span></div>
+          <div class="an-summary-grid">
+            <div class="an-summary-item"><div class="an-summary-label">Cars Passed</div><div class="an-summary-val" id="an-passed">0</div></div>
+            <div class="an-summary-item"><div class="an-summary-label">Avg Wait</div><div class="an-summary-val pink" id="an-wait">0.0s</div></div>
+            <div class="an-summary-item"><div class="an-summary-label">Signal Cycles</div><div class="an-summary-val" id="an-cycles">0</div></div>
+            <div class="an-summary-item"><div class="an-summary-label">Active Vehicles</div><div class="an-summary-val pink" id="an-active">0</div></div>
+            <div class="an-summary-item"><div class="an-summary-label">N+S Queue</div><div class="an-summary-val" id="an-ns-q">0</div></div>
+            <div class="an-summary-item"><div class="an-summary-label">E+W Queue</div><div class="an-summary-val red" id="an-ew-q">0</div></div>
+          </div>
+        </div>
+        <div class="p-section">
+          <div class="sec-title" data-drag-handle="panel-analytics">Session Recording</div>
+          <div class="sess-grid">
+            <div class="sess-item"><div class="sess-label">Session ID</div><div class="sess-val" id="an-session-id">--------</div></div>
+            <div class="sess-item"><div class="sess-label">Duration</div><div class="sess-val" id="an-session-duration">0.0s</div></div>
+            <div class="sess-item"><div class="sess-label">Data Points</div><div class="sess-val" id="an-session-points">0</div></div>
+            <div class="sess-item"><div class="sess-label">Vehicles Tracked</div><div class="sess-val" id="an-session-vehicles">0</div></div>
+          </div>
+          <div id="an-session-hint" style="font-size:11px;color:var(--text3);margin-bottom:8px">Start the simulation to see data.</div>
+          <div class="btn-row"><button class="btn active-red" onclick="anClearSession()">Clear Session</button></div>
+        </div>
+        <div class="p-section">
+          <div class="sec-title" data-drag-handle="panel-analytics">Export</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <button class="btn active-blue" onclick="anExportJson()" style="width:100%">Export JSON</button>
+            <button class="btn active-blue" onclick="anExportCsv()"  style="width:100%">Export CSV</button>
+            <button class="btn active-blue" onclick="anExportPdf()"  style="width:100%">Export PDF Report</button>
+            <button onclick="window.location.href='/analytics'"
+               style="display:block;width:100%;text-align:center;padding:8px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:rgba(168,216,234,.06);color:var(--text2);transition:all .18s;margin-top:2px;cursor:pointer;font-family:'JetBrains Mono',monospace"
+               onmouseover="this.style.color='var(--cyan-dim)';this.style.borderColor='var(--cyan-border)'"
+               onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">Open Full Analytics Dashboard →</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /canvas-wrap -->
+
+    <script>
 /* ═══════════════════════════════════════════════════════════════════
    SECTION 1 — PANEL & FAB MANAGEMENT
    ═══════════════════════════════════════════════════════════════════ */
@@ -350,15 +347,15 @@ document.getElementById('fab-analytics-btn').addEventListener('click',()=>toggle
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
 const wrap=document.getElementById('canvas-wrap');
-const MIN_SCALE=0.1, MAX_SCALE=2.0;
-let CAM={x:0,y:0,scale:1};
+const MIN_SCALE=1.0, MAX_SCALE=2.0;
+let CAM={x:0,y:0,scale:MIN_SCALE};
 
 function clampCam(){
   const sw=canvas.width*CAM.scale,sh=canvas.height*CAM.scale;
   CAM.x=sw<=canvas.width ?(canvas.width -sw)/2:Math.min(0,Math.max(canvas.width -sw,CAM.x));
   CAM.y=sh<=canvas.height?(canvas.height-sh)/2:Math.min(0,Math.max(canvas.height-sh,CAM.y));
 }
-function resetView(){CAM={x:0,y:0,scale:1};}
+function resetView(){CAM={x:0,y:0,scale:MIN_SCALE};updateZoomButtons();}
 
 function resize(){
   const w=wrap.offsetWidth||wrap.clientWidth||window.innerWidth;
@@ -367,13 +364,15 @@ function resize(){
   canvas.width=w; canvas.height=h;
   CAM.scale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,CAM.scale));
   clampCam();
-  _rebuildBuildings();
+  // Invalidate the grass pattern cache when canvas resizes
+  _grassPatternCache = null;
 }
 window.addEventListener('resize',resize);
 
 function bootCanvas(){
   resize();
   if(canvas.width<10){setTimeout(()=>{resize();},100);}
+  updateZoomButtons();
 }
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(()=>requestAnimationFrame(bootCanvas)));
@@ -381,11 +380,21 @@ if(document.readyState==='loading'){
   requestAnimationFrame(()=>requestAnimationFrame(bootCanvas));
 }
 
+function updateZoomButtons(){
+  const btnIn=document.getElementById('btn-zoom-in');
+  const btnOut=document.getElementById('btn-zoom-out');
+  btnIn.disabled=CAM.scale>=MAX_SCALE;
+  btnOut.disabled=CAM.scale<=MIN_SCALE;
+  btnIn.style.opacity=btnIn.disabled?'0.4':'1';
+  btnOut.style.opacity=btnOut.disabled?'0.4':'1';
+  btnIn.style.cursor=btnIn.disabled?'not-allowed':'pointer';
+  btnOut.style.cursor=btnOut.disabled?'not-allowed':'pointer';
+}
 function zoomAt(factor,focusX=canvas.width/2,focusY=canvas.height/2){
   const ns=Math.min(MAX_SCALE,Math.max(MIN_SCALE,CAM.scale*factor));
   if(ns===CAM.scale)return;
   const r=ns/CAM.scale;
-  CAM.x=focusX-r*(focusX-CAM.x); CAM.y=focusY-r*(focusY-CAM.y); CAM.scale=ns; clampCam();
+  CAM.x=focusX-r*(focusX-CAM.x); CAM.y=focusY-r*(focusY-CAM.y); CAM.scale=ns; clampCam(); updateZoomButtons();
 }
 document.getElementById('btn-zoom-in').addEventListener('click',()=>zoomAt(1.10));
 document.getElementById('btn-zoom-out').addEventListener('click',()=>zoomAt(0.91));
@@ -413,72 +422,363 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   SECTION 3 — BUILDING ASSETS & PLACEMENT
+   SECTION 3 — COZY WORLD ASSETS
    ═══════════════════════════════════════════════════════════════════ */
-const BUILDING_SPRITES=[], BUILDING_READY=[];
-for(let i=1;i<=8;i++){
-  const img=new Image(), idx=i-1;
-  img.src=`/assets/building${i}.png`;
-  BUILDING_READY.push(false);
-  img.onload =()=>{BUILDING_READY[idx]=true;};
-  img.onerror=()=>{BUILDING_READY[idx]=false;};
-  BUILDING_SPRITES.push(img);
-}
 
-let _buildingLayout=[];
+/* Load all cozy world assets */
+function loadImg(src){ const i=new Image(); i.src=src; i.ready=false; i.onload=()=>{i.ready=true; _grassPatternCache=null;}; i.onerror=()=>{i.ready=false;}; return i; }
 
-function _rebuildBuildings(){
-  const W=canvas.width, H=canvas.height;
-  if(W<10||H<10)return;
-  const cx=W/2, cy=H/2;
-  const road=parseInt(document.getElementById('sel-road').value)||4;
-  const lanes=road/2;
-  const lw=Math.min(26,Math.max(18,(Math.min(W,H)*.06)/lanes));
-  const rw=lanes*lw*2+8;
-  const roadClear=rw/2+30;
-  const cornerZones=[
-    {x1:0,            y1:0,            x2:cx-roadClear, y2:cy-roadClear, sprites:[0,1]},
-    {x1:cx+roadClear, y1:0,            x2:W,            y2:cy-roadClear, sprites:[2,3]},
-    {x1:0,            y1:cy+roadClear, x2:cx-roadClear, y2:H,            sprites:[4,5]},
-    {x1:cx+roadClear, y1:cy+roadClear, x2:W,            y2:H,            sprites:[6,7]},
-  ];
-  _buildingLayout=[];
-  cornerZones.forEach(zone=>{
-    const zw=zone.x2-zone.x1, zh=zone.y2-zone.y1;
-    if(zw<60||zh<60)return;
-    const slotW=zw/2;
-    zone.sprites.forEach((si,slotIdx)=>{
-      const img=BUILDING_SPRITES[si];
-      const shortSide=Math.min(zw,zh);
-      const scaleVariation=0.88+slotIdx*0.14;
-      const targetH=Math.max(240,shortSide*0.68*scaleVariation);
-      const ratio=(img.naturalWidth&&img.naturalHeight)?img.naturalWidth/img.naturalHeight:0.65;
-      const bw=targetH*ratio, bh=targetH;
-      const edgePad=10;
-      const slotX0=zone.x1+slotIdx*slotW, slotX1=slotX0+slotW;
-      const minX=slotX0+edgePad, maxX=slotX1-bw-edgePad;
-      const minY=zone.y1+edgePad, maxY=zone.y2-bh-edgePad;
-      if(maxX<minX||maxY<minY)return;
-      const x=minX+(maxX-minX)*0.5, y=minY+(maxY-minY)*0.5;
-      const alpha=0.80+slotIdx*0.08;
-      _buildingLayout.push({si,x,y,w:bw,h:bh,alpha});
-    });
-  });
-}
+const ASSETS = {
+  grass:    loadImg('/assets/grass_bg.png'),
+  bush:     loadImg('/assets/bush.png'),
+  pond:     loadImg('/assets/pond.png'),
+  plant:    loadImg('/assets/plant.png'),
+  well:     loadImg('/assets/well.png'),
+  trees2:   loadImg('/assets/trees2.png'),
+  trees1:   loadImg('/assets/trees1.png'),
+  bakery:   loadImg('/assets/building_bakery.png'),
+  art:      loadImg('/assets/building_art.png'),
+  crafts:   loadImg('/assets/building_crafts.png'),
+  cafe:     loadImg('/assets/building_cafe.png'),
+  carts:    loadImg('/assets/building_carts.png'),
+};
 
-function drawBuildings(){
-  for(const b of _buildingLayout){
-    const img=BUILDING_SPRITES[b.si];
-    if(!BUILDING_READY[b.si]||!img.naturalWidth)continue;
-    ctx.save();
-    ctx.globalAlpha=b.alpha;
-    ctx.shadowColor='rgba(80,60,90,.22)';
-    ctx.shadowBlur=18; ctx.shadowOffsetX=4; ctx.shadowOffsetY=6;
-    ctx.drawImage(img,b.x,b.y,b.w,b.h);
-    ctx.restore();
+/* Draw a sprite safely with optional shadow */
+function drawSprite(img, x, y, w, h, alpha=1, shadow=false){
+  if(!img||!img.ready||!img.naturalWidth)return;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  if(shadow){
+    ctx.shadowColor='rgba(60,50,70,.22)';
+    ctx.shadowBlur=14;
+    ctx.shadowOffsetX=3;
+    ctx.shadowOffsetY=5;
   }
+  ctx.drawImage(img,x,y,w,h);
+  ctx.restore();
 }
 
+/*
+ * GRASS — tiled pattern, never stretched.
+ * We cache the CanvasPattern so it is only recreated when the
+ * grass image loads or the canvas is resized.
+ * The pattern is drawn in UNTRANSFORMED screen space so the tile
+ * size stays constant regardless of CAM.scale / CAM.x / CAM.y.
+ * We achieve this by saving/restoring the full transform, resetting
+ * to identity, drawing the grass rectangle, then restoring.
+ */
+let _grassPatternCache = null;
+
+function drawGrass(W, H){
+  // Rebuild pattern if needed
+  if (!_grassPatternCache && ASSETS.grass.ready && ASSETS.grass.naturalWidth > 0) {
+    _grassPatternCache = ctx.createPattern(ASSETS.grass, 'repeat');
+  }
+
+  // Save transform, reset to identity for canvas-space drawing
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  
+  if (_grassPatternCache) {
+    // Draw tiled grass pattern
+    ctx.fillStyle = _grassPatternCache;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    // Fallback solid color while texture loads
+    ctx.fillStyle = '#c5dfa0';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Subtle depth vignette in canvas space (ensures full screen coverage)
+  const vgrd = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.85);
+  vgrd.addColorStop(0, 'transparent');
+  vgrd.addColorStop(1, 'rgba(80,110,50,.07)');
+  ctx.fillStyle = vgrd;
+  ctx.fillRect(0, 0, W, H);
+  
+  ctx.restore();
+}
+
+/* Draw decorative world elements based on quadrant */
+function drawWorld(g){
+  const{W,H,cx,cy,rw}=g;
+  const pad=rw/2+12; // margin from road center
+
+  // Quadrant zones (with road padding)
+  const NW={x1:0,    y1:0,    x2:cx-pad, y2:cy-pad};
+  const NE={x1:cx+pad,y1:0,   x2:W,      y2:cy-pad};
+  const SW={x1:0,    y1:cy+pad,x2:cx-pad, y2:H};
+  const SE={x1:cx+pad,y1:cy+pad,x2:W,    y2:H};
+
+  drawQuadrantNW(NW);
+  drawQuadrantNE(NE);
+  drawQuadrantSW(SW);
+  drawQuadrantSE(SE);
+}
+
+/* NW: Bakery district — buildings + well + benches feel */
+function drawQuadrantNW(z){
+  const w=z.x2-z.x1, h=z.y2-z.y1;
+  if(w<80||h<80)return;
+
+  // Cobblestone plaza hint (soft circle)
+  ctx.save();
+  const plazaGrd=ctx.createRadialGradient(z.x1+w*.45,z.y1+h*.55,20,z.x1+w*.45,z.y1+h*.55,Math.min(w,h)*.42);
+  plazaGrd.addColorStop(0,'rgba(200,185,160,.28)');
+  plazaGrd.addColorStop(1,'transparent');
+  ctx.fillStyle=plazaGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
+
+  // Bakery buildings — large and dominant
+  const bldH=Math.min(h*.88,360), bldW=bldH*(ASSETS.bakery.naturalWidth/Math.max(1,ASSETS.bakery.naturalHeight));
+  const bldX=z.x1+w*.02, bldY=z.y1+h*.04;
+  drawSprite(ASSETS.bakery, bldX, bldY, Math.min(bldW,w*.62), bldH, 1.0, true);
+
+  // Second bakery offset
+  if(bldW>0){
+    const b2W=bldW*.82, b2H=bldH*.82;
+    drawSprite(ASSETS.bakery, bldX+bldW*.50, bldY+bldH*.14, Math.min(b2W,w*.46), b2H, 0.88, true);
+  }
+
+  // Well as landmark (center-ish of plaza)
+  const wellSz=Math.min(w*.26,120);
+  drawSprite(ASSETS.well, z.x1+w*.50, z.y1+h*.42, wellSz, wellSz*1.2, 1.0, true);
+
+  // Trees near road edge (bottom and right)
+  const trsz=Math.min(w*.32,130);
+  drawSprite(ASSETS.trees1, z.x1+w*.70, z.y1+h*.56, trsz, trsz*1.1, 0.95, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.56, z.y1+h*.68, trsz*.85, trsz*.95, 0.88, false);
+
+  // Bushes along bottom road edge — much larger
+  const bsz=Math.min(w*.22,90);
+  drawSprite(ASSETS.bush, z.x1+w*.26, z.y1+h*.80, bsz, bsz*.80, 0.95);
+  drawSprite(ASSETS.bush, z.x1+w*.46, z.y1+h*.85, bsz*.92, bsz*.75, 0.90);
+  drawSprite(ASSETS.bush, z.x1+w*.78, z.y1+h*.76, bsz*1.05, bsz*.82, 0.92);
+
+  // Small plants
+  const psz=Math.min(w*.14,54);
+  drawSprite(ASSETS.plant, z.x1+w*.38, z.y1+h*.52, psz, psz*1.15, 0.88);
+  drawSprite(ASSETS.plant, z.x1+w*.16, z.y1+h*.66, psz*.85, psz*.95, 0.82);
+}
+
+/* NE: Art + Crafts district */
+function drawQuadrantNE(z){
+  const w=z.x2-z.x1, h=z.y2-z.y1;
+  if(w<80||h<80)return;
+
+  // Path/sidewalk tint
+  ctx.save();
+  const pathGrd=ctx.createLinearGradient(z.x1,z.y1,z.x2,z.y2);
+  pathGrd.addColorStop(0,'rgba(210,195,170,.18)');
+  pathGrd.addColorStop(1,'transparent');
+  ctx.fillStyle=pathGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
+
+  // Art building (large, upper-left of quadrant)
+  const artH=Math.min(h*.80,300), artW=artH*(ASSETS.art.naturalWidth/Math.max(1,ASSETS.art.naturalHeight));
+  drawSprite(ASSETS.art, z.x1+w*.02, z.y1+h*.03, Math.min(artW,w*.60), artH, 1.0, true);
+
+  // Crafts buildings — two stacked on right side
+  const crH=Math.min(h*.52,190), crW=crH*(ASSETS.crafts.naturalWidth/Math.max(1,ASSETS.crafts.naturalHeight));
+  drawSprite(ASSETS.crafts, z.x1+w*.50, z.y1+h*.02, Math.min(crW,w*.50), crH, 1.0, true);
+  drawSprite(ASSETS.crafts, z.x1+w*.50, z.y1+h*.50, Math.min(crW*.90,w*.46), crH*.88, 0.92, true);
+
+  // Trees in corners
+  const trsz=Math.min(w*.28,112);
+  drawSprite(ASSETS.trees2, z.x1+w*.40, z.y1+h*.14, trsz, trsz*1.25, 0.95, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.86, z.y1+h*.03, trsz*.78, trsz*.95, 0.88, false);
+  drawSprite(ASSETS.trees1, z.x1+w*.80, z.y1+h*.56, trsz*.85, trsz*1.05, 0.90, false);
+
+  // Bushes — large and visible
+  const bsz=Math.min(w*.20,80);
+  drawSprite(ASSETS.bush, z.x1+w*.02, z.y1+h*.68, bsz*1.1, bsz*.80, 0.92);
+  drawSprite(ASSETS.bush, z.x1+w*.22, z.y1+h*.76, bsz, bsz*.75, 0.86);
+  drawSprite(ASSETS.bush, z.x1+w*.60, z.y1+h*.78, bsz*1.05, bsz*.78, 0.90);
+
+  // Plants
+  const psz=Math.min(w*.12,48);
+  drawSprite(ASSETS.plant, z.x1+w*.44, z.y1+h*.48, psz, psz*1.15, 0.85);
+  drawSprite(ASSETS.plant, z.x1+w*.14, z.y1+h*.54, psz*.88, psz, 0.80);
+}
+
+/* SW: Café district — outdoor seating, cozy feel */
+function drawQuadrantSW(z){
+  const w=z.x2-z.x1, h=z.y2-z.y1;
+  if(w<80||h<80)return;
+
+  // Stone plaza tint
+  ctx.save();
+  const plazaGrd=ctx.createRadialGradient(z.x1+w*.38,z.y1+h*.42,15,z.x1+w*.38,z.y1+h*.42,Math.min(w,h)*.5);
+  plazaGrd.addColorStop(0,'rgba(200,180,155,.22)');
+  plazaGrd.addColorStop(1,'transparent');
+  ctx.fillStyle=plazaGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
+
+  // Cafe building (center-left) — large
+  const cafH=Math.min(h*.82,320), cafW=cafH*(ASSETS.cafe.naturalWidth/Math.max(1,ASSETS.cafe.naturalHeight));
+  drawSprite(ASSETS.cafe, z.x1+w*.02, z.y1+h*.06, Math.min(cafW,w*.68), cafH, 1.0, true);
+
+  // Carts nearby — bigger
+  const cartsH=Math.min(h*.42,150), cartsW=cartsH*(ASSETS.carts.naturalWidth/Math.max(1,ASSETS.carts.naturalHeight));
+  drawSprite(ASSETS.carts, z.x1+w*.58, z.y1+h*.08, Math.min(cartsW,w*.40), cartsH, 0.95, true);
+
+  // Trees — framing the café
+  const trsz=Math.min(w*.26,104);
+  drawSprite(ASSETS.trees2, z.x1+w*.64, z.y1+h*.34, trsz*.95, trsz*1.15, 0.90, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.78, z.y1+h*.58, trsz*.80, trsz*.96, 0.85, false);
+
+  // Bushes — large and clustered near road edge
+  const bsz=Math.min(w*.22,88);
+  drawSprite(ASSETS.bush, z.x1+w*.08, z.y1+h*.78, bsz*1.1, bsz*.82, 0.94);
+  drawSprite(ASSETS.bush, z.x1+w*.28, z.y1+h*.82, bsz, bsz*.76, 0.88);
+  drawSprite(ASSETS.bush, z.x1+w*.66, z.y1+h*.74, bsz*1.05, bsz*.80, 0.90);
+  drawSprite(ASSETS.bush, z.x1+w*.85, z.y1+h*.80, bsz*.90, bsz*.72, 0.84);
+
+  const psz=Math.min(w*.13,52);
+  drawSprite(ASSETS.plant, z.x1+w*.50, z.y1+h*.52, psz, psz*1.15, 0.85);
+  drawSprite(ASSETS.plant, z.x1+w*.40, z.y1+h*.68, psz*.85, psz*.95, 0.78);
+}
+
+/* SE: Nature park — trees, pond, gazebo feel */
+function drawQuadrantSE(z){
+  const w=z.x2-z.x1, h=z.y2-z.y1;
+  if(w<80||h<80)return;
+
+  // Path winding through park
+  ctx.save();
+  const pathGrd=ctx.createLinearGradient(z.x1,z.y1,z.x2,z.y2);
+  pathGrd.addColorStop(0,'rgba(215,200,170,.14)');
+  pathGrd.addColorStop(.6,'rgba(210,190,160,.10)');
+  pathGrd.addColorStop(1,'transparent');
+  ctx.fillStyle=pathGrd; ctx.fillRect(z.x1,z.y1,w,h); ctx.restore();
+
+  // Pond — prominent and large
+  const pondW=Math.min(w*.56,230), pondH=pondW*.68;
+  drawSprite(ASSETS.pond, z.x1+w*.44, z.y1+h*.54, pondW, pondH, 0.95, true);
+
+  // Dense tree cluster (upper-left to center of quadrant)
+  const tr2sz=Math.min(w*.32,128);
+  drawSprite(ASSETS.trees2, z.x1+w*.04, z.y1+h*.04, tr2sz*1.15, tr2sz*1.40, 0.95, true);
+  drawSprite(ASSETS.trees2, z.x1+w*.26, z.y1+h*.02, tr2sz*1.05, tr2sz*1.30, 0.90, true);
+  drawSprite(ASSETS.trees2, z.x1+w*.16, z.y1+h*.28, tr2sz*.95, tr2sz*1.15, 0.87, false);
+
+  const tr1sz=Math.min(w*.28,110);
+  drawSprite(ASSETS.trees1, z.x1+w*.46, z.y1+h*.06, tr1sz*1.05, tr1sz*1.25, 0.92, true);
+  drawSprite(ASSETS.trees1, z.x1+w*.36, z.y1+h*.40, tr1sz*.90, tr1sz*1.05, 0.85, false);
+  drawSprite(ASSETS.trees1, z.x1+w*.04, z.y1+h*.52, tr1sz*.85, tr1sz, 0.82, false);
+
+  // Well near center as park landmark — larger
+  const wellSz=Math.min(w*.22,96);
+  drawSprite(ASSETS.well, z.x1+w*.58, z.y1+h*.14, wellSz, wellSz*1.25, 0.95, true);
+
+  // Bushes along all edges — much larger
+  const bsz=Math.min(w*.20,80);
+  drawSprite(ASSETS.bush, z.x1+w*.02, z.y1+h*.76, bsz*1.1, bsz*.82, 0.92);
+  drawSprite(ASSETS.bush, z.x1+w*.20, z.y1+h*.70, bsz, bsz*.76, 0.86);
+  drawSprite(ASSETS.bush, z.x1+w*.80, z.y1+h*.40, bsz*1.05, bsz*.80, 0.88);
+  drawSprite(ASSETS.bush, z.x1+w*.88, z.y1+h*.04, bsz*.92, bsz*.70, 0.82);
+
+  // Plants for texture
+  const psz=Math.min(w*.12,48);
+  drawSprite(ASSETS.plant, z.x1+w*.48, z.y1+h*.48, psz*1.1, psz*1.2, 0.84);
+  drawSprite(ASSETS.plant, z.x1+w*.68, z.y1+h*.34, psz*.95, psz*1.05, 0.80);
+  drawSprite(ASSETS.plant, z.x1+w*.84, z.y1+h*.66, psz*.85, psz*.95, 0.78);
+}
+
+/* Draw soft sidewalk / pavement border around roads */
+function drawSidewalk(g){
+  const{cx,cy,rw,W,H}=g;
+  const sw=14; // sidewalk width
+  ctx.fillStyle='rgba(210,198,180,.55)';
+  // N-S sidewalks
+  ctx.fillRect(cx-rw/2-sw,0,sw,H);
+  ctx.fillRect(cx+rw/2,0,sw,H);
+  // E-W sidewalks
+  ctx.fillRect(0,cy-rw/2-sw,W,sw);
+  ctx.fillRect(0,cy+rw/2,W,sw);
+  // Intersection corner fills
+  ctx.fillStyle='rgba(200,188,168,.50)';
+  ctx.fillRect(cx-rw/2-sw,cy-rw/2-sw,sw,sw);
+  ctx.fillRect(cx+rw/2,cy-rw/2-sw,sw,sw);
+  ctx.fillRect(cx-rw/2-sw,cy+rw/2,sw,sw);
+  ctx.fillRect(cx+rw/2,cy+rw/2,sw,sw);
+}
+
+/* Draw road — NO outlines/strokes on road edges */
+function drawRoads(g){
+  const{W,H,cx,cy,rw,lw,lanes,cw_stripe,cw_gap,cw_depth,cw_setback}=g;
+
+  // Road base — warm gray
+  ctx.fillStyle='#c8c5bc';
+  ctx.fillRect(cx-rw/2,0,rw,H);
+  ctx.fillRect(0,cy-rw/2,W,rw);
+
+  // Road surface texture (subtle crosshatch)
+  ctx.save();
+  ctx.strokeStyle='rgba(140,130,120,.07)';
+  ctx.lineWidth=1;
+  for(let x=0;x<W;x+=36){
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
+  }
+  for(let y=0;y<H;y+=36){
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+  }
+  ctx.restore();
+
+  // Intersection box — slightly different shade for visual interest
+  ctx.fillStyle='#cac7be';
+  ctx.fillRect(cx-rw/2,cy-rw/2,rw,rw);
+
+  // Intersection hatching
+  ctx.save();
+  ctx.beginPath();ctx.rect(cx-rw/2,cy-rw/2,rw,rw);ctx.clip();
+  ctx.strokeStyle='rgba(100,90,80,.06)';ctx.lineWidth=1;
+  for(let i=-rw;i<rw*2;i+=16){
+    ctx.beginPath();ctx.moveTo(cx-rw/2+i,cy-rw/2);ctx.lineTo(cx-rw/2+i+rw,cy+rw/2);ctx.stroke();
+  }
+  ctx.restore();
+
+  // NOTE: Road edge strokes REMOVED — roads flow cleanly into environment
+
+  // Lane dividers — dashed warm white
+  ctx.setLineDash([18,14]); ctx.lineWidth=1.6; ctx.strokeStyle='rgba(240,235,220,.55)'; ctx.lineDashOffset=-8;
+  for(let i=1;i<lanes*2;i++){
+    const x=cx-rw/2+i*lw, y=cy-rw/2+i*lw;
+    if(Math.abs(x-cx)>lw/2){
+      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-rw/2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x,cy+rw/2);ctx.lineTo(x,H);ctx.stroke();
+    }
+    if(Math.abs(y-cy)>lw/2){
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-rw/2,y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx+rw/2,y);ctx.lineTo(W,y);ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]); ctx.lineDashOffset=0;
+
+  // Center lines (solid, subtle)
+  ctx.strokeStyle='rgba(240,230,210,.6)'; ctx.lineWidth=1.5;
+  [-1,1].forEach(d=>{
+    ctx.globalAlpha=0.45;
+    ctx.beginPath();ctx.moveTo(cx+d,0);ctx.lineTo(cx+d,cy-rw/2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+d,cy+rw/2);ctx.lineTo(cx+d,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,cy+d);ctx.lineTo(cx-rw/2,cy+d);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+rw/2,cy+d);ctx.lineTo(W,cy+d);ctx.stroke();
+    ctx.globalAlpha=1;
+  });
+
+  // Crosswalks — warm white stripes
+  ctx.fillStyle='rgba(248,245,235,.88)'; ctx.globalAlpha=0.88;
+  const roadL=cx-rw/2,roadR=cx+rw/2,roadT=cy-rw/2,roadB=cy+rw/2;
+  const stripeCount=Math.floor(rw/(cw_stripe+cw_gap));
+  const groupW=stripeCount*(cw_stripe+cw_gap)-cw_gap;
+  const sso=(rw-groupW)/2;
+  // N crosswalk
+  for(let i=0;i<stripeCount;i++){const sx=roadL+sso+i*(cw_stripe+cw_gap);ctx.fillRect(sx,roadT-cw_setback-cw_depth,cw_stripe,cw_depth);}
+  // S crosswalk
+  for(let i=0;i<stripeCount;i++){const sx=roadL+sso+i*(cw_stripe+cw_gap);ctx.fillRect(sx,roadB+cw_setback,cw_stripe,cw_depth);}
+  // E crosswalk
+  {const sv=Math.floor(rw/(cw_stripe+cw_gap)),gh=sv*(cw_stripe+cw_gap)-cw_gap,so=(rw-gh)/2;for(let i=0;i<sv;i++){const sy=roadT+so+i*(cw_stripe+cw_gap);ctx.fillRect(roadR+cw_setback,sy,cw_depth,cw_stripe);}}
+  // W crosswalk
+  {const sv=Math.floor(rw/(cw_stripe+cw_gap)),gh=sv*(cw_stripe+cw_gap)-cw_gap,so=(rw-gh)/2;for(let i=0;i<sv;i++){const sy=roadT+so+i*(cw_stripe+cw_gap);ctx.fillRect(roadL-cw_setback-cw_depth,sy,cw_depth,cw_stripe);}}
+  ctx.globalAlpha=1.0;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    SECTION 4 — SIMULATION STATE & RENDER
@@ -507,57 +807,31 @@ function geo(){
 function drawScene(){
   const g=geo();
   const{W,H,cx,cy,rw,lw,lanes,cw_stripe,cw_gap,cw_depth,cw_setback}=g;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#cbe4c2'; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(160,200,155,.16)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=44){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=44){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  drawBuildings();
-  ctx.fillStyle='#c3c3c3';
-  ctx.fillRect(cx-rw/2,0,rw,H);
-  ctx.fillRect(0,cy-rw/2,W,rw);
-  ctx.strokeStyle='#705b6f'; ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.moveTo(cx-rw/2,0);ctx.lineTo(cx-rw/2,H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+rw/2,0);ctx.lineTo(cx+rw/2,H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(0,cy-rw/2);ctx.lineTo(W,cy-rw/2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(0,cy+rw/2);ctx.lineTo(W,cy+rw/2);ctx.stroke();
-  ctx.fillStyle='#cbcbcb'; ctx.fillRect(cx-rw/2,cy-rw/2,rw,rw);
-  ctx.strokeStyle='#705b6f'; ctx.lineWidth=2.5; ctx.strokeRect(cx-rw/2,cy-rw/2,rw,rw);
-  ctx.save(); ctx.beginPath(); ctx.rect(cx-rw/2,cy-rw/2,rw,rw); ctx.clip();
-  ctx.strokeStyle='rgba(112,91,111,.07)'; ctx.lineWidth=1;
-  for(let i=-rw;i<rw*2;i+=18){ctx.beginPath();ctx.moveTo(cx-rw/2+i,cy-rw/2);ctx.lineTo(cx-rw/2+i+rw,cy+rw/2);ctx.stroke();}
-  ctx.restore();
-  ctx.setLineDash([22,16]); ctx.lineWidth=1.8; ctx.strokeStyle='rgba(112,91,111,.28)'; ctx.lineDashOffset=-11;
-  for(let i=1;i<lanes*2;i++){
-    const x=cx-rw/2+i*lw, y=cy-rw/2+i*lw;
-    if(Math.abs(x-cx)>lw/2){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cy-rw/2);ctx.stroke();ctx.beginPath();ctx.moveTo(x,cy+rw/2);ctx.lineTo(x,H);ctx.stroke();}
-    if(Math.abs(y-cy)>lw/2){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cx-rw/2,y);ctx.stroke();ctx.beginPath();ctx.moveTo(cx+rw/2,y);ctx.lineTo(W,y);ctx.stroke();}
-  }
-  ctx.setLineDash([]); ctx.lineDashOffset=0;
-  [-1.5,1.5].forEach(d=>{
-    ctx.strokeStyle='#9a8a9a'; ctx.lineWidth=1.5; ctx.globalAlpha=0.40;
-    ctx.beginPath();ctx.moveTo(cx+d,0);ctx.lineTo(cx+d,cy-rw/2-40);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(cx+d,cy+rw/2+40);ctx.lineTo(cx+d,H);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,cy+d);ctx.lineTo(cx-rw/2-40,cy+d);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(cx+rw/2+40,cy+d);ctx.lineTo(W,cy+d);ctx.stroke();
-    ctx.globalAlpha=1.0;
-  });
-  ctx.fillStyle='rgba(255,252,248,.92)'; ctx.globalAlpha=0.85;
-  const roadL=cx-rw/2,roadR=cx+rw/2,roadT=cy-rw/2,roadB=cy+rw/2;
-  const stripeCount=Math.floor(rw/(cw_stripe+cw_gap));
-  const groupW=stripeCount*(cw_stripe+cw_gap)-cw_gap;
-  const stripeStartOffset=(rw-groupW)/2;
-  {const bandNear=roadT-cw_setback-cw_depth;for(let i=0;i<stripeCount;i++){const sx=roadL+stripeStartOffset+i*(cw_stripe+cw_gap);ctx.fillRect(sx,bandNear,cw_stripe,cw_depth);}}
-  {const bandNear=roadB+cw_setback;for(let i=0;i<stripeCount;i++){const sx=roadL+stripeStartOffset+i*(cw_stripe+cw_gap);ctx.fillRect(sx,bandNear,cw_stripe,cw_depth);}}
-  {const sv=Math.floor(rw/(cw_stripe+cw_gap)),gh=sv*(cw_stripe+cw_gap)-cw_gap,so=(rw-gh)/2,bn=roadR+cw_setback;for(let i=0;i<sv;i++){const sy=roadT+so+i*(cw_stripe+cw_gap);ctx.fillRect(bn,sy,cw_depth,cw_stripe);}}
-  {const sv=Math.floor(rw/(cw_stripe+cw_gap)),gh=sv*(cw_stripe+cw_gap)-cw_gap,so=(rw-gh)/2,bf=roadL-cw_setback;for(let i=0;i<sv;i++){const sy=roadT+so+i*(cw_stripe+cw_gap);ctx.fillRect(bf-cw_depth,sy,cw_depth,cw_stripe);}}
-  ctx.globalAlpha=1.0;
-  ctx.strokeStyle='rgba(255,248,240,.88)'; ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.moveTo(roadL,roadT-cw_setback-cw_depth-6);ctx.lineTo(cx,roadT-cw_setback-cw_depth-6);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx,roadB+cw_setback+cw_depth+6);ctx.lineTo(roadR,roadB+cw_setback+cw_depth+6);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(roadR+cw_setback+cw_depth+6,roadT);ctx.lineTo(roadR+cw_setback+cw_depth+6,cy);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(roadL-cw_setback-cw_depth-6,cy);ctx.lineTo(roadL-cw_setback-cw_depth-6,roadB);ctx.stroke();
-  drawLights(g); drawQueuedCars(g); drawMovingCars(g); drawPedestrians(g); drawDirLabels(g);
+
+  // Note: Grass is drawn in canvas space BEFORE camera transform in frame() function
+  // This ensures full screen coverage regardless of camera position/zoom
+
+  // 1. World decorations (buildings, trees, etc.) — behind roads
+  drawWorld(g);
+
+  // 2. Sidewalks
+  drawSidewalk(g);
+
+  // 3. Roads (no outlines)
+  drawRoads(g);
+
+  // 4. Traffic lights
+  drawLights(g);
+
+  // 5. Vehicles
+  drawQueuedCars(g);
+  drawMovingCars(g);
+
+  // 6. Pedestrians
+  drawPedestrians(g);
+
+  // 7. Direction labels
+  drawDirLabels(g);
 }
 
 function lightColor(dir){const s=STATE.stats;return['N','S'].includes(dir)?s.ns_light:s.ew_light;}
@@ -569,17 +843,17 @@ function drawLights(g){
   ].forEach(({dir,x,y})=>{
     const lc=lightColor(dir);
     const px=x+11, py1=(dir==='N'||dir==='W')?y+60:y, py2=(dir==='N'||dir==='W')?cy-rw/2:cy+rw/2;
-    ctx.strokeStyle='#9a8a9a'; ctx.lineWidth=3;
+    ctx.strokeStyle='#9a8a7a'; ctx.lineWidth=3;
     ctx.beginPath();ctx.moveTo(px,py1);ctx.lineTo(px,py2);ctx.stroke();
     const hx=x,hy=y,hw=22,hh=58,hr=6;
     ctx.save();
-    ctx.shadowColor='rgba(80,60,80,.20)'; ctx.shadowBlur=8; ctx.shadowOffsetX=2; ctx.shadowOffsetY=3;
-    ctx.fillStyle='#958a95';
+    ctx.shadowColor='rgba(80,60,50,.22)'; ctx.shadowBlur=8; ctx.shadowOffsetX=2; ctx.shadowOffsetY=3;
+    ctx.fillStyle='#a0908a';
     ctx.beginPath();ctx.moveTo(hx+hr,hy);ctx.lineTo(hx+hw-hr,hy);ctx.quadraticCurveTo(hx+hw,hy,hx+hw,hy+hr);ctx.lineTo(hx+hw,hy+hh-hr);ctx.quadraticCurveTo(hx+hw,hy+hh,hx+hw-hr,hy+hh);ctx.lineTo(hx+hr,hy+hh);ctx.quadraticCurveTo(hx,hy+hh,hx,hy+hh-hr);ctx.lineTo(hx,hy+hr);ctx.quadraticCurveTo(hx,hy,hx+hr,hy);ctx.closePath();ctx.fill();
     ctx.restore();
-    ctx.strokeStyle='#705b6f'; ctx.lineWidth=1.8;
+    ctx.strokeStyle='#7a6a5a'; ctx.lineWidth=1.8;
     ctx.beginPath();ctx.moveTo(hx+hr,hy);ctx.lineTo(hx+hw-hr,hy);ctx.quadraticCurveTo(hx+hw,hy,hx+hw,hy+hr);ctx.lineTo(hx+hw,hy+hh-hr);ctx.quadraticCurveTo(hx+hw,hy+hh,hx+hw-hr,hy+hh);ctx.lineTo(hx+hr,hy+hh);ctx.quadraticCurveTo(hx,hy+hh,hx,hy+hh-hr);ctx.lineTo(hx,hy+hr);ctx.quadraticCurveTo(hx,hy,hx+hr,hy);ctx.closePath();ctx.stroke();
-    const BULB_ON=['#ffc2bf','#ffeeaa','#c4ddba'], BULB_OFF=['#c8aeae','#d4ceaa','#aac4a8'];
+    const BULB_ON=['#ffc2bf','#ffeeaa','#c4ddba'], BULB_OFF=['#c0aeae','#d0ceaa','#aabfaa'];
     ['red','yellow','green'].forEach((c,i)=>{
       const bx=x+11,by=y+10+i*16,on=lc===c,colOn=BULB_ON[i],colOff=BULB_OFF[i];
       if(on){
@@ -591,10 +865,10 @@ function drawLights(g){
         ctx.fillStyle=bgrd; ctx.shadowColor=colOn; ctx.shadowBlur=10;
       }else{ctx.fillStyle=colOff; ctx.shadowBlur=0;}
       ctx.beginPath();ctx.arc(bx,by,5.5,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#705b6f'; ctx.lineWidth=0.8; ctx.shadowBlur=0;
+      ctx.strokeStyle='#7a6a5a'; ctx.lineWidth=0.8; ctx.shadowBlur=0;
       ctx.beginPath();ctx.arc(bx,by,5.5,0,Math.PI*2);ctx.stroke();
     });
-    ctx.fillStyle='#e8dde8'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
+    ctx.fillStyle='#d0c8b8'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
     ctx.fillText(dir,x+11,y+64);
   });
 }
@@ -721,9 +995,9 @@ function drawDirLabels(g){
    {t:'EAST',x:W-28,y:cy-6,d:'E'},{t:'WEST',x:28,y:cy-6,d:'W'}
   ].forEach(({t,x,y,d})=>{
     const lc=lightColor(d);
-    const c=lc==='green'?'#c4ddba':lc==='yellow'?'#ffeeaa':'#ffc2bf';
+    const c=lc==='green'?'#a8d8a8':lc==='yellow'?'#f8e488':'#f8b8b8';
     ctx.fillStyle=c; ctx.font='bold 10px monospace'; ctx.textAlign='center';
-    ctx.shadowColor='rgba(80,60,80,.35)';ctx.shadowBlur=4;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;
+    ctx.shadowColor='rgba(60,50,40,.45)';ctx.shadowBlur=5;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;
     ctx.fillText(t,x,y);
     ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
   });
@@ -734,6 +1008,14 @@ function frame(now){
   FRAME_DT=Math.min((now-LAST_FRAME)/1000,.05);LAST_FRAME=now;
   if(canvas.width<10||canvas.height<10){resize();}
   if(canvas.width>=10&&canvas.height>=10){
+    // 1. Clear canvas
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    
+    // 2. Draw grass background in canvas space (unfransformed)
+    // This ensures grass fills entire visible screen regardless of camera zoom/pan
+    drawGrass(canvas.width,canvas.height);
+    
+    // 3. Apply camera transform and draw world content
     ctx.save();ctx.translate(CAM.x,CAM.y);ctx.scale(CAM.scale,CAM.scale);
     drawScene();ctx.restore();
   }
@@ -744,7 +1026,7 @@ function updatePhaseBar(){
   const cfg={ns_green:+document.getElementById('sl-green').value,ns_yellow:+document.getElementById('sl-yellow').value,ns_red:+document.getElementById('sl-red').value,ew_green:+document.getElementById('sl-green').value,ew_yellow:+document.getElementById('sl-yellow').value,ew_red:+document.getElementById('sl-red').value};
   const p=STATE.stats.phase||'ns_green',dur=cfg[p]||20,elapsed=Math.max(0,(STATE.stats.sim_time||0)-(STATE.phaseStart||0));
   const phaseProgress=dur>0?Math.min(elapsed/dur,1):1;
-  const c=p.includes('green')?'#c4ddba':p.includes('yellow')?'#ffeeaa':'#ffc2bf';
+  const c=p.includes('green')?'#a8d8a8':p.includes('yellow')?'#f8e488':'#f8b8b8';
   document.getElementById('phase-bar').style.background=`linear-gradient(90deg,${c},${c}aa)`;
   document.getElementById('phase-bar').style.width=(phaseProgress*100)+'%';
   document.getElementById('phase-label').textContent=p.toUpperCase().replace('_',' ');
@@ -774,7 +1056,7 @@ function anClearSession(){anSession=anST();['an-passed','an-wait','an-cycles','a
 function anEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function anExportJson(){anDl(new Blob([JSON.stringify({session_id:anSession.id,exported_at:new Date().toISOString(),config:anSession.config||{},summary:anSession.statsSummary||{},queue_history:anSession.queueSnapshots||[],phase_events:anSession.phaseEvents||[],vehicle_events:anSession.vehicleEvents||[]},null,2)],{type:'application/json'}),`stimulation_session_${Date.now()}.json`);}
 function anExportCsv(){const rows=['sim_time,queue_N,queue_S,queue_E,queue_W'];(anSession.queueSnapshots||[]).forEach(r=>rows.push(`${r.sim_time},${r.N},${r.S},${r.E},${r.W}`));anDl(new Blob([rows.join('\n')],{type:'text/csv'}),`stimulation_queues_${Date.now()}.csv`);}
-function anExportPdf(){const s=anSession.statsSummary||{},r=document.createElement('div');r.style.cssText="font-family:'JetBrains Mono',monospace;color:#5a4a6a;padding:24px";r.innerHTML=`<h1 style="margin:0 0 6px;font-size:20px">🐱 sTIMulation Report</h1><div style="font-size:12px;color:#8a7a9a;margin-bottom:14px">Session: <strong>${anEsc(anSession.id)}</strong></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="border:1px solid #f9a8c9;padding:8px;border-radius:8px;background:#fdf6f0">Passed: <b>${anEsc(s.total_passed??0)}</b></div><div style="border:1px solid #a8d8ea;padding:8px;border-radius:8px;background:#fdf6f0">Avg Wait: <b>${anEsc(((s.avg_wait??0)).toFixed(2))}s</b></div><div style="border:1px solid #c9b8e8;padding:8px;border-radius:8px;background:#fdf6f0">Cycles: <b>${anEsc(s.cycles??0)}</b></div><div style="border:1px solid #b8e0cc;padding:8px;border-radius:8px;background:#fdf6f0">Sim Time: <b>${anEsc(s.sim_time??0)}s</b></div></div>`;if(window.html2pdf){window.html2pdf().set({margin:.5,filename:`stimulation_report_${Date.now()}.pdf`,image:{type:'jpeg',quality:.96},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'in',format:'letter',orientation:'portrait'}}).from(r).save();}else{alert('PDF export unavailable.');}}
+function anExportPdf(){const s=anSession.statsSummary||{},r=document.createElement('div');r.style.cssText="font-family:'JetBrains Mono',monospace;color:#5a4a6a;padding:24px";r.innerHTML=`<h1 style="margin:0 0 6px;font-size:20px">🌿 sTIMulation Report</h1><div style="font-size:12px;color:#8a7a9a;margin-bottom:14px">Session: <strong>${anEsc(anSession.id)}</strong></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="border:1px solid #f9a8c9;padding:8px;border-radius:8px;background:#fdf6f0">Passed: <b>${anEsc(s.total_passed??0)}</b></div><div style="border:1px solid #a8d8ea;padding:8px;border-radius:8px;background:#fdf6f0">Avg Wait: <b>${anEsc(((s.avg_wait??0)).toFixed(2))}s</b></div><div style="border:1px solid #c9b8e8;padding:8px;border-radius:8px;background:#fdf6f0">Cycles: <b>${anEsc(s.cycles??0)}</b></div><div style="border:1px solid #b8e0cc;padding:8px;border-radius:8px;background:#fdf6f0">Sim Time: <b>${anEsc(s.sim_time??0)}s</b></div></div>`;if(window.html2pdf){window.html2pdf().set({margin:.5,filename:`stimulation_report_${Date.now()}.pdf`,image:{type:'jpeg',quality:.96},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'in',format:'letter',orientation:'portrait'}}).from(r).save();}else{alert('PDF export unavailable.');}}
 function anDl(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}
 
 
@@ -803,7 +1085,7 @@ function restoreCachedConfig(){try{const c=localStorage.getItem('stimulation:las
 
 socket.on('connect',()=>{
   setConnBadge('connected');
-  addLog({msg:'Connected to sTIMulation!',cls:'green',sim_time:0});
+  addLog({msg:'Connected to sTIMulation! 🌿',cls:'green',sim_time:0});
   refreshSimulatorContext();
 });
 socket.on('disconnect',()=>setConnBadge('disconnected'));
@@ -834,55 +1116,27 @@ socket.on('reset',()=>{
 });
 
 socket.on('ack',data=>{
-  console.log('[SOCKET] ACK received:',data);
-  if(data.action==='start'){
-    STATE.simRunning=true; STATE.simPaused=false;
-    updateButtonStates();
-  }
-  if(data.action==='reset'){
-    STATE.simRunning=false; STATE.simPaused=false;
-    updateButtonStates();
-  }
-  if('paused' in data){
-    STATE.simPaused=data.paused;
-    updateButtonStates();
-  }
+  if(data.action==='start'){STATE.simRunning=true;STATE.simPaused=false;updateButtonStates();}
+  if(data.action==='reset'){STATE.simRunning=false;STATE.simPaused=false;updateButtonStates();}
+  if('paused' in data){STATE.simPaused=data.paused;updateButtonStates();}
 });
 
-/* ═══════════════════════════════════════════════════════════════════
-   updateButtonStates — single function, three clear states.
-   STOPPED : Show Start,  hide Pause/Resume. Reset always visible.
-   RUNNING : Hide Start,  show Pause  (yellow tint).
-   PAUSED  : Hide Start,  show Resume (blue tint).
-   btn-reset is never touched — it stays visible in all states.
-   ═══════════════════════════════════════════════════════════════════ */
 function updateButtonStates(){
-  const btnStart = document.getElementById('btn-start');
-  const btnPause = document.getElementById('btn-pause');
-
+  const btnStart=document.getElementById('btn-start');
+  const btnPause=document.getElementById('btn-pause');
   if(STATE.simRunning){
-    // Running or paused — hide Start, show Pause/Resume
     btnStart.style.display='none';
     btnPause.style.display='';
-
     if(STATE.simPaused){
-      // PAUSED state — show Resume in cyan/blue
-      btnPause.classList.remove('active-yellow');
-      btnPause.classList.add('active-blue');
+      btnPause.classList.remove('active-yellow');btnPause.classList.add('active-blue');
       btnPause.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><polygon points="2,1 9,5 2,9"/></svg>Resume';
-    } else {
-      // RUNNING state — show Pause in peach/yellow
-      btnPause.classList.remove('active-blue');
-      btnPause.classList.add('active-yellow');
+    }else{
+      btnPause.classList.remove('active-blue');btnPause.classList.add('active-yellow');
       btnPause.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><rect x="2" y="1" width="2.5" height="8"/><rect x="5.5" y="1" width="2.5" height="8"/></svg>Pause';
     }
-  } else {
-    // STOPPED state — show Start, hide Pause/Resume
-    btnStart.style.display='';
-    btnStart.classList.remove('active-green');
-    btnPause.style.display='none';
-    btnPause.classList.remove('active-yellow','active-blue');
-    // Reset pause button label to default for next run
+  }else{
+    btnStart.style.display='';btnStart.classList.remove('active-green');
+    btnPause.style.display='none';btnPause.classList.remove('active-yellow','active-blue');
     btnPause.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-right:4px;vertical-align:middle"><rect x="2" y="1" width="2.5" height="8"/><rect x="5.5" y="1" width="2.5" height="8"/></svg>Pause';
   }
 }
@@ -891,8 +1145,8 @@ function updateStatsUI(d){
   document.getElementById('hdr-time').textContent='T = '+Math.round(d.sim_time)+'s';
   document.getElementById('hdr-cycles').textContent='Cycle '+d.cycles;
   const nsL=d.ns_light||'red',ewL=d.ew_light||'red';
-  const nsc=nsL==='green'?'#c4ddba':nsL==='yellow'?'#ffeeaa':'#ffc2bf';
-  const ewc=ewL==='green'?'#c4ddba':ewL==='yellow'?'#ffeeaa':'#ffc2bf';
+  const nsc=nsL==='green'?'#a8d8a8':nsL==='yellow'?'#f8e488':'#f8b8b8';
+  const ewc=ewL==='green'?'#a8d8a8':ewL==='yellow'?'#f8e488':'#f8b8b8';
   document.getElementById('sb-ns').textContent=nsL.toUpperCase();
   document.getElementById('sb-ns').style.color=nsc;
   document.getElementById('sb-ew').textContent=ewL.toUpperCase();
@@ -912,7 +1166,7 @@ function updatePhaseHeaders(data){
 
 const MAX_LOGS=80,logScroll=document.getElementById('log-scroll');
 function addLog(entry){STATE.logs.unshift(entry);if(STATE.logs.length>MAX_LOGS)STATE.logs.pop();renderLog();}
-function renderLog(){logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>`<div class="log-entry"><span class="log-time">${(l.sim_time||0).toFixed(1)}s</span><span class="log-msg c-${l.cls||'gray'}">${l.msg}</span></div>`).join('');}
+function renderLog(){logScroll.innerHTML=STATE.logs.slice(0,50).map(l=>{const cls=['green','yellow','red','blue','gray'].includes(l.cls)?l.cls:'gray';return `<div class="log-entry"><span class="log-time">${anEsc((l.sim_time||0).toFixed(1))}s</span><span class="log-msg c-${cls}">${anEsc(l.msg)}</span></div>`;}).join('');}
 
 function applyConfigToUI(cfg){
   if(!cfg)return;
@@ -939,17 +1193,16 @@ function syncRuntimeState(data){
 }
 
 function getConfig(){return{green:+document.getElementById('sl-green').value,yellow:+document.getElementById('sl-yellow').value,red:+document.getElementById('sl-red').value,scenario:document.getElementById('sel-scenario').value,road_type:+document.getElementById('sel-road').value,right_turn:document.getElementById('ck-rturn').checked,speed:+document.getElementById('sl-speed').value,seed:+document.getElementById('sl-seed').value};}
-function cmdStart(){ console.log('[CMD] start'); socket.emit('cmd_start',getConfig()); }
-function cmdPause(){ console.log('[CMD] pause'); socket.emit('cmd_pause'); }
-function cmdReset(){ console.log('[CMD] reset'); socket.emit('cmd_reset',getConfig()); }
+function cmdStart(){socket.emit('cmd_start',getConfig());}
+function cmdPause(){socket.emit('cmd_pause');}
+function cmdReset(){socket.emit('cmd_reset',getConfig());}
 
 function onCfgChange(){
   const cfg={green_duration:+document.getElementById('sl-green').value,yellow_duration:+document.getElementById('sl-yellow').value,red_duration:+document.getElementById('sl-red').value,scenario:document.getElementById('sel-scenario').value,road_type:+document.getElementById('sel-road').value,right_turn_free:document.getElementById('ck-rturn').checked,speed_factor:+document.getElementById('sl-speed').value,seed:+document.getElementById('sl-seed').value};
   localStorage.setItem('stimulation:lastConfig',JSON.stringify(cfg));
   socket.emit('cmd_update_config',cfg);
   applyConfigToUI(cfg);
-  _rebuildBuildings();
 }
-</script>
-</body>
+    </script>
+  </body>
 </html>

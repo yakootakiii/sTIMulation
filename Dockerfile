@@ -12,6 +12,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . /app
 
-EXPOSE 5000
+EXPOSE 5001 5002 5003
 
 CMD ["python", "app.py"]
