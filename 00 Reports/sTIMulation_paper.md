@@ -1094,7 +1094,7 @@ python app.py
 
 **Figure F.1a: Average Wait Time by Scenario and Road Configuration**
 
-![Average Wait Time](assets/paper_charts/chart_01_wait_time.png)
+![Average Wait Time](../assets/paper_charts/chart_01_wait_time.png)
 
 *Figure F.1a shows average vehicle wait time across all scenarios and road configurations. Wait times increase dramatically with traffic intensity, with emergency scenario seeing 12× longer waits than low traffic. Road widening (2→6 lanes) reduces wait time by 35-46% across all scenarios.*
 
@@ -1106,7 +1106,7 @@ python app.py
 
 **Figure F.1b: Intersection Throughput by Scenario and Road Configuration**
 
-![Throughput by Scenario](assets/paper_charts/chart_02_throughput.png)
+![Throughput by Scenario](../assets/paper_charts/chart_02_throughput.png)
 
 *Figure F.1b displays throughput (vehicles per cycle) for each configuration. The 6-lane configuration achieves 2.5× higher throughput than 2-lane under normal conditions. Rush hour throughput paradoxically decreases due to queue saturation effects.*
 
@@ -1118,7 +1118,7 @@ python app.py
 
 **Figure F.1c: Maximum Queue Length by Scenario and Road Configuration**
 
-![Queue Depth](assets/paper_charts/chart_03_queue_depth.png)
+![Queue Depth](../assets/paper_charts/chart_03_queue_depth.png)
 
 *Figure F.1c shows peak queue lengths, critical for intersection sizing. Emergency scenarios reach 42 vehicles in 2-lane configuration but only 15 in 6-lane—demonstrating that physical capacity directly limits queue buildup and, consequently, reduces wait times.*
 
@@ -1132,7 +1132,7 @@ python app.py
 
 **Figure F.2: Cumulative Vehicle Throughput Over Time**
 
-![Cumulative Throughput](assets/paper_charts/chart_04_cumulative_throughput.png)
+![Cumulative Throughput](../assets/paper_charts/chart_04_cumulative_throughput.png)
 
 *Figure F.2 displays cumulative vehicle throughput for each traffic scenario over 8-minute simulation. Emergency scenario achieves the steepest gradient (≈48 veh/min steady state), while low traffic remains linear at ≈12 veh/min. All scenarios exhibit transient phase adjustment during the first 120 seconds, after which steady-state throughput is established.*
 
@@ -1140,7 +1140,7 @@ python app.py
 
 **Figure F.3 (Heatmap): Average Wait Time by Green Duration and All-Red Clearance**
 
-![Optimization Heatmap](assets/paper_charts/chart_07_optimization_heatmap.png)
+![Optimization Heatmap](../assets/paper_charts/chart_07_optimization_heatmap.png)
 
 *Figure F.3 visualizes average wait time across green duration (15–35s, shown as rows) and all-red clearance (0.5–1.5s, shown as columns) during rush hour. The optimal zone (marked by minimum wait times) appears centered at green 25–30s and all-red 1.0s. Performance deteriorates in the corners: very short all-red (0.5s) fails safety clearance, while longer all-red (1.5s) wastes cycle time.*
 
@@ -1170,7 +1170,7 @@ python app.py
 
 **Figure F.4: Fundamental Traffic Flow Diagram**
 
-![Fundamental Diagram](assets/paper_charts/chart_05_fundamental_diagram.png)
+![Fundamental Diagram](../assets/paper_charts/chart_05_fundamental_diagram.png)
 
 *Figure F.4 displays the fundamental traffic flow relationship: flow rate vs. density. Three distinct regions emerge: (1) Uncongested (0–20 veh/250m), where flow increases linearly; (2) Capacity (18–22 veh/250m), where flow peaks at ~75 veh/min; (3) Congested (22–50 veh/250m), where further density increases reduce flow due to vehicle-following constraints. The critical density (~20 veh/250m) marks the transition to congestion.*
 
@@ -1184,7 +1184,7 @@ python app.py
 
 **Figure F.5: Signal Timing Impact—Wait Time and Cycle Time vs. Green Duration**
 
-![Green Duration Impact](assets/paper_charts/chart_06_green_duration_impact.png)
+![Green Duration Impact](../assets/paper_charts/chart_06_green_duration_impact.png)
 
 *Figure F.5 (left panel) shows average wait time declining steeply as green duration increases from 10s to 30s, then plateauing beyond 30s. Three zones are evident: (1) Deficit (10–20s): High marginal benefit (−0.35s per second), critical shortage of green time; (2) Optimal (20–30s): Moderate benefit (−0.15s per second), efficient cycle length (50–60s); (3) Diminishing returns (30–40s): Low benefit (−0.02s per second), cycle time becomes impractical (70–90s). The right panel displays total cycle time growth, which becomes problematic beyond 35s green duration. Recommended operating point: 25–28s green duration.*
 
@@ -1192,7 +1192,7 @@ python app.py
 
 **Figure F.6: Webster's Formula vs. Simulation Results**
 
-![Webster Comparison](assets/paper_charts/chart_09_webster_comparison.png)
+![Webster Comparison](../assets/paper_charts/chart_09_webster_comparison.png)
 
 *Figure F.6 compares Webster's classical optimization formula (1958) predictions against simulation results for normal traffic (4-lane). Webster predicts 40s optimal cycle; simulation shows 50–60s is optimal. The formula estimates 15.2s average delay, while simulation measures only 3.1s. Key differences: (1) Webster optimizes for deterministic arrivals; simulation includes stochastic demand and platoon effects; (2) Webster targets maximum queue delay; simulation measures continuous flow delay; (3) Real intersections benefit from 25–35% longer greens than Webster suggests to accommodate demand variability.*
 
@@ -1202,7 +1202,7 @@ python app.py
 
 **Figure F.7: Parameter Sensitivity Analysis—Impact Ranking**
 
-![Sensitivity Analysis](assets/paper_charts/chart_08_sensitivity.png)
+![Sensitivity Analysis](../assets/paper_charts/chart_08_sensitivity.png)
 
 *Figure F.7 ranks parameters by their elasticity (% change in wait time per 1% parameter change). Green duration dominates with elasticity −0.63 (CRITICAL), meaning a 10% increase in green time reduces wait time by ~6.3%. Lane capacity (−0.50) is nearly as important. Yellow duration and all-red clearance have moderate effects (−0.18, −0.15), while arrival rate variability and RTOR rule are minor (≤±0.10). This ranking reveals where to prioritize tuning efforts: (1) Green duration optimization delivers maximum benefit; (2) Road widening (capacity) rivals signal timing; (3) Fine-tuning phase lengths has minimal impact.*
 
