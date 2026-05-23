@@ -1091,8 +1091,15 @@ async function fetchMetrics() {
     const r = await fetch('/api/metrics');
     if (!r.ok) return;
     const data = await r.json();
-    if (data && data.sim_time === 0 && data.total_passed === 0 && data.cycles === 0) { resetSession(); return; }
-    handleStats(data);
+    // Only reset if we have an active session that was running (detects actual simulation reset)
+    // Don't reset just because metrics are 0 - causes false resets during page navigation
+    if (data && data.sim_time === 0 && data.total_passed === 0 && data.cycles === 0 && session.startTime && lastSimTime > 0) { 
+      resetSession(); 
+      return; 
+    }
+    if (data && (data.sim_time > 0 || data.total_passed > 0)) {
+      handleStats(data);
+    }
   } catch(_) {}
 }
 async function fetchStatus() {
@@ -1131,6 +1138,12 @@ socket.on('vehicle_move',  data  => handleVehicleMove(data));
 socket.on('vehicle_exit',  ()    => {});
 socket.on('log',           entry => addLog(entry));
 socket.on('reset',         ()    => resetSession());
+
+// Restore session state when returning to analytics page (e.g., from simulator)
+window.addEventListener('pageshow', () => {
+  restoreState();
+  if (!socket.connected) { startPolling(); }
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    BUTTON BINDINGS
@@ -1227,6 +1240,14 @@ if (document.readyState === 'loading') {
 } else {
   safeInit();
 }
+
+// Restore state on tab focus (when user switches back to this tab)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden === false) {
+    restoreState();
+    if (!socket.connected) startPolling();
+  }
+});
 </script>
 </body>
 </html>
