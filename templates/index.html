@@ -48,7 +48,7 @@ header {
 .pill-red    { color:#d47878; border-color:var(--red-border);     background:var(--red-bg); }
 .pill-blue   { color:var(--cyan-dim); border-color:var(--cyan-border); background:var(--cyan-bg); }
 .pill-gray   { color:var(--text2); border-color:var(--border2); background:rgba(168,216,234,.08); }
-#canvas-wrap { position:relative; overflow:hidden; width:100%; height:100%; min-height:0; }
+#canvas-wrap { position:relative; overflow:hidden; width:100%; height:100%; min-height:0; background:#b8d48a; }
 canvas#c { display:block; position:absolute; top:0; left:0; }
 #status-bar {
   position:absolute; bottom:0; left:0; right:0; height:var(--status-h);
@@ -470,32 +470,25 @@ function drawSprite(img, x, y, w, h, alpha=1, shadow=false){
 let _grassPatternCache = null;
 
 function drawGrass(W, H){
-  // Rebuild pattern if needed
   if (!_grassPatternCache && ASSETS.grass.ready && ASSETS.grass.naturalWidth > 0) {
     _grassPatternCache = ctx.createPattern(ASSETS.grass, 'repeat');
   }
-
-  // Save transform, reset to identity for canvas-space drawing
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  
   if (_grassPatternCache) {
-    // Draw tiled grass pattern
+    // Reset pattern transform so tiling anchors to canvas origin
+    _grassPatternCache.setTransform(new DOMMatrix());
     ctx.fillStyle = _grassPatternCache;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else {
-    // Fallback solid color while texture loads
-    ctx.fillStyle = '#c5dfa0';
+    ctx.fillStyle = '#b8d48a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
-
-  // Subtle depth vignette in canvas space (ensures full screen coverage)
-  const vgrd = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.85);
+  const vgrd = ctx.createRadialGradient(canvas.width/2, canvas.height/2, Math.min(canvas.width,canvas.height)*0.25, canvas.width/2, canvas.height/2, Math.max(canvas.width,canvas.height)*0.85);
   vgrd.addColorStop(0, 'transparent');
   vgrd.addColorStop(1, 'rgba(80,110,50,.07)');
   ctx.fillStyle = vgrd;
-  ctx.fillRect(0, 0, W, H);
-  
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
 }
 
