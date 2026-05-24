@@ -1,0 +1,38 @@
+[
+  {
+    "name": "chart_01",
+    "mmd": "assets/paper_charts/chart_01.mmd"
+  },
+  {
+    "name": "chart_02",
+    "mmd": "assets/paper_charts/chart_02.mmd"
+  },
+  {
+    "name": "chart_03",
+    "mmd": "assets/paper_charts/chart_03.mmd"
+  },
+  {
+    "name": "chart_04",
+    "mmd": "assets/paper_charts/chart_04.mmd"
+  },
+  {
+    "name": "chart_05",
+    "mmd": "assets/paper_charts/chart_05.mmd"
+  },
+  {
+    "name": "chart_06",
+    "mmd": "assets/paper_charts/chart_06.mmd"
+  },
+  {
+    "name": "chart_07",
+    "mmd": "assets/paper_charts/chart_07.mmd"
+  },
+  {
+    "name": "chart_08",
+    "mmd": "assets/paper_charts/chart_08.mmd"
+  },
+  {
+    "name": "chart_09",
+    "mmd": "assets/paper_charts/chart_09.mmd"
+  }
+]
